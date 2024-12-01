@@ -129,6 +129,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+cuttle-bot/
 
 # Spyder project settings
 .spyderproject
