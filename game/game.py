@@ -52,6 +52,11 @@ if __name__ == "__main__":
     game = Game()
 
     print(game.game_state.deck)
+    print(game.game_state.hands[0])
+    print(game.game_state.hands[1])
+
+    print(game.game_state.get_legal_actions())
+    
 
 
 

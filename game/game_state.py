@@ -27,13 +27,16 @@ class GameState:
         self.discard_pile = discard_pile
         self.turn = 0 # 0 for p0, 1 for p1
         self.status = None
+        self.resolving_two = False
+        self.resolving_one_off = False
+
 
     def is_game_over(self) -> bool:
         return self.winner() is not None
     
     def get_player_score(self, player: int) -> int:
         hand = self.hands[player]
-        point_cards = [card for card in hand if card.rank.value <= Rank.TEN.value and card.purpose == Purpose.POINTS]
+        point_cards = [card for card in hand if card.rank.value[1] <= Rank.TEN.value[1]]
 
         return sum([card.rank.value for card in point_cards])
     
@@ -57,5 +60,24 @@ class GameState:
         pass
 
     def get_legal_actions(self):
+        player = self.turn
+
+        actions = []
+
+        hand = self.hands[player]
+
+        if len(hand) < 8:
+            actions.append("Draw")
+        
+        point_cards = [card for card in hand if card.is_point_card()]
+        face_cards = [card for card in hand if card.is_face_card()]
+
+        for card in point_cards:
+            actions.append(f"Play {card} as points")
+        
+        for card in hand:
+            actions.append(f"Play {card} as one-off")
+        
+
         # Return a list of legal actions based on the current game state
-        pass
+        return actions

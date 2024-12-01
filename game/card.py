@@ -18,7 +18,7 @@ class Card:
         self.purpose = purpose
     
     def __str__(self):
-        return f"{self.rank} of {self.suit}"
+        return f"{self.rank.value[0]} of {self.suit.value[0]}"
     
     def __repr__(self):
         return self.__str__()
@@ -26,6 +26,12 @@ class Card:
     def clear_player_info(self):
         self.played_by = None
         self.purpose = None
+    
+    def is_point_card(self) -> bool:
+        return self.rank.value[1] <= Rank.TEN.value[1] 
+    
+    def is_face_card(self) -> bool:
+        return self.rank.value[1] >= Rank.JACK.value[1] or self.rank.value[1] == Rank.EIGHT.value[1]
 
 
 
@@ -33,33 +39,33 @@ class Suit(Enum):
     """
     An Enum class that represents a suit of a card.
     """
-    CLUBS = 0
-    DIAMONDS = 1
-    HEARTS = 2
-    SPADES = 3
+    CLUBS = ("Clubs", 0)
+    DIAMONDS = ("Diamonds", 1)
+    HEARTS = ("Hearts", 2)
+    SPADES = ("Spades", 3)
 
 class Rank(Enum):
     """
     An Enum class that represents a rank of a card.
     """
-    ACE = 1
-    TWO = 2
-    THREE = 3
-    FOUR = 4
-    FIVE = 5
-    SIX = 6
-    SEVEN = 7
-    EIGHT = 8
-    NINE = 9
-    TEN = 10
-    JACK = 11
-    QUEEN = 12
-    KING = 13
+    ACE = ("Ace", 1)
+    TWO = ("Two", 2)
+    THREE = ("Three", 3)
+    FOUR = ("Four", 4)
+    FIVE = ("Five", 5)
+    SIX = ("Six", 6)
+    SEVEN = ("Seven", 7)
+    EIGHT = ("Eight", 8)
+    NINE = ("Nine", 9)
+    TEN = ("Ten", 10)
+    JACK = ("Jack", 11)
+    QUEEN = ("Queen", 12)
+    KING = ("King", 13)
 
 class Purpose(Enum):
     """
     An Enum class that represents a purpose of a card.
     """
-    POINTS = 0
-    FACE_CARD = 1
-    ONE_OFF = 2
+    POINTS = "Points"
+    FACE_CARD = "Face Card"
+    ONE_OFF = "One Off"
