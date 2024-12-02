@@ -27,7 +27,7 @@ class Action:
         elif self.action_type == ActionType.ONE_OFF:
             return f"Play {self.card} as one-off"
         elif self.action_type == ActionType.SCUTTLE:
-            return f"Scuttle {self.target} on {self.target.played_by}'s field with {self.card}"
+            return f"Scuttle {self.target} on P{self.target.played_by}'s field with {self.card}"
         elif self.action_type == ActionType.DRAW:
             return "Draw a card from deck"
     

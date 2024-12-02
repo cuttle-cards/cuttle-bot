@@ -92,6 +92,9 @@ class GameState:
             if won:
                 should_stop = True
                 return should_stop, self.winner()
+        elif action.action_type == ActionType.SCUTTLE:
+            self.scuttle(action.card, action.target)
+        
         pass
 
     def draw_card(self):
@@ -102,6 +105,7 @@ class GameState:
         # play a points card
         self.hands[self.turn].remove(card)
         card.purpose = Purpose.POINTS
+        card.played_by = self.turn
         self.fields[self.turn].append(card)
 
         # check if the player has won
@@ -110,7 +114,17 @@ class GameState:
             self.status = "win"
             return True
         return False
-
+    
+    def scuttle(self, card: Card, target: Card):
+        # scuttle a points card
+        card.played_by = self.turn
+        self.hands[card.played_by].remove(card)
+        card.clear_player_info()
+        self.discard_pile.append(card)
+        self.fields[target.played_by].remove(target)
+        target.clear_player_info()
+        self.discard_pile.append(target)
+    
 
     def get_legal_actions(self):
         """
@@ -126,7 +140,7 @@ class GameState:
         hand = self.hands[player]
         opponent_fields = self.fields[:player] + self.fields[player + 1:]
 
-        if len(hand) < 8:
+        if len(hand) < 8 and len(self.deck) > 0:
             draw_action = Action(ActionType.DRAW, None, None)
             actions.append(draw_action)
         
@@ -140,12 +154,12 @@ class GameState:
             actions.append(f"Play {card} as one-off")
 
         # scuttle
-        for card in hand:
+        for point_card in point_cards:
             for opponent_field , opponent_player in zip(opponent_fields, range(len(opponent_fields))):
                 opponent_field_point_cards = [card for card in opponent_field if card.is_point_card()]
                 for opponent_point_card in opponent_field_point_cards:
-                    if card.point_value() > opponent_point_card.point_value() or (card.point_value() == opponent_point_card.point_value() and card.suit_value()> opponent_point_card.suit_value()):
-                        actions.append(f"Scuttle {opponent_point_card} on {opponent_player}'s field with {card}")
+                    if point_card.point_value() > opponent_point_card.point_value() or (point_card.point_value() == opponent_point_card.point_value() and point_card.suit_value()> opponent_point_card.suit_value()):
+                        actions.append(Action(ActionType.SCUTTLE, point_card, opponent_point_card))
         
 
         for card in face_cards:
