@@ -28,10 +28,16 @@ class Card:
         self.purpose = None
     
     def is_point_card(self) -> bool:
-        return self.rank.value[1] <= Rank.TEN.value[1] 
+        return self.point_value() <= Rank.TEN.value[1] 
+    
+    def point_value(self) -> int:
+        return self.rank.value[1]
+    
+    def suit_value(self) -> int:
+        return self.suit.value[1]
     
     def is_face_card(self) -> bool:
-        return self.rank.value[1] >= Rank.JACK.value[1] or self.rank.value[1] == Rank.EIGHT.value[1]
+        return self.point_value()>= Rank.JACK.value[1] or self.point_value() == Rank.EIGHT.value[1]
 
 
 
