@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from card import Card
+from game.card import Card
 from enum import Enum
 
 class Action:

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from typing import List
-from card import Card, Purpose, Rank
-from action import Action, ActionType
+from game.card import Card, Purpose, Rank
+from game.action import Action, ActionType
 
 class GameState:
     """
