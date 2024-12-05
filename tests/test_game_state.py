@@ -1,5 +1,5 @@
 import unittest
-from game.card import Card, Suit, Rank
+from game.card import Card, Purpose, Suit, Rank
 from game.game_state import GameState
 
 class TestGameState(unittest.TestCase):
@@ -34,9 +34,23 @@ class TestGameState(unittest.TestCase):
     def test_get_player_target(self):
         self.assertEqual(self.game_state.get_player_target(0), 21)
         self.assertEqual(self.game_state.get_player_target(1), 21)
+        self.fields[0].append(Card("", Suit.HEARTS, Rank.KING, played_by=0))
+        self.assertEqual(self.game_state.get_player_target(0), 14)
+        self.fields[0].append(Card("", Suit.CLUBS, Rank.KING, played_by=0))
+        self.assertEqual(self.game_state.get_player_target(0), 10)
+        self.fields[0].append(Card("", Suit.DIAMONDS, Rank.KING, played_by=0))
+        self.assertEqual(self.game_state.get_player_target(0), 5)
+        self.fields[0].append(Card("", Suit.SPADES, Rank.KING, played_by=0))
+        self.assertEqual(self.game_state.get_player_target(0), 0)
 
     def test_is_winner(self):
         self.assertFalse(self.game_state.is_winner(0))
+        self.assertFalse(self.game_state.is_winner(1))
+        p0_new_cards = [Card("", Suit.HEARTS, Rank.KING, played_by=0), Card("", Suit.CLUBS, Rank.KING, played_by=0), Card("", Suit.DIAMONDS, Rank.TEN, purpose=Purpose.POINTS, played_by=0)]
+        self.fields[0].extend(p0_new_cards)
+        self.assertEqual(self.game_state.get_player_score(0), 10)
+        self.assertEqual(self.game_state.get_player_target(0), 10)
+        self.assertTrue(self.game_state.is_winner(0))
         self.assertFalse(self.game_state.is_winner(1))
 
     def test_winner(self):
@@ -49,6 +63,17 @@ class TestGameState(unittest.TestCase):
         self.game_state.draw_card()
         self.assertEqual(len(self.game_state.hands[0]), 6)
         self.assertEqual(len(self.game_state.deck), 9)
+        self.game_state.draw_card()
+        self.assertEqual(len(self.game_state.hands[0]), 7)
+        self.assertEqual(len(self.game_state.deck), 8)
+        self.game_state.draw_card()
+        self.assertEqual(len(self.game_state.hands[0]), 8)
+        self.assertEqual(len(self.game_state.deck), 7)
+        
+        with self.assertRaises(Exception):
+            self.game_state.draw_card()
+            self.assertEqual(len(self.game_state.hands[0]), 8)
+            self.assertEqual(len(self.game_state.deck), 7)
 
     def test_play_points(self):
         card = self.hands[0][0]

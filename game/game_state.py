@@ -41,7 +41,7 @@ class GameState:
     def get_player_score(self, player: int) -> int:
         hand = self.hands[player]
         field = self.fields[player]
-        point_cards = [card for card in field if card.rank.value[1] <= Rank.TEN.value[1] and card.purpose == Purpose.POINTS]
+        point_cards = [card for card in field if card.point_value() <= Rank.TEN.value[1] and card.purpose == Purpose.POINTS]
 
 
         return sum([card.point_value() for card in point_cards])
@@ -98,8 +98,12 @@ class GameState:
         pass
 
     def draw_card(self):
+        # if player has 8 cards, raise exception
+        if len(self.hands[self.turn]) == 8:
+            raise Exception("Player has 8 cards, cannot draw")
         # draw a card from the deck
         self.hands[self.turn].append(self.deck.pop())
+
     
     def play_points(self, card: Card):
         # play a points card
