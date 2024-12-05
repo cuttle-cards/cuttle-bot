@@ -75,3 +75,4 @@ class Purpose(Enum):
     POINTS = "Points"
     FACE_CARD = "Face Card"
     ONE_OFF = "One Off"
+    COUNTER = "Counter"

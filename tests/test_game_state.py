@@ -90,5 +90,33 @@ class TestGameState(unittest.TestCase):
         self.assertIn(target, self.game_state.discard_pile)
         self.assertNotIn(target, self.game_state.fields[1])
 
+    def test_play_one_off(self):
+        counter_card = Card("counter", Suit.HEARTS, Rank.TWO, played_by=1, purpose=Purpose.COUNTER)
+        
+        self.hands[1].append(counter_card)
+
+        card = self.hands[0][0]
+        finished, played_by = self.game_state.play_one_off(0, card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+
+        finished, played_by = self.game_state.play_one_off(1, card, countered_with=counter_card)
+        self.assertFalse(finished)
+        self.assertEqual(played_by, 1)
+        self.assertNotEqual(self.game_state.turn, played_by)
+
+        counter_card_0 = Card("counter2", Suit.DIAMONDS, Rank.TWO, played_by=0, purpose=Purpose.COUNTER)
+        self.hands[0].append(counter_card_0)
+
+        finished, played_by = self.game_state.play_one_off(0, card, countered_with=counter_card_0)
+        self.assertFalse(finished)
+        self.assertEqual(played_by, 0)
+
+        finished, played_by = self.game_state.play_one_off(1, card, last_resolved_by=1)
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+        self.assertIn(card, self.game_state.discard_pile)
+        self.assertNotIn(card, self.game_state.hands[0])
+
 if __name__ == '__main__':
     unittest.main()

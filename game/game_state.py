@@ -97,12 +97,19 @@ class GameState:
         
         pass
 
-    def draw_card(self):
+    def draw_card(self, count: int = 1):
+        """
+        Draw a card from the deck.
+
+        Args:
+            count (int): The number of cards to draw. Defaults to 1. If played a 5, draw 2 cards.
+        """
         # if player has 8 cards, raise exception
         if len(self.hands[self.turn]) == 8:
             raise Exception("Player has 8 cards, cannot draw")
         # draw a card from the deck
-        self.hands[self.turn].append(self.deck.pop())
+        for _ in range(count):
+            self.hands[self.turn].append(self.deck.pop())
 
     
     def play_points(self, card: Card):
@@ -128,7 +135,52 @@ class GameState:
         self.fields[target.played_by].remove(target)
         target.clear_player_info()
         self.discard_pile.append(target)
-    
+
+    def play_one_off(self, player: int, card: Card, countered_with: Card = None, last_resolved_by: int = None):
+        """
+        Play a one-off card.
+        """
+        # Initial play requires additional input
+        if player == self.turn and countered_with is None and last_resolved_by is None:
+            return False, None
+        
+        # countered with a Two, needs the other player to counter/resolve
+        if countered_with is not None:
+            if card.point_value() != 2:
+                raise Exception("Counter must be a 2")
+            if countered_with.purpose != Purpose.COUNTER:
+                raise Exception(f"Counter must be with a purpose of counter, instead got {card.purpose}")
+            
+            played_by = countered_with.played_by
+            self.hands[played_by].remove(countered_with)
+            self.discard_pile.append(countered_with)
+            countered_with.clear_player_info()
+
+            return False, played_by
+        else:
+            # No counter
+            # If last action was opponent (resolve)
+            # the one off is played
+            if last_resolved_by != player:
+                self.hands[self.turn].remove(card)
+                card.purpose = Purpose.ONE_OFF
+                self.apply_one_off_effect(card)
+            else:
+            # Last action was player (resolve)
+            # countered by opponent
+            # the one off is not played
+            # but the card is moved to scrap since it was countered
+                self.hands[self.turn].remove(card)
+                self.discard_pile.append(card)
+                card.clear_player_info()
+
+        return True, None
+
+
+    def apply_one_off_effect(self, card: Card):
+        if card.rank == Rank.FIVE:
+            self.draw_card(2)
+
 
     def get_legal_actions(self):
         """
