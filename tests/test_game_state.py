@@ -117,6 +117,37 @@ class TestGameState(unittest.TestCase):
         self.assertIsNone(played_by)
         self.assertIn(card, self.game_state.discard_pile)
         self.assertNotIn(card, self.game_state.hands[0])
+    
+
+    def test_play_five_one_off(self):
+        self.deck = [Card("001", Suit.CLUBS, Rank.ACE), Card("002", Suit.CLUBS, Rank.TWO)]
+        self.hands = [[Card("003", Suit.HEARTS, Rank.FIVE)],
+                      [Card("004", Suit.SPADES, Rank.SIX)]]
+        self.fields = [[], []]
+        self.discard_pile = []
+
+        self.game_state = GameState(self.hands, self.fields, self.deck, self.discard_pile)
+
+        # play FIVE as ONE_OFF
+        card = self.hands[0][0]
+        finished, played_by = self.game_state.play_one_off(0, card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+        self.assertEqual(self.game_state.turn, 0)
+        self.assertEqual(self.game_state.last_action_played_by, 0)
+        self.assertEqual(self.game_state.current_action_player, 0)
+        self.game_state.next_player()
+        self.assertEqual(self.game_state.current_action_player, 1)
+
+        # resolve
+        finished, played_by = self.game_state.play_one_off(1, card, None, last_resolved_by=self.game_state.current_action_player)
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+        self.assertEqual(self.game_state.turn, 0)
+        self.assertEqual(self.game_state.last_action_played_by, 1)
+
+        self.game_state.next_turn()
+        self.assertEqual(self.game_state.turn, 1)
 
 if __name__ == '__main__':
     unittest.main()

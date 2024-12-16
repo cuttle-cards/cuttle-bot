@@ -1,6 +1,6 @@
 from typing import List
-from card import Card, Suit, Rank
-from game_state import GameState
+from game.card import Card, Suit, Rank
+from game.game_state import GameState
 import uuid
 import random
 
@@ -46,50 +46,3 @@ class Game:
         hands = [deck[0:5], deck[5:11]]
 
         return hands
-
-
-if __name__ == "__main__":
-    game = Game()
-
-    print(game.game_state.deck)
-    print(game.game_state.hands[0])
-    print(game.game_state.hands[1])
-
-    print(game.game_state.get_legal_actions())
-
-    
-
-    # wait for user input
-    # will be the index of the action in the list of actions
-    game_over = False
-    while True:
-        actions = game.game_state.get_legal_actions()
-        for i, action in enumerate(actions):
-            print(f"{i}: {action}")
-        while True:
-            player_action = input(f"Enter your action for player {game.game_state.turn}: ")
-            if player_action.isdigit():
-                player_action = int(player_action)
-                if player_action in range(len(actions)):
-                    print(f"You chose {actions[player_action]}")
-                    should_stop = game.game_state.update_state(actions[player_action])
-                    if should_stop:
-                        game_over, winner = True, game.game_state.winner()
-                        break
-                    break
-        
-        if game_over:
-            break
-
-        
-        game.game_state.print_state()
-        game.game_state.next_turn()
-    
-
-
-            
-        
-        
-
-
-

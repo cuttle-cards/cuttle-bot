@@ -10,13 +10,15 @@ class Action:
     action_type: ActionType
     card: Card
     target: Card
+    played_by: int
     requires_additional_input: bool
 
-    def __init__(self, action_type: ActionType, card: Card, target: Card, requires_additional_input: bool = False):
+    def __init__(self, action_type: ActionType, card: Card, target: Card, played_by: int, requires_additional_input: bool = False):
         self.action_type = action_type
         self.card = card
         self.target = target
         self.requires_additional_input = requires_additional_input
+        self.played_by = played_by
 
     def __repr__(self):
 
@@ -30,6 +32,10 @@ class Action:
             return f"Scuttle {self.target} on P{self.target.played_by}'s field with {self.card}"
         elif self.action_type == ActionType.DRAW:
             return "Draw a card from deck"
+        elif self.action_type == ActionType.COUNTER:
+            return f"Counter {self.target} with {self.card}"
+        elif self.action_type == ActionType.RESOLVE:
+            return f"Resolve one-off {self.target}"
     
     def __str__(self):
         return self.__repr__()
@@ -44,6 +50,8 @@ class ActionType(Enum):
     POINTS = "Points"
     FACE_CARD = "Face Card"
     ONE_OFF = "One-Off"
+    COUNTER = "Counter"
+    RESOLVE = "Resolve"
     SCUTTLE = "Scuttle"
     REQUEST_STALEMATE = "Request Stalemate"
     ACCEPT_STALEMATE = "Accept Stalemate"
