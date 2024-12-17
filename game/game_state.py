@@ -208,10 +208,13 @@ class GameState:
 
             self.last_action_played_by = player
             
-            if last_resolved_by != player:
+            if last_resolved_by != self.turn:
                 self.hands[self.turn].remove(card)
                 card.purpose = Purpose.ONE_OFF
                 self.apply_one_off_effect(card)
+                card.clear_player_info()
+                self.discard_pile.append(card)
+
             else:
             # Last action was player (resolve)
             # countered by opponent
@@ -227,8 +230,15 @@ class GameState:
 
 
     def apply_one_off_effect(self, card: Card):
+        print(f"Applying one off effect for {card}")
+        print(len(self.hands[self.turn]))
         if card.rank == Rank.FIVE:
-            self.draw_card(2)
+            if len(self.hands[self.turn]) <= 6:
+                self.draw_card(2)
+            elif len(self.hands[self.turn]) == 7:
+                self.draw_card(1)
+            else:
+                pass
 
 
     def get_legal_actions(self):

@@ -145,9 +145,63 @@ class TestGameState(unittest.TestCase):
         self.assertIsNone(played_by)
         self.assertEqual(self.game_state.turn, 0)
         self.assertEqual(self.game_state.last_action_played_by, 1)
+        self.assertEqual(len(self.game_state.hands[0]), 2)
 
         self.game_state.next_turn()
         self.assertEqual(self.game_state.turn, 1)
+
+
+    def test_play_five_one_off_with_eight_cards(self):
+        self.deck = [Card("001", Suit.CLUBS, Rank.ACE), Card("002", Suit.CLUBS, Rank.TWO)]
+        self.hands = [[Card("003", Suit.HEARTS, Rank.FIVE), Card("004", Suit.HEARTS, Rank.ACE), Card("005", Suit.HEARTS, Rank.TWO), Card("006", Suit.HEARTS, Rank.THREE), Card("007", Suit.HEARTS, Rank.FOUR), Card("008", Suit.HEARTS, Rank.SIX), Card("009", Suit.HEARTS, Rank.SEVEN)], []]
+        self.fields = [[], []]
+        self.discard_pile = []
+
+        self.game_state = GameState(self.hands, self.fields, self.deck, self.discard_pile)
+
+        card = self.hands[0][0]
+        finished, played_by = self.game_state.play_one_off(0, card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+        self.assertEqual(self.game_state.turn, 0)
+        self.assertEqual(self.game_state.last_action_played_by, 0)
+        self.assertEqual(self.game_state.current_action_player, 0)
+        self.game_state.next_player()
+        self.assertEqual(self.game_state.current_action_player, 1)
+
+        finished, played_by = self.game_state.play_one_off(1, card, None, last_resolved_by=self.game_state.current_action_player)
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+        self.assertEqual(self.game_state.turn, 0)
+        self.assertEqual(self.game_state.last_action_played_by, 1)
+
+        self.assertEqual(len(self.game_state.hands[0]), 8)
+    
+
+        self.deck = [Card("001", Suit.CLUBS, Rank.ACE), Card("002", Suit.CLUBS, Rank.TWO)]
+        self.hands = [[Card("003", Suit.HEARTS, Rank.FIVE), Card("004", Suit.HEARTS, Rank.ACE), Card("005", Suit.HEARTS, Rank.TWO), Card("006", Suit.HEARTS, Rank.THREE), Card("007", Suit.HEARTS, Rank.FOUR), Card("008", Suit.HEARTS, Rank.SIX), Card("009", Suit.HEARTS, Rank.SEVEN), Card("010", Suit.HEARTS, Rank.EIGHT)], []]
+        self.fields = [[], []]
+        self.discard_pile = []
+
+        self.game_state = GameState(self.hands, self.fields, self.deck, self.discard_pile)
+
+        card = self.hands[0][0]
+        finished, played_by = self.game_state.play_one_off(0, card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+        self.assertEqual(self.game_state.turn, 0)
+        self.assertEqual(self.game_state.last_action_played_by, 0)
+        self.assertEqual(self.game_state.current_action_player, 0)
+        self.game_state.next_player()
+        self.assertEqual(self.game_state.current_action_player, 1)
+
+        finished, played_by = self.game_state.play_one_off(1, card, None, last_resolved_by=self.game_state.current_action_player)
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+        self.assertEqual(self.game_state.turn, 0)
+        self.assertEqual(self.game_state.last_action_played_by, 1)
+
+        self.assertEqual(len(self.game_state.hands[0]), 8)
 
 if __name__ == '__main__':
     unittest.main()
