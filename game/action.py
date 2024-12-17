@@ -3,17 +3,26 @@ from __future__ import annotations
 from game.card import Card
 from enum import Enum
 
+
 class Action:
     """
     A class that represents an action in the game.
     """
+
     action_type: ActionType
     card: Card
     target: Card
     played_by: int
     requires_additional_input: bool
 
-    def __init__(self, action_type: ActionType, card: Card, target: Card, played_by: int, requires_additional_input: bool = False):
+    def __init__(
+        self,
+        action_type: ActionType,
+        card: Card,
+        target: Card,
+        played_by: int,
+        requires_additional_input: bool = False,
+    ):
         self.action_type = action_type
         self.card = card
         self.target = target
@@ -36,16 +45,16 @@ class Action:
             return f"Counter {self.target} with {self.card}"
         elif self.action_type == ActionType.RESOLVE:
             return f"Resolve one-off {self.target}"
-    
+
     def __str__(self):
         return self.__repr__()
-    
 
 
 class ActionType(Enum):
     """
     An Enum class that represents the type of an action.
     """
+
     DRAW = "Draw"
     POINTS = "Points"
     FACE_CARD = "Face Card"

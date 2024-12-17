@@ -9,8 +9,6 @@ if __name__ == "__main__":
 
     print(game.game_state.get_legal_actions())
 
-    
-
     # wait for user input
     # will be the index of the action in the list of actions
     game_over = False
@@ -32,33 +30,38 @@ if __name__ == "__main__":
             for i, action in enumerate(actions):
                 print(f"{i}: {action}")
 
-            player_action = input(f"Enter your action for player {game.game_state.current_action_player}: ")
-            
-            print(player_action, type(player_action), player_action in range(len(actions)))
+            player_action = input(
+                f"Enter your action for player {game.game_state.current_action_player}: "
+            )
+
+            print(
+                player_action, type(player_action), player_action in range(len(actions))
+            )
             # invalid player input
-            if not player_action.isdigit() or not int(player_action) in range(len(actions)):
+            if not player_action.isdigit() or not int(player_action) in range(
+                len(actions)
+            ):
                 print("Invalid input, please enter a number")
                 continue
-            
 
             player_action = int(player_action)
             print(f"You chose {actions[player_action]}")
-            turn_finished, should_stop, winner = game.game_state.update_state(actions[player_action])
+            turn_finished, should_stop, winner = game.game_state.update_state(
+                actions[player_action]
+            )
             if should_stop:
                 game_over, winner = True, winner
                 break
-                
+
             if turn_finished:
                 game.game_state.resolving_one_off = False
                 break
 
             if game.game_state.resolving_one_off:
                 game.game_state.next_player()
-        
-        
+
         game.game_state.print_state()
         game.game_state.next_turn()
-    
+
     print(f"Game over! Winner is player {winner}")
     game.game_state.print_state()
-    
