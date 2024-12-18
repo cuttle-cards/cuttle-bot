@@ -263,6 +263,136 @@ class TestGameState(unittest.TestCase):
 
         self.assertEqual(len(self.game_state.hands[0]), 8)
 
+    def test_play_ace_one_off(self):
+        # Setup initial game state with point cards on both players' fields
+        self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
+        self.hands = [
+            [Card("002", Suit.HEARTS, Rank.ACE)],  # Player 0's hand with ACE
+            [Card("003", Suit.SPADES, Rank.TWO)],  # Player 1's hand
+        ]
+        # Add point cards to both players' fields
+        self.fields = [
+            [
+                Card(
+                    "004",
+                    Suit.DIAMONDS,
+                    Rank.SEVEN,
+                    played_by=0,
+                    purpose=Purpose.POINTS,
+                ),
+                Card("005", Suit.CLUBS, Rank.FOUR, played_by=0, purpose=Purpose.POINTS),
+            ],
+            [
+                Card(
+                    "006", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS
+                ),
+                Card(
+                    "007", Suit.SPADES, Rank.THREE, played_by=1, purpose=Purpose.POINTS
+                ),
+            ],
+        ]
+        self.discard_pile = []
+
+        self.game_state = GameState(
+            self.hands, self.fields, self.deck, self.discard_pile
+        )
+
+        # Play ACE as one-off
+        ace_card = self.hands[0][0]
+        finished, played_by = self.game_state.play_one_off(0, ace_card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+        self.assertEqual(self.game_state.turn, 0)
+        self.assertEqual(self.game_state.last_action_played_by, 0)
+        self.assertEqual(self.game_state.current_action_player, 0)
+        self.game_state.next_player()
+        self.assertEqual(self.game_state.current_action_player, 1)
+
+        # Resolve the one-off (opponent doesn't counter)
+        finished, played_by = self.game_state.play_one_off(
+            1, ace_card, None, last_resolved_by=self.game_state.current_action_player
+        )
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+
+        # Verify all point cards are cleared from both fields
+        self.assertEqual(len(self.game_state.fields[0]), 0)
+        self.assertEqual(len(self.game_state.fields[1]), 0)
+
+        # Verify all point cards are in discard pile
+        self.assertEqual(len(self.game_state.discard_pile), 5)  # 4 point cards + ACE
+
+        # Verify scores are zero
+        self.assertEqual(self.game_state.get_player_score(0), 0)
+        self.assertEqual(self.game_state.get_player_score(1), 0)
+
+    def test_play_ace_one_off_with_non_point_cards(self):
+        # Setup initial game state with both point cards and face cards on fields
+        self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
+        self.hands = [
+            [Card("002", Suit.HEARTS, Rank.ACE)],  # Player 0's hand with ACE
+            [Card("003", Suit.SPADES, Rank.TWO)],  # Player 1's hand
+        ]
+        # Add point cards and face cards to both players' fields
+        self.fields = [
+            [
+                Card(
+                    "004",
+                    Suit.DIAMONDS,
+                    Rank.SEVEN,
+                    played_by=0,
+                    purpose=Purpose.POINTS,
+                ),
+                Card(
+                    "005", Suit.CLUBS, Rank.KING, played_by=0, purpose=Purpose.FACE_CARD
+                ),
+            ],
+            [
+                Card(
+                    "006", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS
+                ),
+                Card(
+                    "007",
+                    Suit.SPADES,
+                    Rank.QUEEN,
+                    played_by=1,
+                    purpose=Purpose.FACE_CARD,
+                ),
+            ],
+        ]
+        self.discard_pile = []
+
+        self.game_state = GameState(
+            self.hands, self.fields, self.deck, self.discard_pile
+        )
+
+        # Play ACE as one-off
+        ace_card = self.hands[0][0]
+        finished, played_by = self.game_state.play_one_off(0, ace_card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+        self.game_state.next_player()
+
+        # Resolve the one-off
+        finished, played_by = self.game_state.play_one_off(
+            1, ace_card, None, last_resolved_by=self.game_state.current_action_player
+        )
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+
+        # Verify only point cards are cleared, face cards remain
+        self.assertEqual(len(self.game_state.fields[0]), 1)
+        self.assertEqual(len(self.game_state.fields[1]), 1)
+        self.assertEqual(self.game_state.fields[0][0].rank, Rank.KING)
+        self.assertEqual(self.game_state.fields[1][0].rank, Rank.QUEEN)
+
+        # Verify point cards and ACE are in discard pile
+        self.assertEqual(len(self.game_state.discard_pile), 3)  # 2 point cards + ACE
+
+        # Verify scores are zero
+        self.assertEqual(self.game_state.get_player_score(0), 0)
+        self.assertEqual(self.game_state.get_player_score(1), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -256,7 +256,19 @@ class GameState:
     def apply_one_off_effect(self, card: Card):
         print(f"Applying one off effect for {card}")
         print(len(self.hands[self.turn]))
-        if card.rank == Rank.FIVE:
+        if card.rank == Rank.ACE:
+            # Clear all point cards from all players' fields
+            for player_field in self.fields:
+                point_cards = [
+                    card
+                    for card in player_field
+                    if card.is_point_card() and card.purpose == Purpose.POINTS
+                ]
+                for point_card in point_cards:
+                    player_field.remove(point_card)
+                    point_card.clear_player_info()
+                    self.discard_pile.append(point_card)
+        elif card.rank == Rank.FIVE:
             if len(self.hands[self.turn]) <= 6:
                 self.draw_card(2)
             elif len(self.hands[self.turn]) == 7:
@@ -340,7 +352,9 @@ class GameState:
                 opponent_fields, range(len(opponent_fields))
             ):
                 opponent_field_point_cards = [
-                    card for card in opponent_field if card.is_point_card()
+                    card
+                    for card in opponent_field
+                    if card.is_point_card() and card.purpose == Purpose.POINTS
                 ]
                 for opponent_point_card in opponent_field_point_cards:
                     if point_card.point_value() > opponent_point_card.point_value() or (
