@@ -92,7 +92,7 @@ class TestGameState(unittest.TestCase):
 
     def test_scuttle(self):
         card = self.hands[0][0]
-        target = Card("target", Suit.HEARTS, Rank.TWO, played_by=1)
+        target = Card("target", Suit.CLUBS, Rank.TWO, played_by=1)
         self.game_state.fields[1].append(target)
         self.game_state.scuttle(card, target)
         self.assertIn(card, self.game_state.discard_pile)
