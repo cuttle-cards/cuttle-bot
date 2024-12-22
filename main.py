@@ -1,16 +1,85 @@
 from game.game import Game
 
-if __name__ == "__main__":
-    game = Game()
 
-    print(game.game_state.deck)
-    print(game.game_state.hands[0])
-    print(game.game_state.hands[1])
+def get_yes_no_input(prompt: str) -> bool:
+    """Get a yes/no input from the user."""
+    while True:
+        response = input(prompt + " (y/n): ").lower()
+        if response in ["y", "yes"]:
+            return True
+        elif response in ["n", "no"]:
+            return False
+        print("Please enter 'y' or 'n'")
 
-    print(game.game_state.get_legal_actions())
 
-    # wait for user input
-    # will be the index of the action in the list of actions
+def select_saved_game() -> str:
+    """Let user select a saved game from the list."""
+    saved_games = Game.list_saved_games()
+    if not saved_games:
+        print("No saved games found.")
+        return None
+
+    print("\nAvailable saved games:")
+    for i, filename in enumerate(saved_games):
+        print(f"{i}: {filename}")
+
+    while True:
+        try:
+            choice = input("Enter the number of the game to load (or 'cancel'): ")
+            if choice.lower() == "cancel":
+                return None
+            index = int(choice)
+            if 0 <= index < len(saved_games):
+                return saved_games[index]
+            print("Invalid number, please try again.")
+        except ValueError:
+            print("Please enter a number or 'cancel'.")
+
+
+def main():
+    # Ask if user wants to load a saved game
+    if get_yes_no_input("Would you like to load a saved game?"):
+        filename = select_saved_game()
+        if filename:
+            try:
+                game = Game(load_game=filename)
+                print("Game loaded successfully!")
+            except Exception as e:
+                print(f"Error loading game: {e}")
+                print("Starting new game instead.")
+                game = None
+        else:
+            print("Starting new game instead.")
+            game = None
+    else:
+        game = None
+
+    if game is None:
+        # Ask if user wants to manually select cards
+        manual_selection = get_yes_no_input(
+            "Would you like to manually select initial cards?"
+        )
+        game = Game(manual_selection=manual_selection)
+
+        # Ask if user wants to save the initial game state
+        if get_yes_no_input("Would you like to save this initial game state?"):
+            while True:
+                filename = input("Enter filename to save to (without .json): ")
+                if filename:
+                    try:
+                        game.save_game(filename)
+                        print("Game saved successfully!")
+                        break
+                    except Exception as e:
+                        print(f"Error saving game: {e}")
+                        if not get_yes_no_input("Would you like to try again?"):
+                            break
+                else:
+                    print("Please enter a valid filename.")
+
+    print("\nStarting game...")
+    game.game_state.print_state()
+
     game_over = False
     while not game_over:
         # initialize variables
@@ -34,9 +103,6 @@ if __name__ == "__main__":
                 f"Enter your action for player {game.game_state.current_action_player}: "
             )
 
-            print(
-                player_action, type(player_action), player_action in range(len(actions))
-            )
             # invalid player input
             if not player_action.isdigit() or not int(player_action) in range(
                 len(actions)
@@ -60,8 +126,28 @@ if __name__ == "__main__":
             if game.game_state.resolving_one_off:
                 game.game_state.next_player()
 
+            # Ask if user wants to save the game after each action
+            if get_yes_no_input("Would you like to save the current game state?"):
+                while True:
+                    filename = input("Enter filename to save to (without .json): ")
+                    if filename:
+                        try:
+                            game.save_game(filename)
+                            print("Game saved successfully!")
+                            break
+                        except Exception as e:
+                            print(f"Error saving game: {e}")
+                            if not get_yes_no_input("Would you like to try again?"):
+                                break
+                    else:
+                        print("Please enter a valid filename.")
+
         game.game_state.print_state()
         game.game_state.next_turn()
 
     print(f"Game over! Winner is player {winner}")
     game.game_state.print_state()
+
+
+if __name__ == "__main__":
+    main()

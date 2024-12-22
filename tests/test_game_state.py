@@ -393,6 +393,170 @@ class TestGameState(unittest.TestCase):
         self.assertEqual(self.game_state.get_player_score(0), 0)
         self.assertEqual(self.game_state.get_player_score(1), 0)
 
+    def test_counter_one_off(self):
+        # Setup initial game state with a one-off card and a counter
+        self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
+        self.hands = [
+            [Card("002", Suit.HEARTS, Rank.ACE)],  # Player 0's hand with ACE
+            [Card("003", Suit.SPADES, Rank.TWO)],  # Player 1's hand with TWO
+        ]
+        self.fields = [
+            [
+                Card(
+                    "004",
+                    Suit.DIAMONDS,
+                    Rank.SEVEN,
+                    played_by=0,
+                    purpose=Purpose.POINTS,
+                )
+            ],
+            [Card("005", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS)],
+        ]
+        self.discard_pile = []
+
+        self.game_state = GameState(
+            self.hands, self.fields, self.deck, self.discard_pile
+        )
+
+        # Player 0 plays ACE as one-off
+        ace_card = self.hands[0][0]
+        finished, played_by = self.game_state.play_one_off(0, ace_card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+        self.assertEqual(self.game_state.turn, 0)
+        self.assertEqual(self.game_state.last_action_played_by, 0)
+        self.game_state.next_player()
+
+        # Player 1 counters with TWO
+        two_card = self.hands[1][0]
+        two_card.purpose = Purpose.COUNTER
+        two_card.played_by = 1  # Set the played_by attribute
+        finished, played_by = self.game_state.play_one_off(
+            1, ace_card, countered_with=two_card
+        )
+        self.assertFalse(finished)
+        self.assertEqual(played_by, 1)
+        self.assertEqual(self.game_state.last_action_played_by, 1)
+
+        # Player 0 resolves (accepts counter)
+        finished, played_by = self.game_state.play_one_off(
+            0, ace_card, None, last_resolved_by=0
+        )
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+
+        # Verify ACE was countered and point cards remain
+        self.assertEqual(len(self.game_state.fields[0]), 1)
+        self.assertEqual(len(self.game_state.fields[1]), 1)
+        self.assertEqual(len(self.game_state.discard_pile), 2)  # ACE and TWO in discard
+
+    def test_stacked_counter(self):
+        # Setup initial game state with multiple TWOs for stacked countering
+        self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
+        ace_card = Card("002", Suit.HEARTS, Rank.ACE)
+        two_card_1 = Card("003", Suit.DIAMONDS, Rank.TWO)
+        two_card_2 = Card("004", Suit.SPADES, Rank.TWO)
+        two_card_3 = Card("005", Suit.CLUBS, Rank.TWO)
+
+        self.hands = [
+            [ace_card, two_card_2],  # Player 0's hand
+            [two_card_1, two_card_3],  # Player 1's hand
+        ]
+        self.fields = [
+            [
+                Card(
+                    "006",
+                    Suit.DIAMONDS,
+                    Rank.SEVEN,
+                    played_by=0,
+                    purpose=Purpose.POINTS,
+                )
+            ],
+            [Card("007", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS)],
+        ]
+        self.discard_pile = []
+
+        self.game_state = GameState(
+            self.hands, self.fields, self.deck, self.discard_pile
+        )
+
+        # Player 0 plays ACE
+        finished, played_by = self.game_state.play_one_off(0, ace_card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+        self.game_state.next_player()
+
+        # Player 1 counters with first TWO
+        two_card_1.purpose = Purpose.COUNTER
+        two_card_1.played_by = 1
+        finished, played_by = self.game_state.play_one_off(
+            1, ace_card, countered_with=two_card_1
+        )
+        self.assertFalse(finished)
+        self.assertEqual(played_by, 1)
+        self.game_state.next_player()
+
+        # Player 0 counters the counter with their TWO
+        two_card_2.purpose = Purpose.COUNTER
+        two_card_2.played_by = 0
+        finished, played_by = self.game_state.play_one_off(
+            0, two_card_1, countered_with=two_card_2
+        )
+        self.assertFalse(finished)
+        self.assertEqual(played_by, 0)
+        self.game_state.next_player()
+
+        # Player 1 counters again with their second TWO
+        two_card_3.purpose = Purpose.COUNTER
+        two_card_3.played_by = 1
+        finished, played_by = self.game_state.play_one_off(
+            1, two_card_2, countered_with=two_card_3
+        )
+        self.assertFalse(finished)
+        self.assertEqual(played_by, 1)
+        self.game_state.next_player()
+
+        # Player 0 resolves (accepts final counter)
+        finished, played_by = self.game_state.play_one_off(
+            0, two_card_3, None, last_resolved_by=0
+        )
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+
+        # Verify all cards are in discard and point cards remain
+        self.assertEqual(len(self.game_state.fields[0]), 1)
+        self.assertEqual(len(self.game_state.fields[1]), 1)
+        self.assertEqual(len(self.game_state.discard_pile), 4)  # ACE and three TWOs
+
+    def test_invalid_counter(self):
+        # Setup initial game state
+        self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
+        self.hands = [
+            [Card("002", Suit.HEARTS, Rank.ACE)],  # Player 0's hand
+            [Card("003", Suit.SPADES, Rank.THREE)],  # Player 1's hand with non-TWO
+        ]
+        self.fields = [[], []]
+        self.discard_pile = []
+
+        self.game_state = GameState(
+            self.hands, self.fields, self.deck, self.discard_pile
+        )
+
+        # Player 0 plays ACE
+        ace_card = self.hands[0][0]
+        finished, played_by = self.game_state.play_one_off(0, ace_card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+        self.game_state.next_player()
+
+        # Player 1 attempts to counter with THREE (should raise exception)
+        three_card = self.hands[1][0]
+        three_card.purpose = Purpose.COUNTER
+        three_card.played_by = 1  # Set the played_by attribute
+        with self.assertRaises(Exception) as context:
+            self.game_state.play_one_off(1, ace_card, countered_with=three_card)
+        self.assertTrue("Counter must be a 2" in str(context.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

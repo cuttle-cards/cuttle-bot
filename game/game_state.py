@@ -137,8 +137,13 @@ class GameState:
             self.one_off_card_to_counter = action.card
             return turn_finished, should_stop, winner
         elif action.action_type == ActionType.COUNTER:
+            action.card.purpose = Purpose.COUNTER
+            action.card.played_by = self.current_action_player
             turn_finished, played_by = self.play_one_off(
-                self.turn, action.target, action.card, None
+                player=self.turn,
+                card=action.target,
+                countered_with=action.card,
+                last_resolved_by=None,
             )
             if turn_finished:
                 should_stop = False
@@ -204,51 +209,81 @@ class GameState:
     ):
         """
         Play a one-off card.
+
+        Args:
+            player: The player playing the card
+            card: The card being played
+            countered_with: The TWO being used to counter, if any
+            last_resolved_by: The player who last resolved (didn't counter), if any
+
+        Returns:
+            Tuple[bool, int | None]:
+                - Whether the turn is finished
+                - The player who played the last action (for tracking counter chain)
         """
         # Initial play requires additional input
         self.last_action_played_by = player
         if player == self.turn and countered_with is None and last_resolved_by is None:
+            # Initial play of one-off, waiting for counter/resolve
             return False, None
 
-        # countered with a Two, needs the other player to counter/resolve
+        # Handle counter with a Two
         if countered_with is not None:
-            if card.point_value() != 2:
+            # Validate counter card
+            if countered_with.point_value() != 2:
                 raise Exception("Counter must be a 2")
             if countered_with.purpose != Purpose.COUNTER:
                 raise Exception(
-                    f"Counter must be with a purpose of counter, instead got {card.purpose}"
+                    f"Counter must be with a purpose of counter, instead got {countered_with.purpose}"
                 )
 
+            # Move counter card to discard pile
             played_by = countered_with.played_by
-            self.hands[played_by].remove(countered_with)
-            self.discard_pile.append(countered_with)
-            countered_with.clear_player_info()
+            print(f"played_by: {played_by}")
+            print(f"self.hands[played_by]: {self.hands[played_by]}")
+            print(f"countered_with: {countered_with}")
+            print(
+                f"countered_with in self.hands[played_by]: {countered_with in self.hands[played_by]}"
+            )
+            if countered_with in self.hands[played_by]:
+                self.hands[played_by].remove(countered_with)
+                self.discard_pile.append(countered_with)
+                countered_with.clear_player_info()
+
+            # Move the countered card to discard pile if it's still in hand
+            if card in self.hands[self.turn]:
+                self.hands[self.turn].remove(card)
+            if card not in self.discard_pile:
+                self.discard_pile.append(card)
+                card.clear_player_info()
+
+            # Update last action for counter chain
             self.last_action_played_by = played_by
             return False, played_by
-        else:
-            # No counter
-            # If last action was opponent (resolve)
-            # the one off is played
-            # and turn finishes
 
+        # Handle resolution (no counter)
+        if last_resolved_by is not None:
             self.last_action_played_by = player
 
             if last_resolved_by != self.turn:
-                self.hands[self.turn].remove(card)
+                # Opponent didn't counter, so one-off resolves
+                if card in self.hands[self.turn]:
+                    self.hands[self.turn].remove(card)
                 card.purpose = Purpose.ONE_OFF
                 self.apply_one_off_effect(card)
                 card.clear_player_info()
-                self.discard_pile.append(card)
-
+                if card not in self.discard_pile:
+                    self.discard_pile.append(card)
             else:
-                # Last action was player (resolve)
-                # countered by opponent
-                # the one off is not played
-                # but the card is moved to scrap since it was countered
-                self.hands[self.turn].remove(card)
-                self.discard_pile.append(card)
+                # Original player accepts counter
+                # One-off is countered, move to discard
+                if card in self.hands[self.turn]:
+                    self.hands[self.turn].remove(card)
+                if card not in self.discard_pile:
+                    self.discard_pile.append(card)
                 card.clear_player_info()
 
+            # Turn is finished after resolution
             return True, None
 
         return True, None
@@ -283,7 +318,7 @@ class GameState:
         Returns:
             List[str] - The legal actions for the current player.
         """
-        player = self.turn
+        player = self.current_action_player
 
         actions = []
 
