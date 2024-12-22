@@ -125,6 +125,10 @@ class GameState:
                 return turn_finished, should_stop, winner
         elif action.action_type == ActionType.SCUTTLE:
             self.scuttle(action.card, action.target)
+            turn_finished = True
+            winner = self.winner()
+            should_stop = winner is not None
+            return turn_finished, should_stop, winner
         elif action.action_type == ActionType.ONE_OFF:
             turn_finished, played_by = self.play_one_off(
                 self.turn, action.card, None, None
@@ -191,7 +195,28 @@ class GameState:
         return False
 
     def scuttle(self, card: Card, target: Card):
-        # scuttle a points card
+        """
+        Scuttle a points card.
+
+        Args:
+            card: The card being used to scuttle
+            target: The target card being scuttled
+
+        Raises:
+            Exception: If the scuttle is invalid (lower points or same points with lower/equal suit)
+        """
+        # Validate scuttle
+        if card.point_value() < target.point_value():
+            raise Exception("Cannot scuttle with lower point value")
+        if (
+            card.point_value() == target.point_value()
+            and card.suit_value() <= target.suit_value()
+        ):
+            raise Exception(
+                "Invalid scuttle: When point values are equal, scuttling card must have higher suit"
+            )
+
+        # Execute scuttle
         card.played_by = self.turn
         self.hands[card.played_by].remove(card)
         card.clear_player_info()

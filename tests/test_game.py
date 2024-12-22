@@ -261,5 +261,126 @@ class TestGame(unittest.TestCase):
         """Test loading a non-existent save file."""
         with self.assertRaises(FileNotFoundError):
             Game(load_game="nonexistent_save.json")
+
+    @pytest.mark.timeout(5)
+    def test_scuttle_update_state(self):
+        """Test the return values of update_state for scuttle actions."""
+        game = Game()
+
+        # Setup a game state where player 0 can scuttle player 1's card
+        # Player 1's field: 5 of Hearts (point value 5)
+        target_card = Card(
+            "target", Suit.HEARTS, Rank.FIVE, played_by=1, purpose=Purpose.POINTS
+        )
+        game.game_state.fields[1].append(target_card)
+
+        # Player 0's hand: 6 of Spades (higher point value)
+        scuttle_card = Card("scuttle", Suit.SPADES, Rank.SIX)
+        game.game_state.hands[0].append(scuttle_card)
+
+        # Create scuttle action
+        scuttle_action = Action(
+            action_type=ActionType.SCUTTLE,
+            card=scuttle_card,
+            target=target_card,
+            played_by=0,
+        )
+
+        # Test update_state return values
+        turn_finished, should_stop, winner = game.game_state.update_state(
+            scuttle_action
+        )
+
+        # Verify return values
+        self.assertTrue(turn_finished)  # Scuttle should finish the turn
+        self.assertFalse(should_stop)  # Game shouldn't stop after scuttle
+        self.assertIsNone(winner)  # No winner from just scuttle
+
+        # Verify game state changes
+        self.assertNotIn(
+            scuttle_card, game.game_state.hands[0]
+        )  # Card removed from hand
+        self.assertNotIn(
+            target_card, game.game_state.fields[1]
+        )  # Target removed from field
+        self.assertIn(scuttle_card, game.game_state.discard_pile)  # Both cards moved to
+        self.assertIn(target_card, game.game_state.discard_pile)  # discard pile
+
+    @pytest.mark.timeout(5)
+    def test_scuttle_with_equal_points(self):
+        """Test scuttle with equal point values but higher suit."""
+        game = Game()
+
+        # Setup: Player 1's field has 5 of Hearts
+        target_card = Card(
+            "target", Suit.HEARTS, Rank.FIVE, played_by=1, purpose=Purpose.POINTS
+        )
+        game.game_state.fields[1].append(target_card)
+
+        # Player 0's hand: 5 of Spades (same points, higher suit)
+        scuttle_card = Card("scuttle", Suit.SPADES, Rank.FIVE)
+        game.game_state.hands[0].append(scuttle_card)
+
+        # Create scuttle action
+        scuttle_action = Action(
+            action_type=ActionType.SCUTTLE,
+            card=scuttle_card,
+            target=target_card,
+            played_by=0,
+        )
+
+        # Test update_state return values
+        turn_finished, should_stop, winner = game.game_state.update_state(
+            scuttle_action
+        )
+
+        # Verify return values
+        self.assertTrue(turn_finished)  # Scuttle should finish the turn
+        self.assertFalse(should_stop)  # Game shouldn't stop
+        self.assertIsNone(winner)  # No winner
+
+        # Verify game state changes
+        self.assertNotIn(scuttle_card, game.game_state.hands[0])
+        self.assertNotIn(target_card, game.game_state.fields[1])
+        self.assertIn(scuttle_card, game.game_state.discard_pile)
+        self.assertIn(target_card, game.game_state.discard_pile)
+
+    @pytest.mark.timeout(5)
+    def test_scuttle_with_lower_suit_fails(self):
+        """Test that scuttle fails when using a lower suit on same rank."""
+        game = Game()
+
+        # Setup: Player 1's field has 5 of Spades (highest suit)
+        target_card = Card(
+            "target", Suit.SPADES, Rank.FIVE, played_by=1, purpose=Purpose.POINTS
+        )
+        game.game_state.fields[1].append(target_card)
+
+        # Player 0's hand: 5 of Clubs (lowest suit)
+        scuttle_card = Card("scuttle", Suit.CLUBS, Rank.FIVE)
+        game.game_state.hands[0].append(scuttle_card)
+
+        # Create scuttle action
+        scuttle_action = Action(
+            action_type=ActionType.SCUTTLE,
+            card=scuttle_card,
+            target=target_card,
+            played_by=0,
+        )
+
+        # Test update_state return values
+        with self.assertRaises(Exception) as context:
+            game.game_state.update_state(scuttle_action)
+
+        # Verify error message
+        self.assertIn("Invalid scuttle", str(context.exception))
+
+        # Verify game state remains unchanged
+        self.assertIn(scuttle_card, game.game_state.hands[0])  # Card still in hand
+        self.assertIn(target_card, game.game_state.fields[1])  # Target still on field
+        self.assertNotIn(scuttle_card, game.game_state.discard_pile)  # Cards not in
+        self.assertNotIn(target_card, game.game_state.discard_pile)  # discard pile
+
+
 if __name__ == "__main__":
     unittest.main()
