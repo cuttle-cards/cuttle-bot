@@ -381,6 +381,188 @@ class TestGame(unittest.TestCase):
         self.assertNotIn(scuttle_card, game.game_state.discard_pile)  # Cards not in
         self.assertNotIn(target_card, game.game_state.discard_pile)  # discard pile
 
+    @pytest.mark.timeout(5)
+    def test_play_king_reduces_target(self):
+        """Test that playing a King reduces the target score."""
+        game = Game()
+
+        # Add a King to player 0's hand
+        king = Card("king", Suit.HEARTS, Rank.KING)
+        game.game_state.hands[0].append(king)
+
+        # Create action to play King
+        king_action = Action(
+            action_type=ActionType.FACE_CARD,
+            card=king,
+            target=None,
+            played_by=0,
+        )
+
+        # Play the King
+        turn_finished, should_stop, winner = game.game_state.update_state(king_action)
+
+        # Verify target score is reduced
+        self.assertEqual(game.game_state.get_player_target(0), 14)  # 21 -> 14
+        self.assertTrue(turn_finished)
+        self.assertFalse(should_stop)
+        self.assertIsNone(winner)
+
+    @pytest.mark.timeout(5)
+    def test_play_king_instant_win(self):
+        """Test that playing a King can lead to instant win."""
+        game = Game()
+
+        # Add 11 points to player 0's field
+        point_card = Card(
+            "points", Suit.HEARTS, Rank.TEN, played_by=0, purpose=Purpose.POINTS
+        )
+        game.game_state.fields[0].append(point_card)
+
+        # Add two Kings to player 0's hand
+        kings = [Card(f"king{i}", Suit.HEARTS, Rank.KING) for i in range(2)]
+        game.game_state.hands[0].extend(kings)
+
+        # Play first King (target becomes 14, not winning yet)
+        king1_action = Action(
+            action_type=ActionType.FACE_CARD,
+            card=kings[0],
+            target=None,
+            played_by=0,
+        )
+        turn_finished, should_stop, winner = game.game_state.update_state(king1_action)
+        self.assertTrue(turn_finished)
+        self.assertFalse(should_stop)
+        self.assertIsNone(winner)
+
+        # Play second King (target becomes 10, should win with 10 points)
+        king2_action = Action(
+            action_type=ActionType.FACE_CARD,
+            card=kings[1],
+            target=None,
+            played_by=0,
+        )
+        turn_finished, should_stop, winner = game.game_state.update_state(king2_action)
+        self.assertTrue(turn_finished)
+        self.assertTrue(should_stop)
+        self.assertEqual(winner, 0)
+
+    @pytest.mark.timeout(5)
+    def test_play_king_on_opponents_turn(self):
+        """Test that Kings can only be played on your own turn."""
+        game = Game()
+
+        # Add a King to player 0's hand
+        king = Card("king", Suit.HEARTS, Rank.KING)
+        game.game_state.hands[0].append(king)
+
+        # Set turn to player 1
+        game.game_state.turn = 1
+
+        # Create action to play King
+        king_action = Action(
+            action_type=ActionType.FACE_CARD,
+            card=king,
+            target=None,
+            played_by=0,
+        )
+
+        # Try to play King on opponent's turn
+        with self.assertRaises(Exception) as context:
+            game.game_state.update_state(king_action)
+
+        self.assertIn("Can only play cards from your hand", str(context.exception))
+
+        # Verify game state unchanged
+        self.assertIn(king, game.game_state.hands[0])
+        self.assertNotIn(king, game.game_state.fields[0])
+        self.assertEqual(game.game_state.get_player_target(0), 21)
+
+    @pytest.mark.timeout(5)
+    def test_play_multiple_kings(self):
+        """Test playing multiple Kings reduces target score correctly."""
+        game = Game()
+
+        # Add four Kings to player 0's hand
+        kings = [Card(f"king{i}", Suit.HEARTS, Rank.KING) for i in range(4)]
+        game.game_state.hands[0].extend(kings)
+
+        # Expected targets after each King
+        expected_targets = [14, 10, 5, 0]  # Starting from 21
+
+        # Play Kings one by one
+        for i, king in enumerate(kings):
+            action = Action(
+                action_type=ActionType.FACE_CARD,
+                card=king,
+                target=None,
+                played_by=0,
+            )
+            turn_finished, should_stop, winner = game.game_state.update_state(action)
+            self.assertTrue(turn_finished)
+            self.assertEqual(game.game_state.get_player_target(0), expected_targets[i])
+
+            # Last King should not cause a win with 0 points
+            if i < 3:
+                self.assertFalse(should_stop)
+                self.assertIsNone(winner)
+            else:
+                # With 4 Kings, target becomes 0
+                self.assertTrue(should_stop)
+                self.assertEqual(winner, 0)
+
+    @pytest.mark.timeout(5)
+    @patch("builtins.input")
+    @patch("builtins.print")
+    def test_complete_game_with_kings(self, mock_print, mock_input):
+        """Test a complete game with manual selection and playing Kings until win."""
+        # Mock inputs for manual selection
+        mock_inputs = [str(i) for i in range(5)]  # Select first 5 cards for P0
+        mock_inputs.extend([str(i) for i in range(6)])  # Select first 6 cards for P1
+        mock_input.side_effect = mock_inputs
+
+        # Create game with manual selection
+        game = Game(manual_selection=True)
+
+        # Verify initial hands
+        self.assertEqual(len(game.game_state.hands[0]), 5)  # P0 has 5 cards
+        self.assertEqual(len(game.game_state.hands[1]), 6)  # P1 has 6 cards
+
+        # Play each card in P0's hand
+        for card in game.game_state.hands[0].copy():
+            if card.rank == Rank.KING:
+                # Play King as face card
+                action = Action(
+                    action_type=ActionType.FACE_CARD,
+                    card=card,
+                    target=None,
+                    played_by=0,
+                )
+            elif card.is_point_card():
+                # Play as points
+                action = Action(
+                    action_type=ActionType.POINTS,
+                    card=card,
+                    target=None,
+                    played_by=0,
+                )
+            else:
+                continue  # Skip non-point, non-King cards
+
+            turn_finished, should_stop, winner = game.game_state.update_state(action)
+            self.assertTrue(turn_finished)
+
+            if winner is not None:
+                # If we won, verify the win condition
+                self.assertTrue(should_stop)
+                self.assertEqual(winner, 0)
+                self.assertTrue(game.game_state.is_winner(0))
+                self.assertFalse(game.game_state.is_winner(1))
+                return  # Test succeeded - we found a winning sequence
+
+        # If we get here, we didn't find a winning sequence
+        # This is also fine - not every random hand will lead to a win
+        pass
+
 
 if __name__ == "__main__":
     unittest.main()

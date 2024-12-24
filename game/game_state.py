@@ -161,6 +161,13 @@ class GameState:
                 should_stop = False
                 winner = self.winner()
                 return turn_finished, should_stop, winner
+        elif action.action_type == ActionType.FACE_CARD:
+            won = self.play_face_card(action.card)
+            turn_finished = True
+            if won:
+                should_stop = True
+                winner = self.winner()
+            return turn_finished, should_stop, winner
 
         return turn_finished, should_stop, winner
 
@@ -188,13 +195,22 @@ class GameState:
         # check if the player has won
         if self.get_player_score(self.turn) >= self.get_player_target(self.turn):
             print(
-                f"Player {self.turn} has won with {self.get_player_score(self.turn)} points!"
+                f"Player {self.turn} wins! Score: {self.get_player_score(self.turn)} points (target: {self.get_player_target(self.turn)} with {len([c for c in self.fields[self.turn] if c.rank == Rank.KING])} Kings)"
             )
             self.status = "win"
             return True
         return False
 
     def scuttle(self, card: Card, target: Card):
+        # Validate scuttle conditions
+        if (
+            card.point_value() == target.point_value()
+            and card.suit_value() <= target.suit_value()
+        ):
+            raise Exception(
+                "Invalid scuttle: Cannot scuttle with a lower or equal suit of the same rank"
+            )
+
         # scuttle a points card
         card.played_by = self.turn
         self.hands[card.played_by].remove(card)
@@ -346,7 +362,7 @@ class GameState:
         # Check for instant win with King (if points already meet new target)
         if card.rank == Rank.KING and self.is_winner(self.turn):
             print(
-                f"Player {self.turn} has won with {self.get_player_score(self.turn)} points!"
+                f"Player {self.turn} wins! Score: {self.get_player_score(self.turn)} points (target: {self.get_player_target(self.turn)} with {len([c for c in self.fields[self.turn] if c.rank == Rank.KING])} Kings)"
             )
             self.status = "win"
             return True
@@ -448,7 +464,14 @@ class GameState:
                         )
 
         for card in face_cards:
-            actions.append(f"Play {card} as face card")
+            actions.append(
+                Action(
+                    action_type=ActionType.FACE_CARD,
+                    card=card,
+                    target=None,
+                    played_by=self.current_action_player,
+                )
+            )
 
         return actions
 
