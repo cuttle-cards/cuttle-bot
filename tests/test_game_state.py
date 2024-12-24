@@ -557,6 +557,86 @@ class TestGameState(unittest.TestCase):
             self.game_state.play_one_off(1, ace_card, countered_with=three_card)
         self.assertTrue("Counter must be a 2" in str(context.exception))
 
+    def test_play_king_face_card(self):
+        """Test playing a King as a face card."""
+        # Create a King card
+        king = Card("king", Suit.HEARTS, Rank.KING)
+        self.hands[0].append(king)
+
+        # Play the King
+        self.game_state.play_face_card(king)
+
+        # Verify King is moved to field
+        self.assertIn(king, self.game_state.fields[0])
+        self.assertNotIn(king, self.game_state.hands[0])
+        self.assertEqual(king.purpose, Purpose.FACE_CARD)
+        self.assertEqual(king.played_by, 0)
+
+        # Verify target score is reduced
+        self.assertEqual(
+            self.game_state.get_player_target(0), 14
+        )  # 21 -> 14 with one King
+
+    def test_play_multiple_kings(self):
+        """Test playing multiple Kings reduces target score correctly."""
+        # Create four Kings
+        kings = [Card(f"king{i}", Suit.HEARTS, Rank.KING) for i in range(4)]
+        self.hands[0].extend(kings)
+
+        # Expected targets after each King
+        expected_targets = [14, 10, 5, 0]  # Starting from 21
+
+        # Play Kings one by one
+        for i, king in enumerate(kings):
+            self.game_state.play_face_card(king)
+            self.assertEqual(self.game_state.get_player_target(0), expected_targets[i])
+
+        # Verify all Kings are on the field
+        for king in kings:
+            self.assertIn(king, self.game_state.fields[0])
+            self.assertEqual(king.purpose, Purpose.FACE_CARD)
+
+    def test_play_king_instant_win(self):
+        """Test playing a King can lead to instant win if points already meet new target."""
+        # Add 11 points to player 0's field
+        point_card = Card(
+            "points", Suit.HEARTS, Rank.TEN, played_by=0, purpose=Purpose.POINTS
+        )
+        self.game_state.fields[0].append(point_card)
+
+        # Create and play two Kings to reduce target to 10
+        kings = [Card(f"king{i}", Suit.HEARTS, Rank.KING) for i in range(2)]
+        self.hands[0].extend(kings)
+
+        # Play first King (target becomes 14, not winning yet)
+        self.game_state.play_face_card(kings[0])
+        self.assertFalse(self.game_state.is_winner(0))
+
+        # Play second King (target becomes 10, should win with 10 points)
+        won = self.game_state.play_face_card(kings[1])
+        self.assertTrue(won)
+        self.assertTrue(self.game_state.is_winner(0))
+        self.assertEqual(self.game_state.winner(), 0)
+
+    def test_play_king_on_opponents_turn(self):
+        """Test that Kings can only be played on your own turn."""
+        king = Card("king", Suit.HEARTS, Rank.KING)
+        self.hands[0].append(king)
+
+        # Set turn to player 1
+        self.game_state.turn = 1
+
+        # Try to play King on opponent's turn
+        with self.assertRaises(Exception) as context:
+            self.game_state.play_face_card(king)
+
+        self.assertIn("Can only play cards from your hand", str(context.exception))
+
+        # Verify game state unchanged
+        self.assertIn(king, self.hands[0])
+        self.assertNotIn(king, self.game_state.fields[0])
+        self.assertEqual(self.game_state.get_player_target(0), 21)
+
 
 if __name__ == "__main__":
     unittest.main()

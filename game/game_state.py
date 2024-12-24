@@ -126,8 +126,8 @@ class GameState:
         elif action.action_type == ActionType.SCUTTLE:
             self.scuttle(action.card, action.target)
             turn_finished = True
+            should_stop = False
             winner = self.winner()
-            should_stop = winner is not None
             return turn_finished, should_stop, winner
         elif action.action_type == ActionType.ONE_OFF:
             turn_finished, played_by = self.play_one_off(
@@ -195,28 +195,7 @@ class GameState:
         return False
 
     def scuttle(self, card: Card, target: Card):
-        """
-        Scuttle a points card.
-
-        Args:
-            card: The card being used to scuttle
-            target: The target card being scuttled
-
-        Raises:
-            Exception: If the scuttle is invalid (lower points or same points with lower/equal suit)
-        """
-        # Validate scuttle
-        if card.point_value() < target.point_value():
-            raise Exception("Cannot scuttle with lower point value")
-        if (
-            card.point_value() == target.point_value()
-            and card.suit_value() <= target.suit_value()
-        ):
-            raise Exception(
-                "Invalid scuttle: When point values are equal, scuttling card must have higher suit"
-            )
-
-        # Execute scuttle
+        # scuttle a points card
         card.played_by = self.turn
         self.hands[card.played_by].remove(card)
         card.clear_player_info()
@@ -335,6 +314,44 @@ class GameState:
                 self.draw_card(1)
             else:
                 pass
+
+    def play_face_card(self, card: Card) -> bool:
+        """
+        Play a face card (King, Queen, Jack, Eight) to the field.
+
+        Args:
+            card: The face card to play
+
+        Returns:
+            bool: True if this play results in a win, False otherwise
+
+        Raises:
+            Exception: If the card is not in the current player's hand
+            Exception: If the card is not a face card
+        """
+        # Validate card is in current player's hand
+        if card not in self.hands[self.turn]:
+            raise Exception("Can only play cards from your hand")
+
+        # Validate card is a face card
+        if not card.is_face_card():
+            raise Exception(f"{card} is not a face card")
+
+        # Remove from hand and add to field
+        self.hands[self.turn].remove(card)
+        card.purpose = Purpose.FACE_CARD
+        card.played_by = self.turn
+        self.fields[self.turn].append(card)
+
+        # Check for instant win with King (if points already meet new target)
+        if card.rank == Rank.KING and self.is_winner(self.turn):
+            print(
+                f"Player {self.turn} has won with {self.get_player_score(self.turn)} points!"
+            )
+            self.status = "win"
+            return True
+
+        return False
 
     def get_legal_actions(self):
         """
