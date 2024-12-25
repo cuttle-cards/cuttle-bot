@@ -18,7 +18,12 @@ class Game:
     players: List[int]
     SAVE_DIR = "test_games"
 
-    def __init__(self, manual_selection: bool = False, load_game: Optional[str] = None):
+    def __init__(
+        self,
+        manual_selection: bool = False,
+        load_game: Optional[str] = None,
+        test_deck: Optional[List[Card]] = None,
+    ):
         self.players = [0, 1]
 
         # Create save directory if it doesn't exist
@@ -26,6 +31,9 @@ class Game:
 
         if load_game:
             self.load_game(load_game)
+        elif test_deck is not None:
+            # Use the provided test deck
+            self.initialize_with_test_deck(test_deck)
         elif manual_selection:
             self.initialize_with_manual_selection()
         else:
@@ -176,3 +184,10 @@ class Game:
         # take turns to deal
         hands = [deck[0:5], deck[5:11]]
         return hands
+
+    def initialize_with_test_deck(self, test_deck: List[Card]):
+        """Initialize the game with a predefined deck for testing."""
+        # Deal cards from the test deck
+        hands = self.deal_cards(test_deck)
+        fields = [[], []]
+        self.game_state = GameState(hands, fields, test_deck[11:], [])

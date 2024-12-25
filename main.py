@@ -115,8 +115,10 @@ def main():
             turn_finished, should_stop, winner = game.game_state.update_state(
                 actions[player_action]
             )
-            if should_stop:
-                game_over, winner = True, winner
+
+            # Check for game over conditions
+            if should_stop or winner is not None:
+                game_over = True
                 break
 
             if turn_finished:
@@ -141,6 +143,9 @@ def main():
                                 break
                     else:
                         print("Please enter a valid filename.")
+
+        if game_over:
+            break
 
         game.game_state.print_state()
         game.game_state.next_turn()

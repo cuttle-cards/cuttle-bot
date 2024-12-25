@@ -126,7 +126,7 @@ class GameState:
         elif action.action_type == ActionType.SCUTTLE:
             self.scuttle(action.card, action.target)
             turn_finished = True
-            should_stop = False
+            should_stop = False  # scuttle doesn't end the game
             winner = self.winner()
             return turn_finished, should_stop, winner
         elif action.action_type == ActionType.ONE_OFF:
@@ -134,8 +134,8 @@ class GameState:
                 self.turn, action.card, None, None
             )
             if turn_finished:
-                should_stop = False
                 winner = self.winner()
+                should_stop = winner is not None
                 return turn_finished, should_stop, winner
             self.resolving_one_off = True
             self.one_off_card_to_counter = action.card
@@ -150,23 +150,23 @@ class GameState:
                 last_resolved_by=None,
             )
             if turn_finished:
-                should_stop = False
                 winner = self.winner()
+                should_stop = winner is not None
                 return turn_finished, should_stop, winner
         elif action.action_type == ActionType.RESOLVE:
             turn_finished, played_by = self.play_one_off(
                 self.turn, action.target, None, action.played_by
             )
             if turn_finished:
-                should_stop = False
                 winner = self.winner()
+                should_stop = winner is not None
                 return turn_finished, should_stop, winner
         elif action.action_type == ActionType.FACE_CARD:
             won = self.play_face_card(action.card)
             turn_finished = True
             if won:
                 should_stop = True
-                winner = self.winner()
+                winner = self.turn
             return turn_finished, should_stop, winner
 
         return turn_finished, should_stop, winner
