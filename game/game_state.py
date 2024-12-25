@@ -130,7 +130,7 @@ class GameState:
             winner = self.winner()
             return turn_finished, should_stop, winner
         elif action.action_type == ActionType.ONE_OFF:
-            # Special handling for Six - apply immediately without counter possibility
+            # Special handling for untargeted one-offs - apply immediately without counter possibility
             if action.card.rank in [Rank.ACE, Rank.SIX]:
                 self.hands[self.turn].remove(action.card)
                 action.card.purpose = Purpose.ONE_OFF
