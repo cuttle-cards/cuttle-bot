@@ -45,6 +45,8 @@ class Action:
             return f"Counter {self.target} with {self.card}"
         elif self.action_type == ActionType.RESOLVE:
             return f"Resolve one-off {self.target}"
+        elif self.action_type == ActionType.END_GAME:
+            return "End game"
 
     def __str__(self):
         return self.__repr__()
@@ -66,3 +68,4 @@ class ActionType(Enum):
     ACCEPT_STALEMATE = "Accept Stalemate"
     REJECT_STALEMATE = "Reject Stalemate"
     CONCEDE = "Concede"
+    END_GAME = "End Game"

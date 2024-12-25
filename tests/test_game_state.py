@@ -637,6 +637,108 @@ class TestGameState(unittest.TestCase):
         self.assertNotIn(king, self.game_state.fields[0])
         self.assertEqual(self.game_state.get_player_target(0), 21)
 
+    def test_play_six_one_off(self):
+        """Test playing a Six as a one-off to destroy all face cards."""
+        # Set up initial state with face cards on both fields
+        hands = [
+            [Card("1", Suit.HEARTS, Rank.SIX)],  # Player 0's hand with Six
+            [Card("2", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand with Two
+        ]
+        fields = [
+            [  # Player 0's field
+                Card("3", Suit.SPADES, Rank.KING),  # King face card
+                Card("4", Suit.HEARTS, Rank.QUEEN),  # Queen face card
+            ],
+            [  # Player 1's field
+                Card("5", Suit.CLUBS, Rank.JACK),  # Jack face card
+                Card("6", Suit.DIAMONDS, Rank.EIGHT),  # Eight face card
+            ],
+        ]
+        deck = []
+        discard = []
+
+        # Set up cards on fields
+        for card in fields[0]:
+            card.purpose = Purpose.FACE_CARD
+            card.played_by = 0
+        for card in fields[1]:
+            card.purpose = Purpose.FACE_CARD
+            card.played_by = 1
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Play Six as one-off
+        six_card = hands[0][0]
+        turn_finished, played_by = game_state.play_one_off(
+            0, six_card, None, 1
+        )  # Player 1 resolves
+
+        # Verify all face cards are removed
+        self.assertEqual(
+            len(game_state.fields[0]), 0
+        )  # Player 0's field should be empty
+        self.assertEqual(
+            len(game_state.fields[1]), 0
+        )  # Player 1's field should be empty
+        self.assertEqual(
+            len(game_state.discard_pile), 5
+        )  # Six + 4 face cards in discard
+
+    def test_play_six_one_off_with_points(self):
+        """Test playing a Six as a one-off with point cards on field."""
+        # Set up initial state with face cards and point cards
+        hands = [
+            [Card("1", Suit.HEARTS, Rank.SIX)],  # Player 0's hand with Six
+            [Card("2", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand with Two
+        ]
+        fields = [
+            [  # Player 0's field
+                Card("3", Suit.SPADES, Rank.KING),  # King face card
+                Card("4", Suit.HEARTS, Rank.TEN),  # Ten point card
+            ],
+            [  # Player 1's field
+                Card("5", Suit.CLUBS, Rank.JACK),  # Jack face card
+                Card("6", Suit.DIAMONDS, Rank.NINE),  # Nine point card
+            ],
+        ]
+        deck = []
+        discard = []
+
+        # Set up cards on fields
+        fields[0][0].purpose = Purpose.FACE_CARD
+        fields[0][0].played_by = 0
+        fields[0][1].purpose = Purpose.POINTS
+        fields[0][1].played_by = 0
+        fields[1][0].purpose = Purpose.FACE_CARD
+        fields[1][0].played_by = 1
+        fields[1][1].purpose = Purpose.POINTS
+        fields[1][1].played_by = 1
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Play Six as one-off
+        six_card = hands[0][0]
+        turn_finished, played_by = game_state.play_one_off(
+            0, six_card, None, 1
+        )  # Player 1 resolves
+
+        # Verify only face cards are removed, point cards remain
+        self.assertEqual(
+            len(game_state.fields[0]), 1
+        )  # Player 0's field should have point card
+        self.assertEqual(
+            len(game_state.fields[1]), 1
+        )  # Player 1's field should have point card
+        self.assertEqual(
+            len(game_state.discard_pile), 3
+        )  # Six + 2 face cards in discard
+        self.assertTrue(
+            all(card.purpose == Purpose.POINTS for card in game_state.fields[0])
+        )
+        self.assertTrue(
+            all(card.purpose == Purpose.POINTS for card in game_state.fields[1])
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

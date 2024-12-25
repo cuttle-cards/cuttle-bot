@@ -52,6 +52,10 @@ class Card:
             or self.point_value() == Rank.EIGHT.value[1]
         )
 
+    def is_one_off(self) -> bool:
+        """Check if the card can be played as a one-off effect."""
+        return self.rank in [Rank.ACE, Rank.TWO, Rank.FIVE, Rank.SIX]
+
 
 class Suit(Enum):
     """

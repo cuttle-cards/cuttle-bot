@@ -1,4 +1,5 @@
 from game.game import Game
+from game.action import ActionType
 
 
 def get_yes_no_input(prompt: str) -> bool:
@@ -100,8 +101,13 @@ def main():
                 print(f"{i}: {action}")
 
             player_action = input(
-                f"Enter your action for player {game.game_state.current_action_player}: "
+                f"Enter your action for player {game.game_state.current_action_player} ('e' to end game): "
             )
+
+            # Check for end game input
+            if player_action.lower() == "e":
+                game_over = True
+                break
 
             # invalid player input
             if not player_action.isdigit() or not int(player_action) in range(

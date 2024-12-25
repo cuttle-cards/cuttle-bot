@@ -130,6 +130,17 @@ class GameState:
             winner = self.winner()
             return turn_finished, should_stop, winner
         elif action.action_type == ActionType.ONE_OFF:
+            # Special handling for Six - apply immediately without counter possibility
+            if action.card.rank in [Rank.ACE, Rank.SIX]:
+                self.hands[self.turn].remove(action.card)
+                action.card.purpose = Purpose.ONE_OFF
+                action.card.played_by = self.turn
+                self.discard_pile.append(action.card)
+                self.apply_one_off_effect(action.card)
+                turn_finished = True
+                return turn_finished, should_stop, winner
+
+            # Normal one-off handling for other cards
             turn_finished, played_by = self.play_one_off(
                 self.turn, action.card, None, None
             )
@@ -330,6 +341,18 @@ class GameState:
                 self.draw_card(1)
             else:
                 pass
+        elif card.rank == Rank.SIX:
+            # Clear all face cards from all players' fields
+            for player_field in self.fields:
+                face_cards = [
+                    card
+                    for card in player_field
+                    if card.is_face_card() and card.purpose == Purpose.FACE_CARD
+                ]
+                for face_card in face_cards:
+                    player_field.remove(face_card)
+                    face_card.clear_player_info()
+                    self.discard_pile.append(face_card)
 
     def play_face_card(self, card: Card) -> bool:
         """
@@ -369,110 +392,77 @@ class GameState:
 
         return False
 
-    def get_legal_actions(self):
+    def get_legal_actions(self) -> List[Action]:
         """
-        Get the legal actions for the current player.
-
-        Returns:
-            List[str] - The legal actions for the current player.
+        Get all legal actions for the current player.
         """
-        player = self.current_action_player
-
         actions = []
 
-        hand = self.hands[player]
-        opponent_fields = self.fields[:player] + self.fields[player + 1 :]
-
+        # If resolving one-off, only allow counter or resolve
         if self.resolving_one_off:
-            for card in hand:
-                if card.rank == Rank.TWO:
-                    actions.append(
-                        Action(
-                            action_type=ActionType.COUNTER,
-                            card=card,
-                            target=self.one_off_card_to_counter,
-                            played_by=self.current_action_player,
-                        )
+            # Check if current player has a Two to counter with
+            twos = [
+                card
+                for card in self.hands[self.current_action_player]
+                if card.rank == Rank.TWO
+            ]
+            for two in twos:
+                actions.append(
+                    Action(
+                        ActionType.COUNTER,
+                        two,
+                        self.one_off_card_to_counter,
+                        self.current_action_player,
                     )
-
+                )
+            # Always allow resolving (not countering)
             actions.append(
                 Action(
-                    action_type=ActionType.RESOLVE,
-                    card=None,
-                    target=self.one_off_card_to_counter,
-                    played_by=self.current_action_player,
+                    ActionType.RESOLVE,
+                    None,
+                    self.one_off_card_to_counter,
+                    self.current_action_player,
                 )
             )
             return actions
 
-        if len(hand) < 8 and len(self.deck) > 0:
-            draw_action = Action(
-                action_type=ActionType.DRAW,
-                card=None,
-                target=None,
-                played_by=self.current_action_player,
-            )
-            actions.append(draw_action)
+        # Always allow drawing a card
+        actions.append(Action(ActionType.DRAW, None, None, self.turn))
 
-        point_cards = [card for card in hand if card.is_point_card()]
-        face_cards = [card for card in hand if card.is_face_card()]
+        # Get cards in current player's hand
+        hand = self.hands[self.turn]
 
-        for card in point_cards:
-            actions.append(
-                Action(
-                    action_type=ActionType.POINTS,
-                    card=card,
-                    target=None,
-                    played_by=self.current_action_player,
-                )
-            )
-
+        # Can play any card as points
         for card in hand:
-            # Untargeted one-off
-            if card.rank in [Rank.ACE, Rank.FIVE, Rank.SIX]:
-                actions.append(
-                    Action(
-                        action_type=ActionType.ONE_OFF,
-                        card=card,
-                        target=None,
-                        played_by=self.current_action_player,
+            if card.point_value() <= Rank.TEN.value[1]:
+                actions.append(Action(ActionType.POINTS, card, None, self.turn))
+
+        # Can play face cards
+        for card in hand:
+            if card.is_face_card():
+                actions.append(Action(ActionType.FACE_CARD, card, None, self.turn))
+
+        # Can play one-offs
+        for card in hand:
+            if card.is_one_off():
+                actions.append(Action(ActionType.ONE_OFF, card, None, self.turn))
+
+        # Can scuttle opponent's point cards with higher point cards
+        opponent = (self.turn + 1) % len(self.hands)
+        opponent_field = self.fields[opponent]
+        opponent_points = [
+            card for card in opponent_field if card.purpose == Purpose.POINTS
+        ]
+
+        for opponent_card in opponent_points:
+            for card in hand:
+                if card.point_value() > opponent_card.point_value() or (
+                    card.point_value() == opponent_card.point_value()
+                    and card.suit_value() > opponent_card.suit_value()
+                ):
+                    actions.append(
+                        Action(ActionType.SCUTTLE, card, opponent_card, self.turn)
                     )
-                )
-
-        # scuttle
-        for point_card in point_cards:
-            for opponent_field, opponent_player in zip(
-                opponent_fields, range(len(opponent_fields))
-            ):
-                opponent_field_point_cards = [
-                    card
-                    for card in opponent_field
-                    if card.is_point_card() and card.purpose == Purpose.POINTS
-                ]
-                for opponent_point_card in opponent_field_point_cards:
-                    if point_card.point_value() > opponent_point_card.point_value() or (
-                        point_card.point_value() == opponent_point_card.point_value()
-                        and point_card.suit_value() > opponent_point_card.suit_value()
-                    ):
-                        actions.append(
-                            Action(
-                                action_type=ActionType.SCUTTLE,
-                                card=point_card,
-                                target=opponent_point_card,
-                                played_by=self.current_action_player,
-                            )
-                        )
-
-        for card in face_cards:
-            actions.append(
-                Action(
-                    action_type=ActionType.FACE_CARD,
-                    card=card,
-                    target=None,
-                    played_by=self.current_action_player,
-                )
-            )
-
         return actions
 
     def print_state(self):
