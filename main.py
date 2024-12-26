@@ -1,5 +1,6 @@
 from game.game import Game
 from game.action import ActionType
+import time
 
 
 def get_yes_no_input(prompt: str) -> bool:
@@ -11,6 +12,7 @@ def get_yes_no_input(prompt: str) -> bool:
         elif response in ["n", "no"]:
             return False
         print("Please enter 'y' or 'n'")
+        time.sleep(0.1)  # Add small delay to prevent log spam
 
 
 def select_saved_game() -> str:
@@ -88,8 +90,11 @@ def main():
         turn_finished = False
         should_stop = False
         winner = None
+        invalid_input_count = 0  # Counter for invalid inputs
+        MAX_INVALID_INPUTS = 5  # Maximum number of invalid inputs allowed
 
         while True:
+            time.sleep(0.1)  # Add small delay to prevent log spam
             # get legal actions
             if game.game_state.resolving_one_off:
                 print(f"Actions for player {game.game_state.current_action_player}:")
@@ -114,8 +119,17 @@ def main():
                 len(actions)
             ):
                 print("Invalid input, please enter a number")
+                invalid_input_count += 1
+                if invalid_input_count >= MAX_INVALID_INPUTS:
+                    print(
+                        f"Too many invalid inputs ({MAX_INVALID_INPUTS}). Game terminated."
+                    )
+                    game_over = True
+                    break
                 continue
 
+            # Reset invalid input counter after a valid input
+            invalid_input_count = 0
             player_action = int(player_action)
             print(f"You chose {actions[player_action]}")
             turn_finished, should_stop, winner = game.game_state.update_state(
