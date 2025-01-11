@@ -13,6 +13,8 @@ platformdirs==4.3.6
 pycodestyle==2.12.1
 pyflakes==3.2.0
 pylint==3.2.7
+pytest==8.1.1
+pytest-timeout==2.3.1
 tomli==2.2.1
 tomlkit==0.13.2
 typing-extensions==4.12.2
