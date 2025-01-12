@@ -6,6 +6,7 @@ import uuid
 import random
 import os
 import glob
+import time
 
 
 class Game:
@@ -90,17 +91,19 @@ class Game:
         self.game_state = GameState(hands, fields, deck[11:], [])
 
     def initialize_with_manual_selection(self):
-        """Initialize the game with manually selected hands."""
+        """Initialize the game with manual card selection."""
+        # Get all cards
         all_cards = self.generate_all_cards()
         available_cards = {str(card): card for card in all_cards}
         hands = [[], []]
 
-        # Display card selection interface for each player
+        # Manual selection for both players
         for player in range(2):
             max_cards = 5 if player == 0 else 6
             print(f"\nSelecting cards for Player {player} (max {max_cards} cards):")
 
             while len(hands[player]) < max_cards:
+                time.sleep(0.1)  # Add small delay to prevent log spam
                 self.display_available_cards(available_cards)
                 choice = input(
                     f"Enter card number to select (or 'done' to finish Player {player}'s selection): "
@@ -110,6 +113,7 @@ class Game:
                     break
 
                 try:
+
                     card_num = int(choice)
                     cards = list(available_cards.values())
                     if 0 <= card_num < len(cards):
@@ -148,6 +152,9 @@ class Game:
 
         # Fill player 0's hand to 5 cards
         while len(hands[0]) < 5:
+            time.sleep(0.1)  # Add small delay to prevent log spam
+            if not cards:  # Check if we have any cards left
+                raise ValueError("No cards left to fill hands")
             card = random.choice(cards)
             hands[0].append(card)
             del available_cards[str(card)]
@@ -156,6 +163,9 @@ class Game:
 
         # Fill player 1's hand to 6 cards
         while len(hands[1]) < 6:
+            time.sleep(0.1)  # Add small delay to prevent log spam
+            if not cards:  # Check if we have any cards left
+                raise ValueError("No cards left to fill hands")
             card = random.choice(cards)
             hands[1].append(card)
             del available_cards[str(card)]
