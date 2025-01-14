@@ -130,17 +130,7 @@ class GameState:
             winner = self.winner()
             return turn_finished, should_stop, winner
         elif action.action_type == ActionType.ONE_OFF:
-            # Special handling for untargeted one-offs - apply immediately without counter possibility
-            if action.card.rank in [Rank.ACE, Rank.SIX]:
-                self.hands[self.turn].remove(action.card)
-                action.card.purpose = Purpose.ONE_OFF
-                action.card.played_by = self.turn
-                self.discard_pile.append(action.card)
-                self.apply_one_off_effect(action.card)
-                turn_finished = True
-                return turn_finished, should_stop, winner
-
-            # Normal one-off handling for other cards
+            # Normal one-off handling for all cards
             turn_finished, played_by = self.play_one_off(
                 self.turn, action.card, None, None
             )

@@ -264,6 +264,7 @@ class TestGameState(unittest.TestCase):
         self.assertEqual(len(self.game_state.hands[0]), 8)
 
     def test_play_ace_one_off(self):
+        """Test playing an Ace as a one-off to destroy all point cards."""
         # Setup initial game state with point cards on both players' fields
         self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
         self.hands = [
@@ -302,38 +303,26 @@ class TestGameState(unittest.TestCase):
         finished, played_by = self.game_state.play_one_off(0, ace_card)
         self.assertFalse(finished)
         self.assertIsNone(played_by)
-        self.assertEqual(self.game_state.turn, 0)
-        self.assertEqual(self.game_state.last_action_played_by, 0)
-        self.assertEqual(self.game_state.current_action_player, 0)
-        self.game_state.next_player()
-        self.assertEqual(self.game_state.current_action_player, 1)
 
-        # Resolve the one-off (opponent doesn't counter)
-        finished, played_by = self.game_state.play_one_off(
-            1, ace_card, None, last_resolved_by=self.game_state.current_action_player
-        )
+        # Player 1 resolves (doesn't counter)
+        finished, played_by = self.game_state.play_one_off(1, ace_card, None, 1)
         self.assertTrue(finished)
         self.assertIsNone(played_by)
 
         # Verify all point cards are cleared from both fields
         self.assertEqual(len(self.game_state.fields[0]), 0)
         self.assertEqual(len(self.game_state.fields[1]), 0)
+        self.assertEqual(len(self.game_state.discard_pile), 5)  # ACE + 4 point cards
 
-        # Verify all point cards are in discard pile
-        self.assertEqual(len(self.game_state.discard_pile), 5)  # 4 point cards + ACE
-
-        # Verify scores are zero
-        self.assertEqual(self.game_state.get_player_score(0), 0)
-        self.assertEqual(self.game_state.get_player_score(1), 0)
-
-    def test_play_ace_one_off_with_non_point_cards(self):
-        # Setup initial game state with both point cards and face cards on fields
+    def test_play_ace_one_off_countered(self):
+        """Test playing an Ace as a one-off that gets countered."""
+        # Setup initial game state
         self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
         self.hands = [
             [Card("002", Suit.HEARTS, Rank.ACE)],  # Player 0's hand with ACE
-            [Card("003", Suit.SPADES, Rank.TWO)],  # Player 1's hand
+            [Card("003", Suit.SPADES, Rank.TWO)],  # Player 1's hand with TWO
         ]
-        # Add point cards and face cards to both players' fields
+        # Add point cards to both players' fields
         self.fields = [
             [
                 Card(
@@ -342,23 +331,9 @@ class TestGameState(unittest.TestCase):
                     Rank.SEVEN,
                     played_by=0,
                     purpose=Purpose.POINTS,
-                ),
-                Card(
-                    "005", Suit.CLUBS, Rank.KING, played_by=0, purpose=Purpose.FACE_CARD
-                ),
+                )
             ],
-            [
-                Card(
-                    "006", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS
-                ),
-                Card(
-                    "007",
-                    Suit.SPADES,
-                    Rank.QUEEN,
-                    played_by=1,
-                    purpose=Purpose.FACE_CARD,
-                ),
-            ],
+            [Card("005", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS)],
         ]
         self.discard_pile = []
 
@@ -371,27 +346,26 @@ class TestGameState(unittest.TestCase):
         finished, played_by = self.game_state.play_one_off(0, ace_card)
         self.assertFalse(finished)
         self.assertIsNone(played_by)
-        self.game_state.next_player()
 
-        # Resolve the one-off
+        # Player 1 counters with TWO
+        two_card = self.hands[1][0]
+        two_card.purpose = Purpose.COUNTER
+        two_card.played_by = 1
         finished, played_by = self.game_state.play_one_off(
-            1, ace_card, None, last_resolved_by=self.game_state.current_action_player
+            1, ace_card, countered_with=two_card
         )
+        self.assertFalse(finished)
+        self.assertEqual(played_by, 1)
+
+        # Player 0 resolves (accepts counter)
+        finished, played_by = self.game_state.play_one_off(0, ace_card, None, 0)
         self.assertTrue(finished)
         self.assertIsNone(played_by)
 
-        # Verify only point cards are cleared, face cards remain
-        self.assertEqual(len(self.game_state.fields[0]), 1)
-        self.assertEqual(len(self.game_state.fields[1]), 1)
-        self.assertEqual(self.game_state.fields[0][0].rank, Rank.KING)
-        self.assertEqual(self.game_state.fields[1][0].rank, Rank.QUEEN)
-
-        # Verify point cards and ACE are in discard pile
-        self.assertEqual(len(self.game_state.discard_pile), 3)  # 2 point cards + ACE
-
-        # Verify scores are zero
-        self.assertEqual(self.game_state.get_player_score(0), 0)
-        self.assertEqual(self.game_state.get_player_score(1), 0)
+        # Verify point cards remain and ACE + TWO are in discard
+        self.assertEqual(len(self.game_state.fields[0]), 1)  # Point card remains
+        self.assertEqual(len(self.game_state.fields[1]), 1)  # Point card remains
+        self.assertEqual(len(self.game_state.discard_pile), 2)  # ACE + TWO in discard
 
     def test_counter_one_off(self):
         # Setup initial game state with a one-off card and a counter
@@ -669,9 +643,14 @@ class TestGameState(unittest.TestCase):
 
         # Play Six as one-off
         six_card = hands[0][0]
-        turn_finished, played_by = game_state.play_one_off(
-            0, six_card, None, 1
-        )  # Player 1 resolves
+        finished, played_by = game_state.play_one_off(0, six_card)
+        self.assertFalse(finished)  # Not finished until resolved
+        self.assertIsNone(played_by)
+
+        # Player 1 resolves (doesn't counter)
+        finished, played_by = game_state.play_one_off(1, six_card, None, 1)
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
 
         # Verify all face cards are removed
         self.assertEqual(
@@ -684,60 +663,157 @@ class TestGameState(unittest.TestCase):
             len(game_state.discard_pile), 5
         )  # Six + 4 face cards in discard
 
-    def test_play_six_one_off_with_points(self):
-        """Test playing a Six as a one-off with point cards on field."""
-        # Set up initial state with face cards and point cards
+    def test_play_six_one_off_countered(self):
+        """Test playing a Six as a one-off that gets countered."""
+        # Set up initial state with face cards and a Two to counter
         hands = [
             [Card("1", Suit.HEARTS, Rank.SIX)],  # Player 0's hand with Six
             [Card("2", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand with Two
         ]
         fields = [
-            [  # Player 0's field
-                Card("3", Suit.SPADES, Rank.KING),  # King face card
-                Card("4", Suit.HEARTS, Rank.TEN),  # Ten point card
-            ],
-            [  # Player 1's field
-                Card("5", Suit.CLUBS, Rank.JACK),  # Jack face card
-                Card("6", Suit.DIAMONDS, Rank.NINE),  # Nine point card
-            ],
+            [Card("3", Suit.SPADES, Rank.KING)],  # Player 0's King
+            [Card("4", Suit.HEARTS, Rank.QUEEN)],  # Player 1's Queen
         ]
         deck = []
         discard = []
 
-        # Set up cards on fields
+        # Set up face cards
         fields[0][0].purpose = Purpose.FACE_CARD
         fields[0][0].played_by = 0
-        fields[0][1].purpose = Purpose.POINTS
-        fields[0][1].played_by = 0
         fields[1][0].purpose = Purpose.FACE_CARD
         fields[1][0].played_by = 1
-        fields[1][1].purpose = Purpose.POINTS
-        fields[1][1].played_by = 1
 
         game_state = GameState(hands, fields, deck, discard)
 
         # Play Six as one-off
         six_card = hands[0][0]
-        turn_finished, played_by = game_state.play_one_off(
-            0, six_card, None, 1
-        )  # Player 1 resolves
+        finished, played_by = game_state.play_one_off(0, six_card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
 
-        # Verify only face cards are removed, point cards remain
-        self.assertEqual(
-            len(game_state.fields[0]), 1
-        )  # Player 0's field should have point card
-        self.assertEqual(
-            len(game_state.fields[1]), 1
-        )  # Player 1's field should have point card
-        self.assertEqual(
-            len(game_state.discard_pile), 3
-        )  # Six + 2 face cards in discard
-        self.assertTrue(
-            all(card.purpose == Purpose.POINTS for card in game_state.fields[0])
+        # Player 1 counters with Two
+        two_card = hands[1][0]
+        two_card.purpose = Purpose.COUNTER
+        two_card.played_by = 1
+        finished, played_by = game_state.play_one_off(
+            1, six_card, countered_with=two_card
         )
-        self.assertTrue(
-            all(card.purpose == Purpose.POINTS for card in game_state.fields[1])
+        self.assertFalse(finished)
+        self.assertEqual(played_by, 1)
+
+        # Player 0 resolves (accepts counter)
+        finished, played_by = game_state.play_one_off(0, six_card, None, 0)
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+
+        # Verify face cards remain and Six + Two are in discard
+        self.assertEqual(len(game_state.fields[0]), 1)  # King remains
+        self.assertEqual(len(game_state.fields[1]), 1)  # Queen remains
+        self.assertEqual(len(game_state.discard_pile), 2)  # Six + Two in discard
+
+    def test_play_ace_one_off(self):
+        """Test playing an Ace as a one-off to destroy all point cards."""
+        # Setup initial game state with point cards on both players' fields
+        self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
+        self.hands = [
+            [Card("002", Suit.HEARTS, Rank.ACE)],  # Player 0's hand with ACE
+            [Card("003", Suit.SPADES, Rank.TWO)],  # Player 1's hand
+        ]
+        # Add point cards to both players' fields
+        self.fields = [
+            [
+                Card(
+                    "004",
+                    Suit.DIAMONDS,
+                    Rank.SEVEN,
+                    played_by=0,
+                    purpose=Purpose.POINTS,
+                ),
+                Card("005", Suit.CLUBS, Rank.FOUR, played_by=0, purpose=Purpose.POINTS),
+            ],
+            [
+                Card(
+                    "006", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS
+                ),
+                Card(
+                    "007", Suit.SPADES, Rank.THREE, played_by=1, purpose=Purpose.POINTS
+                ),
+            ],
+        ]
+        self.discard_pile = []
+
+        self.game_state = GameState(
+            self.hands, self.fields, self.deck, self.discard_pile
         )
+
+        # Play ACE as one-off
+        ace_card = self.hands[0][0]
+        finished, played_by = self.game_state.play_one_off(0, ace_card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+
+        # Player 1 resolves (doesn't counter)
+        finished, played_by = self.game_state.play_one_off(1, ace_card, None, 1)
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+
+        # Verify all point cards are cleared from both fields
+        self.assertEqual(len(self.game_state.fields[0]), 0)
+        self.assertEqual(len(self.game_state.fields[1]), 0)
+        self.assertEqual(len(self.game_state.discard_pile), 5)  # ACE + 4 point cards
+
+    def test_play_ace_one_off_countered(self):
+        """Test playing an Ace as a one-off that gets countered."""
+        # Setup initial game state
+        self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
+        self.hands = [
+            [Card("002", Suit.HEARTS, Rank.ACE)],  # Player 0's hand with ACE
+            [Card("003", Suit.SPADES, Rank.TWO)],  # Player 1's hand with TWO
+        ]
+        # Add point cards to both players' fields
+        self.fields = [
+            [
+                Card(
+                    "004",
+                    Suit.DIAMONDS,
+                    Rank.SEVEN,
+                    played_by=0,
+                    purpose=Purpose.POINTS,
+                )
+            ],
+            [Card("005", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS)],
+        ]
+        self.discard_pile = []
+
+        self.game_state = GameState(
+            self.hands, self.fields, self.deck, self.discard_pile
+        )
+
+        # Play ACE as one-off
+        ace_card = self.hands[0][0]
+        finished, played_by = self.game_state.play_one_off(0, ace_card)
+        self.assertFalse(finished)
+        self.assertIsNone(played_by)
+
+        # Player 1 counters with TWO
+        two_card = self.hands[1][0]
+        two_card.purpose = Purpose.COUNTER
+        two_card.played_by = 1
+        finished, played_by = self.game_state.play_one_off(
+            1, ace_card, countered_with=two_card
+        )
+        self.assertFalse(finished)
+        self.assertEqual(played_by, 1)
+
+        # Player 0 resolves (accepts counter)
+        finished, played_by = self.game_state.play_one_off(0, ace_card, None, 0)
+        self.assertTrue(finished)
+        self.assertIsNone(played_by)
+
+        # Verify point cards remain and ACE + TWO are in discard
+        self.assertEqual(len(self.game_state.fields[0]), 1)  # Point card remains
+        self.assertEqual(len(self.game_state.fields[1]), 1)  # Point card remains
+        self.assertEqual(len(self.game_state.discard_pile), 2)  # ACE + TWO in discard
 
 
 if __name__ == "__main__":

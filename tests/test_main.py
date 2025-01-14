@@ -215,8 +215,11 @@ class TestMain(unittest.TestCase):
             # Game actions
             "5",  # p0 Play King of Spades (face card)
             "4",  # p1 Play King of Diamonds (face card)
-            "5",  # p0 Play Six of Hearts (one-off) - should apply immediately
+            "5",  # p0 Play Six of Hearts (one-off) - Counterable
+            "n",  # Don't save game
+            "0",  # p1 resolves
             "e",  # End game
+            "n",  # Don't save final game state
         ]
         mock_input.side_effect = mock_inputs
 
@@ -308,8 +311,11 @@ class TestMain(unittest.TestCase):
             "1",  # p1 Play 9 of Diamonds (points)
             "2",  # p0 Play 5 of Diamonds (points)
             "2",  # p1 Play 7 of Hearts (points)
-            "4",  # p0 Play Ace of Hearts (one-off) - should apply immediately
+            "4",  # p0 Play Ace of Hearts (one-off) - Counterable
+            "n",  # Don't save game
+            "0",  # p1 resolves
             "e",  # End game
+            "n",  # Don't save final game state
         ]
         mock_input.side_effect = mock_inputs
 
