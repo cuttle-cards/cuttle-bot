@@ -216,7 +216,6 @@ class TestMain(unittest.TestCase):
             "5",  # p0 Play King of Spades (face card)
             "4",  # p1 Play King of Diamonds (face card)
             "5",  # p0 Play Six of Hearts (one-off) - Counterable
-            "n",  # Don't save game
             "0",  # p1 resolves
             "e",  # End game
             "n",  # Don't save final game state
@@ -312,7 +311,6 @@ class TestMain(unittest.TestCase):
             "2",  # p0 Play 5 of Diamonds (points)
             "2",  # p1 Play 7 of Hearts (points)
             "4",  # p0 Play Ace of Hearts (one-off) - Counterable
-            "n",  # Don't save game
             "0",  # p1 resolves
             "e",  # End game
             "n",  # Don't save final game state
@@ -409,6 +407,161 @@ class TestMain(unittest.TestCase):
             if "Applying one off effect for Ace of Hearts" in text
         ]
         self.assertTrue(any(ace_effect))
+
+    @pytest.mark.timeout(5)
+    @patch("builtins.input")
+    @patch("builtins.print")
+    @patch("game.game.Game.generate_all_cards")
+    def test_play_ace_with_countering_through_main(
+        self, mock_generate_cards, mock_print, mock_input
+    ):
+        """Test playing an Ace as a one-off through main.py to destroy point cards."""
+        # Set up print mock to both capture and display
+        mock_print.side_effect = print_and_capture
+
+        # Create a test deck with specific cards in order
+        test_deck = [
+            # First 5 cards (Player 0's hand)
+            Card("1", Suit.HEARTS, Rank.ACE),  # Ace of Hearts
+            Card("2", Suit.SPADES, Rank.KING),  # King of Spades
+            Card("3", Suit.HEARTS, Rank.TEN),  # 10 of Hearts
+            Card("4", Suit.DIAMONDS, Rank.FIVE),  # 5 of Diamonds
+            Card("5", Suit.CLUBS, Rank.THREE),  # 3 of Clubs
+            # Next 6 cards (Player 1's hand)
+            Card("6", Suit.DIAMONDS, Rank.NINE),  # 9 of Diamonds (points)
+            Card("7", Suit.CLUBS, Rank.EIGHT),  # 8 of Clubs (face)
+            Card("8", Suit.HEARTS, Rank.SEVEN),  # 7 of Hearts (points)
+            Card("9", Suit.SPADES, Rank.FIVE),  # 5 of Spades
+            Card("10", Suit.DIAMONDS, Rank.FOUR),  # 4 of Diamonds
+            Card("11", Suit.CLUBS, Rank.TWO),  # 2 of Clubs
+        ]
+        # Add remaining cards in any order
+        for suit in Suit.__members__.values():
+            for rank in Rank.__members__.values():
+                card_str = f"{rank.name} of {suit.name}"
+                if not any(str(c) == card_str for c in test_deck):
+                    test_deck.append(Card(str(len(test_deck) + 1), suit, rank))
+
+        mock_generate_cards.return_value = test_deck
+
+        # Mock sequence of inputs for the entire game
+        mock_inputs = [
+            "n",  # Don't load saved game
+            "y",  # Use manual selection
+            # Player 0 selects cards
+            "0",  # Select Ace of Hearts
+            "0",  # Select King of Spades
+            "0",  # Select 10 of Hearts
+            "0",  # Select 5 of Diamonds
+            "0",  # Select 2 of Clubs
+            # Player 1 selects cards
+            "0",  # Select 9 of Diamonds
+            "0",  # Select 8 of Clubs
+            "0",  # Select 7 of Hearts
+            "0",  # Select 5 of Spades
+            "0",  # Select 4 of Diamonds
+            "0",  # Select 3 of Clubs
+            "n",  # Don't save initial state
+            # Game actions
+            "2",  # p0 Play 10 of Hearts (points)
+            "1",  # p1 Play 9 of Diamonds (points)
+            "2",  # p0 Play 5 of Diamonds (points)
+            "2",  # p1 Play 7 of Hearts (points)
+            "4",  # p0 Play Ace of Hearts (one-off) - Counterable
+            "0",  # p1 counters with two of clubs
+            "0",  # p0 resolves
+            "e",  # End game
+            "n",  # Don't save final game state
+        ]
+        mock_input.side_effect = mock_inputs
+
+        # Import and run main
+        from main import main
+
+        main()
+
+        # Verify the sequence of prints shows point cards being played and destroyed
+        # Get all logged output
+        log_output = log_stream.getvalue().splitlines()
+
+        # Print all captured outputs for inspection
+        print("\nGame Output:", file=sys.__stdout__, flush=True)
+        for i, line in enumerate(log_output):
+            print(f"  {i}: {line}", file=sys.__stdout__, flush=True)
+
+        # Check for key game events in output
+        point_card_plays = [
+            text
+            for text in log_output
+            if "Player 0's field: [Ten of Hearts]" in text
+            or "Player 1's field: [Nine of Diamonds]" in text
+            or "Player 0's field: [Ten of Hearts, Five of Diamonds]" in text
+            or "Player 1's field: [Nine of Diamonds, Seven of Hearts]" in text
+        ]
+        self.assertTrue(any(point_card_plays))
+
+        # After Ace is played and countered, fields should be the same point cards
+        empty_fields = [
+            text
+            for text in log_output
+            if "Player 0's field: [Ten of Hearts, Five of Diamonds]" in text
+            or "Player 1's field: [Nine of Diamonds, Seven of Hearts]" in text
+        ]
+        # Get the last occurrence of each empty field
+        p0_empty_indices = [
+            i
+            for i, text in enumerate(log_output)
+            if "Player 0's field: [Ten of Hearts, Five of Diamonds]" in text
+        ]
+        p1_empty_indices = [
+            i
+            for i, text in enumerate(log_output)
+            if "Player 1's field: [Nine of Diamonds, Seven of Hearts]" in text
+        ]
+        self.assertTrue(
+            p0_empty_indices
+        )  # Should have at least one empty field state for p0
+        self.assertTrue(
+            p1_empty_indices
+        )  # Should have at least one empty field state for p1
+        p0_last_index = p0_empty_indices[-1]
+        p1_last_index = p1_empty_indices[-1]
+        # The last empty states should be close to each other
+        self.assertTrue(
+            abs(p0_last_index - p1_last_index) <= 10
+        )  # Allow some flexibility in print order
+
+        # Verify final game state
+        last_game_state_output = [
+            "Deck: 41",
+            "Discard Pile: 2",
+            "Points:",
+            "Player 0: 15",
+            "Player 1: 16",
+            "Player 0's hand: [King of Spades, Three of Clubs]",
+            "Player 1's hand: [Eight of Clubs, Five of Spades, Four of Diamonds]",
+            "Player 0's field: [Ten of Hearts, Five of Diamonds]",
+            "Player 1's field: [Nine of Diamonds, Seven of Hearts]",
+        ]
+        # Check that each line appears in the output
+        for expected_line in last_game_state_output:
+            self.assertTrue(
+                any(expected_line in actual_line for actual_line in log_output[-50:]),
+                f"Could not find expected line: {expected_line}",
+            )
+        # Also verify that these lines appear near the end of the output
+        # by checking that all of them appear in the last 50 lines
+        last_50_lines = log_output[-50:]
+        all_lines_found = all(
+            any(expected_line in actual_line for actual_line in last_50_lines)
+            for expected_line in last_game_state_output
+        )
+        self.assertTrue(
+            all_lines_found,
+            "Not all expected lines were found in the last 50 lines of output",
+        )
+
+        self.assertTrue(any(empty_fields))
 
 
 if __name__ == "__main__":

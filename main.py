@@ -148,22 +148,6 @@ def main():
             if game.game_state.resolving_one_off:
                 game.game_state.next_player()
 
-            # Ask if user wants to save the game after each action
-            if get_yes_no_input("Would you like to save the current game state?"):
-                while True:
-                    filename = input("Enter filename to save to (without .json): ")
-                    if filename:
-                        try:
-                            game.save_game(filename)
-                            print("Game saved successfully!")
-                            break
-                        except Exception as e:
-                            print(f"Error saving game: {e}")
-                            if not get_yes_no_input("Would you like to try again?"):
-                                break
-                    else:
-                        print("Please enter a valid filename.")
-
         if game_over:
             break
 
