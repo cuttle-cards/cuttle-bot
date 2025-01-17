@@ -324,6 +324,30 @@ class GameState:
                     player_field.remove(point_card)
                     point_card.clear_player_info()
                     self.discard_pile.append(point_card)
+        elif card.rank == Rank.THREE:
+            # Allow player to take a card from the discard pile
+            if not self.discard_pile:
+                print("No cards in discard pile to take")
+                return
+
+            # Show available cards in discard pile
+            print("\nAvailable cards in discard pile:")
+            for i, card in enumerate(self.discard_pile):
+                print(f"{i}: {card}")
+
+            while True:
+                try:
+                    choice = input("Enter the number of the card to take: ")
+                    index = int(choice)
+                    if 0 <= index < len(self.discard_pile):
+                        chosen_card = self.discard_pile.pop(index)
+                        chosen_card.clear_player_info()
+                        self.hands[self.turn].append(chosen_card)
+                        print(f"Took {chosen_card} from discard pile")
+                        break
+                    print("Invalid number, please try again")
+                except ValueError:
+                    print("Please enter a valid number")
         elif card.rank == Rank.FIVE:
             if len(self.hands[self.turn]) <= 6:
                 self.draw_card(2)

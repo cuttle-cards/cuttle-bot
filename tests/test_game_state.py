@@ -1,6 +1,7 @@
 import unittest
 from game.card import Card, Purpose, Suit, Rank
 from game.game_state import GameState
+from unittest.mock import patch
 
 
 class TestGameState(unittest.TestCase):
@@ -814,6 +815,171 @@ class TestGameState(unittest.TestCase):
         self.assertEqual(len(self.game_state.fields[0]), 1)  # Point card remains
         self.assertEqual(len(self.game_state.fields[1]), 1)  # Point card remains
         self.assertEqual(len(self.game_state.discard_pile), 2)  # ACE + TWO in discard
+
+    @patch("builtins.input")
+    def test_play_three_one_off(self, mock_input):
+        """Test playing a Three as a one-off to take a card from discard pile."""
+        # Setup initial state with cards in discard pile
+        three_card = Card("1", Suit.HEARTS, Rank.THREE)
+        two_card = Card("2", Suit.DIAMONDS, Rank.TWO)
+        king_card = Card("3", Suit.SPADES, Rank.KING)
+        queen_card = Card("4", Suit.HEARTS, Rank.QUEEN)
+        jack_card = Card("5", Suit.CLUBS, Rank.JACK)
+
+        hands = [
+            [three_card],  # Player 0's hand with Three
+            [two_card],  # Player 1's hand with Two
+        ]
+        fields = [[], []]
+        deck = []
+        discard = [
+            king_card,  # King in discard
+            queen_card,  # Queen in discard
+            jack_card,  # Jack in discard
+        ]
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Mock input to select first card from discard
+        mock_input.return_value = "0"
+
+        # Play Three as one-off
+        turn_finished, played_by = game_state.play_one_off(
+            0, three_card, None, 1
+        )  # Player 1 resolves
+
+        # Verify Three is moved to discard
+        self.assertIn(three_card, game_state.discard_pile)
+        self.assertNotIn(three_card, game_state.hands[0])
+
+        # Verify King was taken from discard
+        self.assertIn(king_card, game_state.hands[0])
+        self.assertNotIn(king_card, game_state.discard_pile)
+
+        # Verify other cards remain in discard
+        self.assertEqual(len(game_state.discard_pile), 3)  # Three + Queen + Jack
+        self.assertIn(queen_card, game_state.discard_pile)
+        self.assertIn(jack_card, game_state.discard_pile)
+
+    @patch("builtins.input")
+    def test_play_three_one_off_empty_discard(self, mock_input):
+        """Test playing a Three as a one-off with empty discard pile."""
+        # Setup initial state with empty discard pile
+        three_card = Card("1", Suit.HEARTS, Rank.THREE)
+        two_card = Card("2", Suit.DIAMONDS, Rank.TWO)
+
+        hands = [
+            [three_card],  # Player 0's hand with Three
+            [two_card],  # Player 1's hand with Two
+        ]
+        fields = [[], []]
+        deck = []
+        discard = []
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Play Three as one-off
+        turn_finished, played_by = game_state.play_one_off(
+            0, three_card, None, 1
+        )  # Player 1 resolves
+
+        # Verify Three is moved to discard
+        self.assertIn(three_card, game_state.discard_pile)
+        self.assertNotIn(three_card, game_state.hands[0])
+
+        # Verify hand remains unchanged (no card taken as discard was empty)
+        self.assertEqual(len(game_state.hands[0]), 0)
+
+    @patch("builtins.input")
+    def test_play_three_one_off_with_counter(self, mock_input):
+        """Test playing a Three as a one-off that gets countered."""
+        # Setup initial state
+        three_card = Card("1", Suit.HEARTS, Rank.THREE)
+        two_card = Card("2", Suit.DIAMONDS, Rank.TWO)
+        king_card = Card("3", Suit.SPADES, Rank.KING)
+
+        hands = [
+            [three_card],  # Player 0's hand with Three
+            [two_card],  # Player 1's hand with Two
+        ]
+        fields = [[], []]
+        deck = []
+        discard = [king_card]  # King in discard
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Play Three as one-off
+        turn_finished, played_by = game_state.play_one_off(0, three_card)
+        self.assertFalse(turn_finished)
+        self.assertIsNone(played_by)
+        game_state.next_player()
+
+        # Counter with Two
+        two_card.purpose = Purpose.COUNTER
+        two_card.played_by = 1
+        turn_finished, played_by = game_state.play_one_off(
+            1, three_card, countered_with=two_card
+        )
+        self.assertFalse(turn_finished)
+        self.assertEqual(played_by, 1)
+        game_state.next_player()
+
+        # Original player accepts counter
+        turn_finished, played_by = game_state.play_one_off(
+            0, two_card, None, last_resolved_by=0
+        )
+        self.assertTrue(turn_finished)
+        self.assertIsNone(played_by)
+
+        # Verify both cards are in discard
+        self.assertIn(three_card, game_state.discard_pile)
+        self.assertIn(two_card, game_state.discard_pile)
+
+        # Verify King remains in discard (effect not applied)
+        self.assertIn(king_card, game_state.discard_pile)
+        self.assertEqual(len(game_state.discard_pile), 3)
+
+    @patch("builtins.input")
+    def test_play_three_one_off_invalid_selection(self, mock_input):
+        """Test playing a Three as a one-off with invalid card selection."""
+        # Setup initial state
+        three_card = Card("1", Suit.HEARTS, Rank.THREE)
+        two_card = Card("2", Suit.DIAMONDS, Rank.TWO)
+        king_card = Card("3", Suit.SPADES, Rank.KING)
+        queen_card = Card("4", Suit.HEARTS, Rank.QUEEN)
+
+        hands = [
+            [three_card],  # Player 0's hand with Three
+            [two_card],  # Player 1's hand with Two
+        ]
+        fields = [[], []]
+        deck = []
+        discard = [
+            king_card,
+            queen_card,
+        ]
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Mock invalid input followed by valid input
+        mock_input.side_effect = ["invalid", "-1", "999", "0"]
+
+        # Play Three as one-off
+        turn_finished, played_by = game_state.play_one_off(
+            0, three_card, None, 1
+        )  # Player 1 resolves
+
+        # Verify Three is moved to discard
+        self.assertIn(three_card, game_state.discard_pile)
+        self.assertNotIn(three_card, game_state.hands[0])
+
+        # Verify King was taken from discard (after invalid attempts)
+        self.assertIn(king_card, game_state.hands[0])
+        self.assertNotIn(king_card, game_state.discard_pile)
+
+        # Verify Queen remains in discard
+        self.assertIn(queen_card, game_state.discard_pile)
+        self.assertEqual(len(game_state.discard_pile), 2)  # Three + Queen
 
 
 if __name__ == "__main__":
