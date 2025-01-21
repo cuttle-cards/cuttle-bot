@@ -4,6 +4,17 @@ from game.card import Card
 from enum import Enum
 
 
+class ActionSource(Enum):
+    """
+    An Enum class that represents the source of a card in an action.
+    """
+
+    HAND = "Hand"
+    DECK = "Deck"
+    FIELD = "Field"
+    DISCARD = "Discard"
+
+
 class Action:
     """
     A class that represents an action in the game.
@@ -14,6 +25,7 @@ class Action:
     target: Card
     played_by: int
     requires_additional_input: bool
+    source: ActionSource
 
     def __init__(
         self,
@@ -22,12 +34,14 @@ class Action:
         target: Card,
         played_by: int,
         requires_additional_input: bool = False,
+        source: ActionSource = ActionSource.HAND,
     ):
         self.action_type = action_type
         self.card = card
         self.target = target
         self.requires_additional_input = requires_additional_input
         self.played_by = played_by
+        self.source = source
 
     def __repr__(self):
 

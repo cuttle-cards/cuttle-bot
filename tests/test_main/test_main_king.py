@@ -59,6 +59,7 @@ class TestMainKing(MainTestBase):
             "4",  # p0 Play second King (face card)
             "0",  # p1 draws
             "1",  # p0 plays 10 of Hearts (points)
+            "n",  # Don't save game history
         ]
         self.setup_mock_input(mock_input, mock_inputs)
 

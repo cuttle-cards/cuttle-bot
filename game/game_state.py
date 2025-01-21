@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional, Dict
 from game.card import Card, Purpose, Rank
-from game.action import Action, ActionType
+from game.action import Action, ActionType, ActionSource
 
 
 class GameState:
@@ -17,6 +17,7 @@ class GameState:
         scores: List[int] - The scores of the players.
         targets: List[int] - The score targets of the players.
         turn: int - Whose turn it is - 0 for p0, 1 for p1.
+        logger: callable - The logger to use for output.
 
     """
 
@@ -26,6 +27,7 @@ class GameState:
         fields: List[List[Card]],
         deck: List[Card],
         discard_pile: List[Card],
+        logger=print,  # Default to print if no logger provided
     ):
         """
         Initialize the game state.
@@ -41,6 +43,7 @@ class GameState:
         self.resolving_two = False
         self.resolving_one_off = False
         self.one_off_card_to_counter = None
+        self.logger = logger
 
     def next_turn(self):
         self.turn = (self.turn + 1) % len(self.hands)
@@ -505,3 +508,60 @@ class GameState:
         for i, field in enumerate(self.fields):
             print(f"Player {i}'s field: {field}")
         print("--------------------------------")
+
+    def to_dict(self) -> Dict:
+        """
+        Convert the game state to a dictionary for saving.
+
+        Returns:
+            A dictionary representation of the game state
+        """
+        return {
+            "hands": [[card.to_dict() for card in hand] for hand in self.hands],
+            "fields": [[card.to_dict() for card in field] for field in self.fields],
+            "deck": [card.to_dict() for card in self.deck],
+            "discard": [card.to_dict() for card in self.discard_pile],
+            "turn": self.turn,
+            "status": self.status,
+            "resolving_two": self.resolving_two,
+            "resolving_one_off": self.resolving_one_off,
+            "one_off_card_to_counter": (
+                self.one_off_card_to_counter.to_dict()
+                if self.one_off_card_to_counter
+                else None
+            ),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict, logger=print) -> "GameState":
+        """
+        Create a game state from a dictionary.
+
+        Args:
+            data: A dictionary representation of a game state
+
+        Returns:
+            A new GameState instance
+        """
+        hands = [
+            [Card.from_dict(card_data) for card_data in hand] for hand in data["hands"]
+        ]
+        fields = [
+            [Card.from_dict(card_data) for card_data in field]
+            for field in data["fields"]
+        ]
+        deck = [Card.from_dict(card_data) for card_data in data["deck"]]
+        discard_pile = [Card.from_dict(card_data) for card_data in data["discard"]]
+
+        game_state = cls(hands, fields, deck, discard_pile, logger=logger)
+        game_state.turn = data["turn"]
+        game_state.status = data["status"]
+        game_state.resolving_two = data["resolving_two"]
+        game_state.resolving_one_off = data["resolving_one_off"]
+        game_state.one_off_card_to_counter = (
+            Card.from_dict(data["one_off_card_to_counter"])
+            if data["one_off_card_to_counter"]
+            else None
+        )
+
+        return game_state

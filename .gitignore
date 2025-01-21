@@ -169,3 +169,4 @@ cython_debug/
 # Project Specific
 test_games/
 tmp.txt
+game_history/

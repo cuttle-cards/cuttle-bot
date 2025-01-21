@@ -3,6 +3,71 @@ from game.action import ActionType
 from game.ai_player import AIPlayer
 import asyncio
 import time
+import os
+import datetime
+import io
+import logging
+from typing import List, Optional
+
+
+HISTORY_DIR = "game_history"
+
+# Create history directory if it doesn't exist
+os.makedirs(HISTORY_DIR, exist_ok=True)
+
+
+def setup_logging():
+    """Set up logging to capture game history"""
+    # Create string IO for capturing output
+    log_stream = io.StringIO()
+
+    # Create formatter
+    formatter = logging.Formatter("%(message)s")
+
+    # Create string handler
+    string_handler = logging.StreamHandler(log_stream)
+    string_handler.setFormatter(formatter)
+
+    # Create console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
+    # Get logger
+    logger = logging.getLogger("cuttle")
+    logger.setLevel(logging.INFO)
+
+    # Add handlers
+    logger.addHandler(string_handler)
+    logger.addHandler(console_handler)
+
+    # Clear any existing handlers
+    logger.handlers = [string_handler, console_handler]
+
+    return logger, log_stream
+
+
+def log_print(*args, **kwargs):
+    """Print and log output"""
+    logger = logging.getLogger("cuttle")
+    message = " ".join(str(arg) for arg in args)
+    logger.info(message)
+
+
+def save_game_history(log_output: List[str]):
+    """Save game history to a file"""
+    # Create game_history directory if it doesn't exist
+    os.makedirs(HISTORY_DIR, exist_ok=True)
+
+    # Generate filename with timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"game_history_{timestamp}.txt"
+    filepath = os.path.join(HISTORY_DIR, filename)
+
+    # Write history to file
+    with open(filepath, "w") as f:
+        f.write("\n".join(log_output))
+
+    log_print(f"Game history saved to {filepath}")
 
 
 def get_yes_no_input(prompt: str) -> bool:
@@ -42,6 +107,9 @@ def select_saved_game() -> str:
 
 
 async def main():
+    # Set up logging
+    logger, log_stream = setup_logging()
+
     # Ask if user wants to play against AI
     use_ai = get_yes_no_input("Would you like to play against AI (as Player 2)?")
 
@@ -54,13 +122,13 @@ async def main():
         if filename:
             try:
                 game = Game(load_game=filename)
-                print("Game loaded successfully!")
+                log_print("Game loaded successfully!")
             except Exception as e:
-                print(f"Error loading game: {e}")
-                print("Starting new game instead.")
+                log_print(f"Error loading game: {e}")
+                log_print("Starting new game instead.")
                 game = None
         else:
-            print("Starting new game instead.")
+            log_print("Starting new game instead.")
             game = None
     else:
         game = None
@@ -79,16 +147,16 @@ async def main():
                 if filename:
                     try:
                         game.save_game(filename)
-                        print("Game saved successfully!")
+                        log_print("Game saved successfully!")
                         break
                     except Exception as e:
-                        print(f"Error saving game: {e}")
+                        log_print(f"Error saving game: {e}")
                         if not get_yes_no_input("Would you like to try again?"):
                             break
                 else:
-                    print("Please enter a valid filename.")
+                    log_print("Please enter a valid filename.")
 
-    print("\nStarting game...")
+    log_print("\nStarting game...")
     # Hide AI's hand (player 1) if playing against AI
     game.game_state.print_state(hide_player_hand=1 if use_ai else None)
 
@@ -106,13 +174,15 @@ async def main():
             time.sleep(0.1)  # Add small delay to prevent log spam
             # get legal actions
             if game.game_state.resolving_one_off:
-                print(f"Actions for player {game.game_state.current_action_player}:")
+                log_print(
+                    f"Actions for player {game.game_state.current_action_player}:"
+                )
             else:
-                print(f"Actions for player {game.game_state.turn}:")
+                log_print(f"Actions for player {game.game_state.turn}:")
 
             actions = game.game_state.get_legal_actions()
             for i, action in enumerate(actions):
-                print(f"{i}: {action}")
+                log_print(f"{i}: {action}")
 
             # Check if it's AI's turn (P1) or if AI needs to respond to one-off
             is_ai_turn = use_ai and (
@@ -124,14 +194,14 @@ async def main():
             )
 
             if is_ai_turn:
-                print("AI is thinking...")
+                log_print("AI is thinking...")
                 try:
                     chosen_action = await ai_player.get_action(game.game_state, actions)
                     action_index = actions.index(chosen_action)
-                    print(f"AI chose: {chosen_action}")
+                    log_print(f"AI chose: {chosen_action}")
                     player_action = str(action_index)
                 except Exception as e:
-                    print(f"AI error: {e}. Defaulting to first action.")
+                    log_print(f"AI error: {e}. Defaulting to first action.")
                     player_action = "0"
             else:
                 player_action = input(
@@ -147,10 +217,10 @@ async def main():
             if not player_action.isdigit() or not int(player_action) in range(
                 len(actions)
             ):
-                print("Invalid input, please enter a number")
+                log_print("Invalid input, please enter a number")
                 invalid_input_count += 1
                 if invalid_input_count >= MAX_INVALID_INPUTS:
-                    print(
+                    log_print(
                         f"Too many invalid inputs ({MAX_INVALID_INPUTS}). Game terminated."
                     )
                     game_over = True
@@ -160,7 +230,7 @@ async def main():
             # Reset invalid input counter after a valid input
             invalid_input_count = 0
             player_action = int(player_action)
-            print(
+            log_print(
                 f"Player {game.game_state.current_action_player} chose {actions[player_action]}"
             )
             turn_finished, should_stop, winner = game.game_state.update_state(
@@ -186,9 +256,13 @@ async def main():
         game.game_state.print_state(hide_player_hand=1 if use_ai else None)
         game.game_state.next_turn()
 
-    print(f"Game over! Winner is player {winner}")
+    log_print(f"Game over! Winner is player {winner}")
     # Hide AI's hand in final state if playing against AI
     game.game_state.print_state(hide_player_hand=1 if use_ai else None)
+
+    # Ask if user wants to save game history
+    if get_yes_no_input("Would you like to save the game history?"):
+        save_game_history(log_stream.getvalue().splitlines())
 
 
 if __name__ == "__main__":
