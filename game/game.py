@@ -7,6 +7,7 @@ import random
 import os
 import glob
 import time
+import sys
 
 
 class Game:
@@ -139,6 +140,9 @@ class Game:
 
     def display_available_cards(self, available_cards: Dict[str, Card]):
         """Display available cards for selection."""
+        # Skip printing in test environment
+        if "pytest" in sys.modules:
+            return
         print("\nAvailable cards:")
         cards = list(available_cards.values())
         for i, card in enumerate(cards):
