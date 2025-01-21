@@ -446,7 +446,7 @@ class GameState:
         # Get cards in current player's hand
         hand = self.hands[self.turn]
 
-        # Can play any card as points
+        # Can play any card as points (2-10)
         for card in hand:
             if card.point_value() <= Rank.TEN.value[1]:
                 actions.append(Action(ActionType.POINTS, card, None, self.turn))
@@ -461,15 +461,24 @@ class GameState:
             if card.is_one_off():
                 actions.append(Action(ActionType.ONE_OFF, card, None, self.turn))
 
-        # Can scuttle opponent's point cards with higher point cards
+        # Can scuttle opponent's point cards with higher point cards (only point cards can scuttle)
         opponent = (self.turn + 1) % len(self.hands)
         opponent_field = self.fields[opponent]
         opponent_points = [
             card for card in opponent_field if card.purpose == Purpose.POINTS
         ]
 
+        # Get point cards from hand (Ace to Ten)
+        point_cards = [card for card in hand if card.point_value() <= Rank.TEN.value[1]]
+
+        print(f"opponent_points: {opponent_points}")
+        # For each point card in opponent's field
         for opponent_card in opponent_points:
-            for card in hand:
+            # For each point card in player's hand
+            for card in point_cards:
+                # Can scuttle if:
+                # 1. Higher point value, or
+                # 2. Equal point value and higher suit value
                 if card.point_value() > opponent_card.point_value() or (
                     card.point_value() == opponent_card.point_value()
                     and card.suit_value() > opponent_card.suit_value()
