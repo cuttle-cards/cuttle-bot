@@ -26,6 +26,7 @@ class Game:
         load_game: Optional[str] = None,
         test_deck: Optional[List[Card]] = None,
         logger=print,  # Default to print if no logger provided
+        use_ai: bool = False,
     ):
         self.players = [0, 1]
         self.logger = logger
@@ -42,6 +43,7 @@ class Game:
             self.initialize_with_manual_selection()
         else:
             self.initialize_with_random_hands()
+        self.game_state.use_ai = use_ai
 
     def save_game(self, filename: str):
         """

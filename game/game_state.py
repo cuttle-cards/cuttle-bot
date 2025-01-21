@@ -21,6 +21,8 @@ class GameState:
 
     """
 
+    use_ai: bool
+
     def __init__(
         self,
         hands: List[List[Card]],
@@ -338,19 +340,31 @@ class GameState:
             for i, card in enumerate(self.discard_pile):
                 print(f"{i}: {card}")
 
-            while True:
-                try:
-                    choice = input("Enter the number of the card to take: ")
-                    index = int(choice)
-                    if 0 <= index < len(self.discard_pile):
-                        chosen_card = self.discard_pile.pop(index)
-                        chosen_card.clear_player_info()
-                        self.hands[self.turn].append(chosen_card)
-                        print(f"Took {chosen_card} from discard pile")
-                        break
-                    print("Invalid number, please try again")
-                except ValueError:
-                    print("Please enter a valid number")
+            # Get the player's choice
+            chosen_card = None
+            if self.use_ai and self.turn == 1:  # AI's turn
+                # Let AI choose a card
+                chosen_card = self.ai_player.get_action(self, self.get_legal_actions())
+                print(f"AI chose {chosen_card} from discard pile")
+            else:  # Human player's turn
+                while True:
+                    try:
+                        choice = input("Enter the number of the card to take: ")
+                        index = int(choice)
+                        if 0 <= index < len(self.discard_pile):
+                            chosen_card = self.discard_pile.pop(index)
+                            chosen_card.clear_player_info()
+                            self.hands[self.turn].append(chosen_card)
+                            print(f"Took {chosen_card} from discard pile")
+                            break
+                        print("Invalid number, please try again")
+                    except ValueError:
+                        print("Please enter a valid number")
+
+            if chosen_card:
+                self.discard_pile.remove(chosen_card)
+                chosen_card.clear_player_info()
+                self.hands[self.turn].append(chosen_card)
         elif card.rank == Rank.FIVE:
             if len(self.hands[self.turn]) <= 6:
                 self.draw_card(2)
@@ -456,7 +470,9 @@ class GameState:
 
         # Can play face cards
         for card in hand:
-            if card.is_face_card():
+            # Only Kings are implemented for now
+            # TODO: Implement Queens, Jacks, and Eights
+            if card.is_face_card() and card.rank in [Rank.KING]:
                 actions.append(Action(ActionType.FACE_CARD, card, None, self.turn))
 
         # Can play one-offs
