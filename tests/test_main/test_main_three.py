@@ -9,7 +9,9 @@ class TestMainThree(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    def test_play_three_through_main(self, mock_generate_cards, mock_print, mock_input):
+    async def test_play_three_through_main(
+        self, mock_generate_cards, mock_print, mock_input
+    ):
         """Test playing a Three as a one-off through main.py to take a card from discard pile."""
         # Set up print mock to both capture and display
         mock_print.side_effect = print_and_capture
@@ -63,12 +65,12 @@ class TestMainThree(MainTestBase):
             "e",  # p1 End game
             "n",  # Don't save final game state
         ]
-        mock_input.side_effect = mock_inputs
+        self.setup_mock_input(mock_input, mock_inputs)
 
         # Import and run main
         from main import main
 
-        main()
+        await main()
 
         # Get all logged output
         log_output = self.get_log_output()
@@ -113,7 +115,7 @@ class TestMainThree(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    def test_play_three_empty_discard_through_main(
+    async def test_play_three_empty_discard_through_main(
         self, mock_generate_cards, mock_print, mock_input
     ):
         """Test playing a Three as a one-off through main.py with empty discard pile."""
@@ -163,12 +165,12 @@ class TestMainThree(MainTestBase):
             "e",  # End game
             "n",  # Don't save final game state
         ]
-        mock_input.side_effect = mock_inputs
+        self.setup_mock_input(mock_input, mock_inputs)
 
         # Import and run main
         from main import main
 
-        main()
+        await main()
 
         # Get all logged output
         log_output = self.get_log_output()
@@ -193,7 +195,7 @@ class TestMainThree(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    def test_play_three_with_counter_through_main(
+    async def test_play_three_with_counter_through_main(
         self, mock_generate_cards, mock_print, mock_input
     ):
         """Test playing a Three as a one-off through main.py and getting countered by Two."""
@@ -246,12 +248,12 @@ class TestMainThree(MainTestBase):
             "e",  # End game
             "n",  # Don't save final game state
         ]
-        mock_input.side_effect = mock_inputs
+        self.setup_mock_input(mock_input, mock_inputs)
 
         # Import and run main
         from main import main
 
-        main()
+        await main()
 
         # Get all logged output
         log_output = self.get_log_output()

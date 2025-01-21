@@ -9,7 +9,9 @@ class TestMainSix(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    def test_play_six_through_main(self, mock_generate_cards, mock_print, mock_input):
+    async def test_play_six_through_main(
+        self, mock_generate_cards, mock_print, mock_input
+    ):
         """Test playing a Six as a one-off through main.py to destroy face cards."""
         # Set up print mock to both capture and display
         mock_print.side_effect = print_and_capture
@@ -37,6 +39,7 @@ class TestMainSix(MainTestBase):
         mock_inputs = [
             "n",  # Don't load saved game
             "y",  # Use manual selection
+            "n",  # Don't use AI player
             # Player 0 selects cards
             "0",  # Select Six of Hearts
             "0",  # Select King of Spades
@@ -59,12 +62,12 @@ class TestMainSix(MainTestBase):
             "e",  # End game
             "n",  # Don't save final game state
         ]
-        mock_input.side_effect = mock_inputs
+        self.setup_mock_input(mock_input, mock_inputs)
 
         # Import and run main
         from main import main
 
-        main()
+        await main()
 
         # Get all logged output
         log_output = self.get_log_output()

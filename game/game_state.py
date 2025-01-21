@@ -479,7 +479,7 @@ class GameState:
                     )
         return actions
 
-    def print_state(self):
+    def print_state(self, hide_player_hand: int = None):
         print("--------------------------------")
         print(f"Player {self.turn}'s turn")
         print(f"Deck: {len(self.deck)}")
@@ -489,7 +489,10 @@ class GameState:
             points = self.get_player_score(i)
             print(f"Player {i}: {points}")
         for i, hand in enumerate(self.hands):
-            print(f"Player {i}'s hand: {hand}")
+            if i == hide_player_hand:
+                print(f"Player {i}'s hand: [Hidden]")
+            else:
+                print(f"Player {i}'s hand: {hand}")
         for i, field in enumerate(self.fields):
             print(f"Player {i}'s field: {field}")
         print("--------------------------------")

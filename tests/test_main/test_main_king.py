@@ -9,7 +9,9 @@ class TestMainKing(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    def test_play_king_through_main(self, mock_generate_cards, mock_print, mock_input):
+    async def test_play_king_through_main(
+        self, mock_generate_cards, mock_print, mock_input
+    ):
         """Test playing a King through main.py using only user inputs."""
         # Set up print mock to both capture and display
         mock_print.side_effect = print_and_capture
@@ -38,18 +40,18 @@ class TestMainKing(MainTestBase):
             "n",  # Don't load saved game
             "y",  # Use manual selection
             # Player 0 selects cards (including Kings and points)
-            "0",  # Select King of Hearts
-            "0",  # Select King of Spades
-            "0",  # Select 10 of Hearts
-            "0",  # Select 5 of Diamonds
-            "0",  # Select 2 of Clubs
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",  # Select all cards for Player 0
             # Player 1 selects cards
-            "0",  # Select 8 of Diamonds
-            "0",  # Select 7 of Clubs
-            "0",  # Select 6 of Hearts
-            "0",  # Select 5 of Spades
-            "0",  # Select 4 of Diamonds
-            "0",  # Select 3 of Clubs
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",
+            "0",  # Select all cards for Player 1
             "n",  # Don't save initial state
             # Game actions
             "5",  # p0 Play first King (face card)
@@ -57,14 +59,13 @@ class TestMainKing(MainTestBase):
             "4",  # p0 Play second King (face card)
             "0",  # p1 draws
             "1",  # p0 plays 10 of Hearts (points)
-            # Game should be over after this point as Player 0 has won
         ]
-        mock_input.side_effect = mock_inputs
+        self.setup_mock_input(mock_input, mock_inputs)
 
         # Import and run main
         from main import main
 
-        main()
+        await main()
 
         # Get all logged output
         log_output = self.get_log_output()

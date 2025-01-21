@@ -1,5 +1,7 @@
 from game.game import Game
 from game.action import ActionType
+from game.ai_player import AIPlayer
+import asyncio
 import time
 
 
@@ -39,7 +41,13 @@ def select_saved_game() -> str:
             print("Please enter a number or 'cancel'.")
 
 
-def main():
+async def main():
+    # Ask if user wants to play against AI
+    use_ai = get_yes_no_input("Would you like to play against AI (as Player 2)?")
+
+    # Initialize AI player if requested
+    ai_player = AIPlayer() if use_ai else None
+
     # Ask if user wants to load a saved game
     if get_yes_no_input("Would you like to load a saved game?"):
         filename = select_saved_game()
@@ -81,7 +89,8 @@ def main():
                     print("Please enter a valid filename.")
 
     print("\nStarting game...")
-    game.game_state.print_state()
+    # Hide AI's hand (player 1) if playing against AI
+    game.game_state.print_state(hide_player_hand=1 if use_ai else None)
 
     game_over = False
     while not game_over:
@@ -105,9 +114,29 @@ def main():
             for i, action in enumerate(actions):
                 print(f"{i}: {action}")
 
-            player_action = input(
-                f"Enter your action for player {game.game_state.current_action_player} ('e' to end game): "
+            # Check if it's AI's turn (P1) or if AI needs to respond to one-off
+            is_ai_turn = use_ai and (
+                (
+                    game.game_state.resolving_one_off
+                    and game.game_state.current_action_player == 1
+                )
+                or (not game.game_state.resolving_one_off and game.game_state.turn == 1)
             )
+
+            if is_ai_turn:
+                print("AI is thinking...")
+                try:
+                    chosen_action = await ai_player.get_action(game.game_state, actions)
+                    action_index = actions.index(chosen_action)
+                    print(f"AI chose: {chosen_action}")
+                    player_action = str(action_index)
+                except Exception as e:
+                    print(f"AI error: {e}. Defaulting to first action.")
+                    player_action = "0"
+            else:
+                player_action = input(
+                    f"Enter your action for player {game.game_state.current_action_player} ('e' to end game): "
+                )
 
             # Check for end game input
             if player_action.lower() == "e":
@@ -151,12 +180,14 @@ def main():
         if game_over:
             break
 
-        game.game_state.print_state()
+        # Hide AI's hand when printing game state if playing against AI
+        game.game_state.print_state(hide_player_hand=1 if use_ai else None)
         game.game_state.next_turn()
 
     print(f"Game over! Winner is player {winner}")
-    game.game_state.print_state()
+    # Hide AI's hand in final state if playing against AI
+    game.game_state.print_state(hide_player_hand=1 if use_ai else None)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

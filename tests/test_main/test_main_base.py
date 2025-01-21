@@ -5,6 +5,7 @@ import sys
 import builtins
 import logging
 import io
+import asyncio
 
 from game.card import Card, Suit, Rank
 
@@ -32,7 +33,7 @@ def print_and_capture(*args, **kwargs):
     return output.rstrip()
 
 
-class MainTestBase(unittest.TestCase):
+class MainTestBase(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         # Clear the log stream before each test
         log_stream.truncate(0)
@@ -41,6 +42,13 @@ class MainTestBase(unittest.TestCase):
         logging.basicConfig(
             stream=log_stream, level=logging.DEBUG, format="%(message)s", force=True
         )
+
+    def setup_mock_input(self, mock_input, responses):
+        """Helper method to set up mock input with AI player prompt response."""
+        # First response is for AI player prompt
+        all_responses = ["n"] + responses  # Default to no AI for tests
+        mock_input.side_effect = all_responses
+        return mock_input
 
     def generate_test_deck(self, p0_cards, p1_cards):
         """Helper method to generate a test deck with specified cards for each player."""
