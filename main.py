@@ -160,7 +160,9 @@ async def main():
             # Reset invalid input counter after a valid input
             invalid_input_count = 0
             player_action = int(player_action)
-            print(f"You chose {actions[player_action]}")
+            print(
+                f"Player {game.game_state.current_action_player} chose {actions[player_action]}"
+            )
             turn_finished, should_stop, winner = game.game_state.update_state(
                 actions[player_action]
             )

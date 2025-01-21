@@ -490,7 +490,7 @@ class GameState:
 
     def print_state(self, hide_player_hand: int = None):
         print("--------------------------------")
-        print(f"Player {self.turn}'s turn")
+        print(f"Player {self.current_action_player}'s turn")
         print(f"Deck: {len(self.deck)}")
         print(f"Discard Pile: {len(self.discard_pile)}")
         print("Points: ")
