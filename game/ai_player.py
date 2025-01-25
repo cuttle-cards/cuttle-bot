@@ -44,6 +44,7 @@ class AIPlayer:
     7. Keep track of used Twos to know when one-offs are safe
     8. Scuttle opponent's high-value points when possible
     9. Avoid playing Six as one-off when opponent doesn't have any face cards on field.
+    10. If opponent score is close to opponent's target, try to play Aces as one-off to clear their points, or play Sixes as one-off to clear their Kings if any are on field.
 
     The Strategy is key to winning the game.
     """

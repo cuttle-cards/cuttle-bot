@@ -8,6 +8,7 @@ import os
 import glob
 import time
 import sys
+from game.ai_player import AIPlayer
 
 
 class Game:
@@ -19,6 +20,7 @@ class Game:
     game_state: GameState
     players: List[int]
     SAVE_DIR = "test_games"
+    ai_player: AIPlayer
 
     def __init__(
         self,
@@ -44,6 +46,8 @@ class Game:
         else:
             self.initialize_with_random_hands()
         self.game_state.use_ai = use_ai
+        self.ai_player = AIPlayer() if use_ai else None
+        self.game_state.ai_player = self.ai_player
 
     def save_game(self, filename: str):
         """

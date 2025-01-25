@@ -22,6 +22,7 @@ class GameState:
     """
 
     use_ai: bool
+    ai_player: None
 
     def __init__(
         self,
@@ -44,6 +45,7 @@ class GameState:
         self.status = None
         self.resolving_two = False
         self.resolving_one_off = False
+        self.resolving_three = False
         self.one_off_card_to_counter = None
         self.logger = logger
 
@@ -341,10 +343,14 @@ class GameState:
                 print(f"{i}: {card}")
 
             # Get the player's choice
+            print(f"self.use_ai: {self.use_ai}")
+            print(f"self.turn: {self.turn}")
             chosen_card = None
             if self.use_ai and self.turn == 1:  # AI's turn
                 # Let AI choose a card
-                chosen_card = self.ai_player.get_action(self, self.get_legal_actions())
+                chosen_card = self.ai_player.choose_card_from_discard(self.discard_pile)
+                self.hands[self.turn].append(chosen_card)
+
                 print(f"AI chose {chosen_card} from discard pile")
             else:  # Human player's turn
                 while True:
@@ -428,6 +434,12 @@ class GameState:
         Get all legal actions for the current player.
         """
         actions = []
+
+        # If resolving three, legal actions is to choose a card from the discard pile
+        if self.resolving_three:
+            for card in self.discard_pile:
+                actions.append(Action(ActionType.THREE, card, None, self.turn))
+            return actions
 
         # If resolving one-off, only allow counter or resolve
         if self.resolving_one_off:

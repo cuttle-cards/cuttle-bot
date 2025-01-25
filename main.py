@@ -121,7 +121,7 @@ async def main():
         filename = select_saved_game()
         if filename:
             try:
-                game = Game(load_game=filename)
+                game = Game(load_game=filename, use_ai=use_ai)
                 log_print("Game loaded successfully!")
             except Exception as e:
                 log_print(f"Error loading game: {e}")
@@ -138,7 +138,8 @@ async def main():
         manual_selection = get_yes_no_input(
             "Would you like to manually select initial cards?"
         )
-        game = Game(manual_selection=manual_selection)
+        print(f"use_ai: {use_ai}")
+        game = Game(manual_selection=manual_selection, use_ai=use_ai)
 
         # Ask if user wants to save the initial game state
         if get_yes_no_input("Would you like to save this initial game state?"):
