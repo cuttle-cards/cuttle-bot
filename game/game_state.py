@@ -52,10 +52,13 @@ class GameState:
         self.logger = logger
         self.use_ai = use_ai
         self.ai_player = ai_player
+        self.overall_turn = 0
 
     def next_turn(self):
         self.turn = (self.turn + 1) % len(self.hands)
         self.current_action_player = self.turn
+        if self.turn == 0:
+            self.overall_turn += 1
 
     def next_player(self):
         self.current_action_player = (self.current_action_player + 1) % len(self.hands)

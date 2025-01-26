@@ -8,7 +8,7 @@ import datetime
 import io
 import logging
 from typing import List, Optional
-
+from game.utils import log_print
 
 HISTORY_DIR = "game_history"
 
@@ -44,13 +44,6 @@ def setup_logging():
     logger.handlers = [string_handler, console_handler]
 
     return logger, log_stream
-
-
-def log_print(*args, **kwargs):
-    """Print and log output"""
-    logger = logging.getLogger("cuttle")
-    message = " ".join(str(arg) for arg in args)
-    logger.info(message)
 
 
 def save_game_history(log_output: List[str]):
@@ -171,9 +164,15 @@ async def main():
         invalid_input_count = 0  # Counter for invalid inputs
         MAX_INVALID_INPUTS = 5  # Maximum number of invalid inputs allowed
 
+        if game.game_state.turn == 0:
+            log_print(
+                f"================ Turn {game.game_state.overall_turn} ================="
+            )
+
         while True:
             time.sleep(0.1)  # Add small delay to prevent log spam
             # get legal actions
+            log_print(f"player: {game.game_state.turn}")
             if game.game_state.resolving_one_off:
                 log_print(
                     f"Actions for player {game.game_state.current_action_player}:"
