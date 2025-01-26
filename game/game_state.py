@@ -31,6 +31,8 @@ class GameState:
         deck: List[Card],
         discard_pile: List[Card],
         logger=print,  # Default to print if no logger provided
+        use_ai: bool = False,
+        ai_player=None,
     ):
         """
         Initialize the game state.
@@ -48,6 +50,8 @@ class GameState:
         self.resolving_three = False
         self.one_off_card_to_counter = None
         self.logger = logger
+        self.use_ai = use_ai
+        self.ai_player = ai_player
 
     def next_turn(self):
         self.turn = (self.turn + 1) % len(self.hands)
@@ -367,10 +371,6 @@ class GameState:
                     except ValueError:
                         print("Please enter a valid number")
 
-            if chosen_card:
-                self.discard_pile.remove(chosen_card)
-                chosen_card.clear_player_info()
-                self.hands[self.turn].append(chosen_card)
         elif card.rank == Rank.FIVE:
             if len(self.hands[self.turn]) <= 6:
                 self.draw_card(2)

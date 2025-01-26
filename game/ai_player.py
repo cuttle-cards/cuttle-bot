@@ -15,7 +15,7 @@ class AIPlayer:
     You are an expert of playing competitive card games. You are playing a card game called Cuttle. Here are the key rules and strategies:
 
     Rules:
-    1. Win condition: Reach your point target (starts at 21, reduced by Kings)
+    1. Win condition: Reach your point target (initial target is 21 points)
     2. Card Actions:
         - Play as points (number cards 1-10), only Ace through Ten are counted as points. Eight played as face card is not counted as points.
         - Play as face cards (Kings, Queens, Jacks, Eights)
@@ -27,7 +27,7 @@ class AIPlayer:
         - Scuttle: Play a higher point card to destroy opponent's point card
         - Counter: Use a Two to counter any one-off effect
     3. Kings reduce your target score (1 King: 14, 2 Kings: 10, 3 Kings: 5, 4 Kings: 0)
-    4. Face cards provide special abilities:
+    4. Face cards provide special abilities. Face cards are not counted as points.
         - King: Reduces target score
         - Queen: Protects your points from face cards, targeted one-offs, and counters
         - Jack: Steals opponent's points
@@ -40,11 +40,16 @@ class AIPlayer:
     3. Use Jacks to steal high-value point cards
     4. Protect high-value points with Queens
     5. Use Aces to clear opponent's strong point cards. Avoid playing Aces as one-off when opponent doesn't have any point cards on field. Avoid playing Aces as points when possible since the reward is low.
-    6. Consider opponent's possible counters before playing one-offs
-    7. Keep track of used Twos to know when one-offs are safe
-    8. Scuttle opponent's high-value points when possible
-    9. Avoid playing Six as one-off when opponent doesn't have any face cards on field.
-    10. If opponent score is close to opponent's target, try to play Aces as one-off to clear their points, or play Sixes as one-off to clear their Kings if any are on field.
+    6. Keep track of used Twos to know when one-offs are safe
+    7. Scuttle opponent's high-value points when possible
+    8. Avoid playing Six as one-off when opponent doesn't have any face cards on field.
+    9. If opponent score is close to opponent's target, try to play Aces as one-off to clear their points, or play Sixes as one-off to clear their Kings if any are on field.
+
+    Mistakes to avoid:
+    1. Playing Aces as one-off when opponent doesn't have any point cards on field.
+    2. Playing Aces as points since the reward is low.
+    3. Playing Threes as one-off when the scrap pile is empty or does not have any cards you want.
+    4. Playing Sixes as one-off when opponent doesn't have any face cards on field.
 
     The Strategy is key to winning the game.
     """
@@ -69,11 +74,16 @@ class AIPlayer:
             card for card in game_state.fields[0] if card.purpose == Purpose.FACE_CARD
         ]
 
+        legal_actions_str = "\n".join(
+            [f"- action {i}: {action}" for i, action in enumerate(legal_actions)]
+        )
+
         prompt = f"""
         Current Game State:
         {'AI Hand: ' + str(game_state.hands[1]) if not is_human_view else 'AI Hand: [Hidden]'}
         AI Field: {game_state.fields[1]}
         Opponent's Hand Size: {len(game_state.hands[0])}
+        Opponent's Field: {game_state.fields[0]}
         Opponent's Point Cards: {opponent_point_cards}
         Opponent's Face Cards: {opponent_face_cards}
         Deck Size: {len(game_state.deck)}
@@ -84,13 +94,15 @@ class AIPlayer:
         Opponent's Target: {game_state.get_player_target(0)}
 
         Legal Actions:
-        {[f"{i}: {action}" for i, action in enumerate(legal_actions)]}
+        {legal_actions_str}
 
         Instructions:
-        1. Analyze the game state and available actions
-        2. Choose the best action based on the game rules and strategies, think through the consequences of your actions and a few turns ahead
+        1. Analyze the game state and available actions. What is opponent's score and target? What is your score and target?
+        2. Choose the best action among the legal actions based on the game rules and strategies, think through the consequences of your actions and a few turns ahead. Avoid making mistakes that will cost you the game.
         3. IMPORTANT: Your response MUST include a valid action number from the list above
-        4. Format your response as:
+        4. Stop thinking and make a choice after a few seconds.
+        5. If there is only one action, choose it without thinking.
+        6. Format your response as:
            Reasoning: [brief explanation]
            Choice: [action number]
 
@@ -124,7 +136,6 @@ class AIPlayer:
 
                 # Extract the action number from the response
                 response_text = response.message.content
-                print("AI response:", response_text)
 
                 # Look for "Choice: [number]" pattern first
                 import re

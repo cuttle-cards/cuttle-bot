@@ -44,7 +44,7 @@ class TestAIPlayer(unittest.TestCase):
         )
 
         # Check that key information is included in the formatted state
-        self.assertIn("Your Hand (P1):", formatted_state)
+        self.assertIn("AI Hand:", formatted_state)
         self.assertIn("Queen of Diamonds", formatted_state)
         self.assertIn("Five of Clubs", formatted_state)
         self.assertIn("Legal Actions:", formatted_state)
