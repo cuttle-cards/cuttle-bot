@@ -13,7 +13,7 @@ class AIPlayer:
 
     # Game rules and strategy context for the LLM
     GAME_CONTEXT = """
-You are an expert of playing competitive card games. You are playing a card game called Cuttle. Here are the key rules and strategies:
+You are an expert of playing competitive card games. You excel at reasoning through the rules of the card game and making optimal decisions. You are great at identifying patterns and making strategic moves. You are playing a card game called Cuttle. Here are the key rules and strategies:
 
 Rules:
 1. Win condition: Reach your point target (initial target is 21 points)
@@ -30,21 +30,22 @@ Rules:
 3. Kings reduce your target score (1 King: 14, 2 Kings: 10, 3 Kings: 5, 4 Kings: 0)
 4. Face cards provide special abilities. Face cards are not counted as points.
     - King: Reduces target score
-    - Queen: Protects your points from face cards, targeted one-offs, and counters
+    - Queen: Protects your points from face cards, certain targeted one-offs, and counters. Does not protect against Ace One-offs or Six One-offs.
     - Jack: Steals opponent's points
     - Eight: Glasses (opponent plays with revealed hand)
 
 
 Strategies:
-1. Prioritize playing Kings early to reduce your target score
-2. Save Twos for countering important one-off effects. Favor drawing a card over playing a two as points.
-3. Use Jacks to steal high-value point cards
-4. Protect high-value points with Queens
-5. Use Aces to clear opponent's strong point cards. Avoid playing Aces as one-off when opponent doesn't have any point cards on field. Avoid playing Aces as points when possible since the reward is low.
-6. Keep track of used Twos to know when one-offs are safe
-7. Scuttle opponent's high-value points when possible
-8. Avoid playing Six as one-off when opponent doesn't have any face cards on field.
-9. If opponent score is close to opponent's target, try to play Aces as one-off to clear their points, or play Sixes as one-off to clear their Kings if any are on field.
+1. Optimize to increase your score and decrease your target score. If you have a high value point card, try to play it as points.
+2. Prioritize playing Kings early to reduce your target score
+3. Save Twos for countering important one-off effects. Favor drawing a card over playing a two as points.
+4. Use Jacks to steal high-value point cards
+5. Protect high-value points with Queens
+6. Use Aces to clear opponent's strong point cards. Avoid playing Aces as one-off when opponent doesn't have any point cards on field. Avoid playing Aces as points when possible since the reward is low.
+7. Keep track of used Twos to know when one-offs are safe
+8. Scuttle opponent's high-value points when possible
+9. Avoid playing Six as one-off when opponent doesn't have any face cards on field.
+10. If opponent score is close to opponent's target, try to play Aces as one-off to clear their points, or play Sixes as one-off to clear their Kings if any are on field.
 
 Mistakes to avoid:
 1. Playing Aces as one-off when opponent doesn't have any point cards on field.
@@ -60,6 +61,28 @@ The Strategy is key to winning the game.
         self.model = "llama3.2"  # Default to mistral model
         self.max_retries = 3
         self.retry_delay = 1  # seconds
+
+        # Initialize system context and verify AI understanding
+        self._verify_ai_understanding()
+
+    def _verify_ai_understanding(self):
+        """Verify that the AI understands the game rules and strategies."""
+        verification_prompt = """Please confirm that you understand the game rules and strategies for Cuttle.
+Respond with a brief summary of your understanding and confirm that you will avoid the common mistakes listed.
+Keep your response concise."""
+
+        try:
+            response = ollama.chat(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": self.GAME_CONTEXT},
+                    {"role": "user", "content": verification_prompt},
+                ],
+            )
+            log_print("AI Understanding Verification:")
+            log_print(response.message.content)
+        except Exception as e:
+            log_print(f"Warning: Could not verify AI understanding: {e}")
 
     def _format_game_state(
         self,
@@ -81,18 +104,22 @@ The Strategy is key to winning the game.
 
         prompt = f"""
 Current Game State:
+AI 
 {'AI Hand: ' + str(game_state.hands[1]) if not is_human_view else 'AI Hand: [Hidden]'}
 AI Field: {game_state.fields[1]}
+AI Score: {game_state.get_player_score(1)}
+AI Target: {game_state.get_player_target(1)}
+
+Opponent
 Opponent's Hand Size: {len(game_state.hands[0])}
 Opponent's Field: {game_state.fields[0]}
 Opponent's Point Cards: {opponent_point_cards}
 Opponent's Face Cards: {opponent_face_cards}
-Deck Size: {len(game_state.deck)}
-Discard Pile Size: {len(game_state.discard_pile)}
-AI Score: {game_state.get_player_score(1)}
-AI Target: {game_state.get_player_target(1)}
 Opponent's Score: {game_state.get_player_score(0)}
 Opponent's Target: {game_state.get_player_target(0)}
+
+Deck Size: {len(game_state.deck)}
+Discard Pile Size: {len(game_state.discard_pile)}
 
 Legal Actions:
 {legal_actions_str}
@@ -103,13 +130,13 @@ Instructions:
 3. IMPORTANT: Your response MUST include a valid action number from the list above
 4. Stop thinking and make a choice after a few seconds.
 5. If there is only one action, choose it without thinking.
+6. Action number should be a number from 0 to {len(legal_actions) - 1}
 6. Format your response as:
     Reasoning: [brief explanation]
     Choice: [action number]
 
 Make your choice now:
         """
-        log_print(prompt)
         return prompt
 
     async def get_action(
@@ -121,19 +148,19 @@ Make your choice now:
 
         # Format the game state and actions into a prompt
         prompt = self._format_game_state(game_state, legal_actions)
-
-        # Add game context and strategies
-        full_prompt = self.GAME_CONTEXT + "\n" + prompt
-        # print(full_prompt)
+        log_print(prompt)
         retries = 0
         last_error = None
 
         while retries < self.max_retries:
             try:
-                # Get response from Ollama
+                # Get response from Ollama with system context
                 response = ollama.chat(
                     model=self.model,
-                    messages=[{"role": "user", "content": full_prompt}],
+                    messages=[
+                        {"role": "system", "content": self.GAME_CONTEXT},
+                        {"role": "user", "content": prompt},
+                    ],
                 )
 
                 # Extract the action number from the response
@@ -176,14 +203,7 @@ Make your choice now:
         self.model = model
 
     def choose_card_from_discard(self, discard_pile: List[Card]) -> Card:
-        """Choose a card from the discard pile when playing a Three.
-
-        Args:
-            discard_pile: List of cards in the discard pile
-
-        Returns:
-            The chosen card from the discard pile
-        """
+        """Choose a card from the discard pile when playing a Three."""
         # Format the prompt for the LLM
         prompt = f"""
         You need to choose a card from the discard pile. Here are the available cards:
@@ -206,17 +226,18 @@ Make your choice now:
         Make your choice now:
         """
 
-        # Add game context and strategies
-        full_prompt = self.GAME_CONTEXT + "\n" + prompt
         retries = 0
         last_error = None
 
         while retries < self.max_retries:
             try:
-                # Get response from Ollama
+                # Get response from Ollama with system context
                 response = ollama.chat(
                     model=self.model,
-                    messages=[{"role": "user", "content": full_prompt}],
+                    messages=[
+                        {"role": "system", "content": self.GAME_CONTEXT},
+                        {"role": "user", "content": prompt},
+                    ],
                 )
 
                 # Extract the action number from the response
