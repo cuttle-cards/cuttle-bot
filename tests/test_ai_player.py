@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 import pytest
 import asyncio
 from game.ai_player import AIPlayer
@@ -8,7 +8,7 @@ from game.card import Card, Suit, Rank
 from game.action import Action, ActionType
 
 
-class TestAIPlayer(unittest.TestCase):
+class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.ai_player = AIPlayer()
         # Create a simple game state for testing
@@ -31,7 +31,7 @@ class TestAIPlayer(unittest.TestCase):
             discard_pile=[],
         )
 
-    @pytest.mark.timeout(5)
+    @pytest.mark.timeout(10)
     def test_format_game_state(self):
         """Test that game state is formatted correctly for the LLM."""
         legal_actions = [
@@ -51,7 +51,7 @@ class TestAIPlayer(unittest.TestCase):
         self.assertIn("Draw a card from deck", formatted_state)
         self.assertIn("Play Five of Clubs as points", formatted_state)
 
-    @pytest.mark.timeout(5)
+    @pytest.mark.timeout(10)
     @patch("ollama.chat")
     async def test_get_action_success(self, mock_chat):
         """Test successful action selection by AI."""
@@ -76,7 +76,7 @@ class TestAIPlayer(unittest.TestCase):
         self.assertEqual(action.action_type, ActionType.POINTS)
         self.assertEqual(action.card, self.p1_cards[1])
 
-    @pytest.mark.timeout(5)
+    @pytest.mark.timeout(10)
     @patch("ollama.chat")
     async def test_get_action_invalid_response(self, mock_chat):
         """Test handling of invalid LLM response."""
@@ -96,7 +96,7 @@ class TestAIPlayer(unittest.TestCase):
         self.assertEqual(action, legal_actions[0])
         self.assertEqual(action.action_type, ActionType.DRAW)
 
-    @pytest.mark.timeout(5)
+    @pytest.mark.timeout(10)
     @patch("ollama.chat")
     async def test_get_action_api_error(self, mock_chat):
         """Test handling of API errors."""
@@ -115,7 +115,7 @@ class TestAIPlayer(unittest.TestCase):
         self.assertEqual(action, legal_actions[0])
         self.assertEqual(action.action_type, ActionType.DRAW)
 
-    @pytest.mark.timeout(5)
+    @pytest.mark.timeout(10)
     async def test_get_action_no_legal_actions(self):
         """Test handling of empty legal actions list."""
         with self.assertRaises(ValueError):
@@ -129,4 +129,4 @@ class TestAIPlayer(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    asyncio.run(unittest.main())

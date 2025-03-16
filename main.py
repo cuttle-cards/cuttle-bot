@@ -1,5 +1,4 @@
 from game.game import Game
-from game.action import ActionType
 from game.ai_player import AIPlayer
 import asyncio
 import time
@@ -7,7 +6,7 @@ import os
 import datetime
 import io
 import logging
-from typing import List, Optional
+from typing import List
 from game.utils import log_print
 
 HISTORY_DIR = "game_history"
