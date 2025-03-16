@@ -44,6 +44,7 @@ class Card:
         return self.rank.value[1]
 
     def suit_value(self) -> int:
+        """Return the suit value for comparison (Clubs=0, Diamonds=1, Hearts=2, Spades=3)."""
         return self.suit.value[1]
 
     def is_face_card(self) -> bool:

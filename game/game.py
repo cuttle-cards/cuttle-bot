@@ -8,6 +8,7 @@ import os
 import glob
 import time
 import sys
+from game.ai_player import AIPlayer
 
 
 class Game:
@@ -19,14 +20,18 @@ class Game:
     game_state: GameState
     players: List[int]
     SAVE_DIR = "test_games"
+    ai_player: AIPlayer
 
     def __init__(
         self,
         manual_selection: bool = False,
         load_game: Optional[str] = None,
         test_deck: Optional[List[Card]] = None,
+        logger=print,  # Default to print if no logger provided
+        use_ai: bool = False,
     ):
         self.players = [0, 1]
+        self.logger = logger
 
         # Create save directory if it doesn't exist
         os.makedirs(self.SAVE_DIR, exist_ok=True)
@@ -40,6 +45,9 @@ class Game:
             self.initialize_with_manual_selection()
         else:
             self.initialize_with_random_hands()
+        self.game_state.use_ai = use_ai
+        self.ai_player = AIPlayer() if use_ai else None
+        self.game_state.ai_player = self.ai_player
 
     def save_game(self, filename: str):
         """
@@ -52,7 +60,7 @@ class Game:
             filename += ".json"
         save_path = os.path.join(self.SAVE_DIR, filename)
         save_game_state(self.game_state, save_path)
-        print(f"Game saved to {save_path}")
+        self.logger(f"Game saved to {save_path}")
 
     def load_game(self, filename: str):
         """
@@ -65,7 +73,7 @@ class Game:
             filename += ".json"
         load_path = os.path.join(self.SAVE_DIR, filename)
         self.game_state = load_game_state(load_path)
-        print(f"Game loaded from {load_path}")
+        self.logger(f"Game loaded from {load_path}")
 
     @classmethod
     def list_saved_games(cls) -> List[str]:
@@ -101,7 +109,9 @@ class Game:
         # Manual selection for both players
         for player in range(2):
             max_cards = 5 if player == 0 else 6
-            print(f"\nSelecting cards for Player {player} (max {max_cards} cards):")
+            self.logger(
+                f"\nSelecting cards for Player {player} (max {max_cards} cards):"
+            )
 
             while len(hands[player]) < max_cards:
                 time.sleep(0.1)  # Add small delay to prevent log spam
@@ -114,18 +124,17 @@ class Game:
                     break
 
                 try:
-
                     card_num = int(choice)
                     cards = list(available_cards.values())
                     if 0 <= card_num < len(cards):
                         selected_card = cards[card_num]
                         hands[player].append(selected_card)
                         del available_cards[str(selected_card)]
-                        print(f"Selected: {selected_card}")
+                        self.logger(f"Selected: {selected_card}")
                     else:
-                        print("Invalid card number")
+                        self.logger("Invalid card number")
                 except ValueError:
-                    print("Invalid input. Please enter a number or 'done'")
+                    self.logger("Invalid input. Please enter a number or 'done'")
 
         # Fill remaining slots with random cards
         self.fill_remaining_slots(hands, available_cards)
@@ -136,17 +145,17 @@ class Game:
 
         # Initialize game state with empty fields for both players
         fields = [[], []]  # Initialize empty fields for both players
-        self.game_state = GameState(hands, fields, deck, [])
+        self.game_state = GameState(hands, fields, deck, [], logger=self.logger)
 
     def display_available_cards(self, available_cards: Dict[str, Card]):
         """Display available cards for selection."""
         # Skip printing in test environment
         if "pytest" in sys.modules:
             return
-        print("\nAvailable cards:")
+        self.logger("\nAvailable cards:")
         cards = list(available_cards.values())
         for i, card in enumerate(cards):
-            print(f"{i}: {card}")
+            self.logger(f"{i}: {card}")
 
     def fill_remaining_slots(
         self, hands: List[List[Card]], available_cards: Dict[str, Card]
@@ -163,7 +172,7 @@ class Game:
             hands[0].append(card)
             del available_cards[str(card)]
             cards.remove(card)
-            print(f"Randomly added to Player 0's hand: {card}")
+            self.logger(f"Randomly added to Player 0's hand: {card}")
 
         # Fill player 1's hand to 6 cards
         while len(hands[1]) < 6:
@@ -174,7 +183,7 @@ class Game:
             hands[1].append(card)
             del available_cards[str(card)]
             cards.remove(card)
-            print(f"Randomly added to Player 1's hand: {card}")
+            self.logger(f"Randomly added to Player 1's hand: {card}")
 
     def generate_all_cards(self) -> List[Card]:
         """Generate all cards without shuffling."""

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional, Dict
 from game.card import Card, Purpose, Rank
-from game.action import Action, ActionType
+from game.action import Action, ActionType, ActionSource
 
 
 class GameState:
@@ -17,8 +17,12 @@ class GameState:
         scores: List[int] - The scores of the players.
         targets: List[int] - The score targets of the players.
         turn: int - Whose turn it is - 0 for p0, 1 for p1.
+        logger: callable - The logger to use for output.
 
     """
+
+    use_ai: bool
+    ai_player: None
 
     def __init__(
         self,
@@ -26,6 +30,9 @@ class GameState:
         fields: List[List[Card]],
         deck: List[Card],
         discard_pile: List[Card],
+        logger=print,  # Default to print if no logger provided
+        use_ai: bool = False,
+        ai_player=None,
     ):
         """
         Initialize the game state.
@@ -40,11 +47,18 @@ class GameState:
         self.status = None
         self.resolving_two = False
         self.resolving_one_off = False
+        self.resolving_three = False
         self.one_off_card_to_counter = None
+        self.logger = logger
+        self.use_ai = use_ai
+        self.ai_player = ai_player
+        self.overall_turn = 0
 
     def next_turn(self):
         self.turn = (self.turn + 1) % len(self.hands)
         self.current_action_player = self.turn
+        if self.turn == 0:
+            self.overall_turn += 1
 
     def next_player(self):
         self.current_action_player = (self.current_action_player + 1) % len(self.hands)
@@ -335,19 +349,31 @@ class GameState:
             for i, card in enumerate(self.discard_pile):
                 print(f"{i}: {card}")
 
-            while True:
-                try:
-                    choice = input("Enter the number of the card to take: ")
-                    index = int(choice)
-                    if 0 <= index < len(self.discard_pile):
-                        chosen_card = self.discard_pile.pop(index)
-                        chosen_card.clear_player_info()
-                        self.hands[self.turn].append(chosen_card)
-                        print(f"Took {chosen_card} from discard pile")
-                        break
-                    print("Invalid number, please try again")
-                except ValueError:
-                    print("Please enter a valid number")
+            # Get the player's choice
+            print(f"self.use_ai: {self.use_ai}")
+            print(f"self.turn: {self.turn}")
+            chosen_card = None
+            if self.use_ai and self.turn == 1:  # AI's turn
+                # Let AI choose a card
+                chosen_card = self.ai_player.choose_card_from_discard(self.discard_pile)
+                self.hands[self.turn].append(chosen_card)
+
+                print(f"AI chose {chosen_card} from discard pile")
+            else:  # Human player's turn
+                while True:
+                    try:
+                        choice = input("Enter the number of the card to take: ")
+                        index = int(choice)
+                        if 0 <= index < len(self.discard_pile):
+                            chosen_card = self.discard_pile.pop(index)
+                            chosen_card.clear_player_info()
+                            self.hands[self.turn].append(chosen_card)
+                            print(f"Took {chosen_card} from discard pile")
+                            break
+                        print("Invalid number, please try again")
+                    except ValueError:
+                        print("Please enter a valid number")
+
         elif card.rank == Rank.FIVE:
             if len(self.hands[self.turn]) <= 6:
                 self.draw_card(2)
@@ -412,6 +438,12 @@ class GameState:
         """
         actions = []
 
+        # If resolving three, legal actions is to choose a card from the discard pile
+        if self.resolving_three:
+            for card in self.discard_pile:
+                actions.append(Action(ActionType.THREE, card, None, self.turn))
+            return actions
+
         # If resolving one-off, only allow counter or resolve
         if self.resolving_one_off:
             # Check if current player has a Two to counter with
@@ -446,14 +478,16 @@ class GameState:
         # Get cards in current player's hand
         hand = self.hands[self.turn]
 
-        # Can play any card as points
+        # Can play any card as points (2-10)
         for card in hand:
             if card.point_value() <= Rank.TEN.value[1]:
                 actions.append(Action(ActionType.POINTS, card, None, self.turn))
 
         # Can play face cards
         for card in hand:
-            if card.is_face_card():
+            # Only Kings are implemented for now
+            # TODO: Implement Queens, Jacks, and Eights
+            if card.is_face_card() and card.rank in [Rank.KING]:
                 actions.append(Action(ActionType.FACE_CARD, card, None, self.turn))
 
         # Can play one-offs
@@ -461,15 +495,24 @@ class GameState:
             if card.is_one_off():
                 actions.append(Action(ActionType.ONE_OFF, card, None, self.turn))
 
-        # Can scuttle opponent's point cards with higher point cards
+        # Can scuttle opponent's point cards with higher point cards (only point cards can scuttle)
         opponent = (self.turn + 1) % len(self.hands)
         opponent_field = self.fields[opponent]
         opponent_points = [
             card for card in opponent_field if card.purpose == Purpose.POINTS
         ]
 
+        # Get point cards from hand (Ace to Ten)
+        point_cards = [card for card in hand if card.point_value() <= Rank.TEN.value[1]]
+
+        print(f"opponent_points: {opponent_points}")
+        # For each point card in opponent's field
         for opponent_card in opponent_points:
-            for card in hand:
+            # For each point card in player's hand
+            for card in point_cards:
+                # Can scuttle if:
+                # 1. Higher point value, or
+                # 2. Equal point value and higher suit value
                 if card.point_value() > opponent_card.point_value() or (
                     card.point_value() == opponent_card.point_value()
                     and card.suit_value() > opponent_card.suit_value()
@@ -479,9 +522,9 @@ class GameState:
                     )
         return actions
 
-    def print_state(self):
+    def print_state(self, hide_player_hand: int = None):
         print("--------------------------------")
-        print(f"Player {self.turn}'s turn")
+        print(f"Player {self.current_action_player}'s turn")
         print(f"Deck: {len(self.deck)}")
         print(f"Discard Pile: {len(self.discard_pile)}")
         print("Points: ")
@@ -489,7 +532,67 @@ class GameState:
             points = self.get_player_score(i)
             print(f"Player {i}: {points}")
         for i, hand in enumerate(self.hands):
-            print(f"Player {i}'s hand: {hand}")
+            if i == hide_player_hand:
+                print(f"Player {i}'s hand: [Hidden]")
+            else:
+                print(f"Player {i}'s hand: {hand}")
         for i, field in enumerate(self.fields):
             print(f"Player {i}'s field: {field}")
         print("--------------------------------")
+
+    def to_dict(self) -> Dict:
+        """
+        Convert the game state to a dictionary for saving.
+
+        Returns:
+            A dictionary representation of the game state
+        """
+        return {
+            "hands": [[card.to_dict() for card in hand] for hand in self.hands],
+            "fields": [[card.to_dict() for card in field] for field in self.fields],
+            "deck": [card.to_dict() for card in self.deck],
+            "discard": [card.to_dict() for card in self.discard_pile],
+            "turn": self.turn,
+            "status": self.status,
+            "resolving_two": self.resolving_two,
+            "resolving_one_off": self.resolving_one_off,
+            "one_off_card_to_counter": (
+                self.one_off_card_to_counter.to_dict()
+                if self.one_off_card_to_counter
+                else None
+            ),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict, logger=print) -> "GameState":
+        """
+        Create a game state from a dictionary.
+
+        Args:
+            data: A dictionary representation of a game state
+
+        Returns:
+            A new GameState instance
+        """
+        hands = [
+            [Card.from_dict(card_data) for card_data in hand] for hand in data["hands"]
+        ]
+        fields = [
+            [Card.from_dict(card_data) for card_data in field]
+            for field in data["fields"]
+        ]
+        deck = [Card.from_dict(card_data) for card_data in data["deck"]]
+        discard_pile = [Card.from_dict(card_data) for card_data in data["discard"]]
+
+        game_state = cls(hands, fields, deck, discard_pile, logger=logger)
+        game_state.turn = data["turn"]
+        game_state.status = data["status"]
+        game_state.resolving_two = data["resolving_two"]
+        game_state.resolving_one_off = data["resolving_one_off"]
+        game_state.one_off_card_to_counter = (
+            Card.from_dict(data["one_off_card_to_counter"])
+            if data["one_off_card_to_counter"]
+            else None
+        )
+
+        return game_state
