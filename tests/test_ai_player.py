@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 import pytest
 import asyncio
 from game.ai_player import AIPlayer
@@ -61,11 +61,8 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
         ]
 
         # Mock Ollama response
-        mock_response = {
-            "message": {
-                "content": "I choose to play Five of Clubs as points to start building my score. Action number: 1"
-            }
-        }
+        mock_response = MagicMock()
+        mock_response.message.content = "I choose to play Five of Clubs as points to start building my score. Action number: 1"
         mock_chat.return_value = mock_response
 
         # Get AI action
@@ -86,7 +83,8 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
         ]
 
         # Mock invalid Ollama response
-        mock_response = {"message": {"content": "I am not sure what to do."}}
+        mock_response = MagicMock()
+        mock_response.message.content = "I am not sure what to do."
         mock_chat.return_value = mock_response
 
         # Get AI action - should default to first legal action

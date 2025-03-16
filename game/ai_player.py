@@ -148,7 +148,6 @@ Make your choice now:
 
         # Format the game state and actions into a prompt
         prompt = self._format_game_state(game_state, legal_actions)
-        log_print(prompt)
         retries = 0
         last_error = None
 
@@ -164,6 +163,7 @@ Make your choice now:
                 )
 
                 # Extract the action number from the response
+                log_print(response)
                 response_text = response.message.content
                 log_print(response_text)
                 # Look for "Choice: [number]" pattern first
