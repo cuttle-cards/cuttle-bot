@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Optional, Dict
 from game.card import Card, Purpose, Rank
 from game.action import Action, ActionType, ActionSource
+from game.utils import log_print
 
 
 class GameState:
@@ -463,7 +464,9 @@ class GameState:
             other_player_field = self.fields[other_player]
             queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in other_player_field)
 
-            if not queen_on_opponent_field:
+            if queen_on_opponent_field:
+                log_print("Cannot counter with a two if opponent has a queen on their field")
+            else:
                 for two in twos:
                     actions.append(
                         Action(
