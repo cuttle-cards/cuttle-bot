@@ -611,6 +611,51 @@ class TestGameState(unittest.TestCase):
         self.assertIn(king, self.hands[0])
         self.assertNotIn(king, self.game_state.fields[0])
         self.assertEqual(self.game_state.get_player_target(0), 21)
+    
+    def test_play_queen_face_card(self):
+        """Test playing a Queen as a face card."""
+        # Set up initial state with face cards on both fields
+        hands = [
+            [Card("1", Suit.HEARTS, Rank.SIX)],  # Player 0's hand with Six and a point card
+            [Card("3", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand with Two
+        ]
+        fields = [
+            [  # Player 0's field
+                Card("4", Suit.HEARTS, Rank.QUEEN),  # Queen face card
+                Card("3", Suit.SPADES, Rank.KING),  # King face card
+            ],
+            [  # Player 1's field
+                Card("5", Suit.CLUBS, Rank.JACK),  # Jack face card
+                Card("6", Suit.DIAMONDS, Rank.EIGHT),  # Eight face card
+            ],
+        ]
+        deck = []
+        discard = []
+
+        # Set up cards on fields
+        for card in fields[0]:
+            card.purpose = Purpose.FACE_CARD
+            card.played_by = 0
+        for card in fields[1]:
+            card.purpose = Purpose.FACE_CARD
+            card.played_by = 1
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Play Six as one-off
+        six_card = hands[0][0]
+        finished, played_by = game_state.play_one_off(0, six_card)
+        self.assertFalse(finished)  # Not finished until resolved
+        self.assertIsNone(played_by)
+
+        # player 1 tries to counter with a two but can't because of the queen on their field
+        two_card = hands[1][0]
+        two_card.purpose = Purpose.COUNTER
+        two_card.played_by = 1
+        with self.assertRaises(Exception) as context:
+            game_state.play_one_off(1, six_card, countered_with=two_card)
+        self.assertTrue("Cannot counter with a two" in str(context.exception))
+
 
     def test_play_six_one_off(self):
         """Test playing a Six as a one-off to destroy all face cards."""
