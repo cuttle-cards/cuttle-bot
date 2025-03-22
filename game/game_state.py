@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Optional, Dict
 from game.card import Card, Purpose, Rank
 from game.action import Action, ActionType, ActionSource
+from game.utils import log_print
 
 
 class GameState:
@@ -271,6 +272,12 @@ class GameState:
                 raise Exception(
                     f"Counter must be with a purpose of counter, instead got {countered_with.purpose}"
                 )
+            other_player = (countered_with.played_by + 1) % len(self.hands)
+            # check if other player has a queen on their field
+            other_player_field = self.fields[other_player]
+            queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in other_player_field)
+            if queen_on_opponent_field:
+                raise Exception("Cannot counter with a two if opponent has a queen on their field")
 
             # Move counter card to discard pile
             played_by = countered_with.played_by
@@ -452,15 +459,23 @@ class GameState:
                 for card in self.hands[self.current_action_player]
                 if card.rank == Rank.TWO
             ]
-            for two in twos:
-                actions.append(
-                    Action(
-                        ActionType.COUNTER,
-                        two,
-                        self.one_off_card_to_counter,
-                        self.current_action_player,
+            # if opponent has a queen on their field, can't counter with a two, cannot counter
+            other_player = (self.current_action_player + 1) % len(self.hands)
+            other_player_field = self.fields[other_player]
+            queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in other_player_field)
+
+            if queen_on_opponent_field:
+                log_print("Cannot counter with a two if opponent has a queen on their field")
+            else:
+                for two in twos:
+                    actions.append(
+                        Action(
+                            ActionType.COUNTER,
+                            two,
+                            self.one_off_card_to_counter,
+                            self.current_action_player,
+                        )
                     )
-                )
             # Always allow resolving (not countering)
             actions.append(
                 Action(
@@ -487,7 +502,7 @@ class GameState:
         for card in hand:
             # Only Kings are implemented for now
             # TODO: Implement Queens, Jacks, and Eights
-            if card.is_face_card() and card.rank in [Rank.KING]:
+            if card.is_face_card() and card.rank in [Rank.KING, Rank.QUEEN]:
                 actions.append(Action(ActionType.FACE_CARD, card, None, self.turn))
 
         # Can play one-offs
