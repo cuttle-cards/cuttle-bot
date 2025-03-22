@@ -1,5 +1,6 @@
 from game.game import Game
 from game.ai_player import AIPlayer
+from game.input_handler import get_interactive_input
 import asyncio
 import time
 import os
@@ -216,16 +217,22 @@ async def main():
                     log_print(f"AI error: {e}. Defaulting to first action.")
                     player_action = "0"
             else:
-                player_action = input(
-                    f"Enter your action for player {game.game_state.current_action_player} ('e' to end game): "
-                )
+                try:
+                    action_index = get_interactive_input(
+                        f"Enter your action for player {game.game_state.current_action_player} ('e' to end game):",
+                        [str(action) for action in actions]
+                    )
+                    player_action = str(action_index)
+                except KeyboardInterrupt:
+                    player_action = 'e'
 
             # Check for end game input
             if player_action.lower() == "e":
                 game_over = True
                 break
 
-            action_index = get_action_index_from_text_input(player_action, actions)
+            # Since we're now getting the action index directly, we don't need to parse it
+            action_index = int(player_action)
 
             # invalid player input
             if action_index is None:
