@@ -54,10 +54,10 @@ class TestMainQueen(MainTestBase):
             "0",  # Select all cards for Player 1
             "n",  # Don't save initial state
             # Game actions
-            "5",  # p0 Play Queen of Hearts (face card)
-            "2",  # p1 attempts to play seven as points(should not be allowed to counter)
-            "5",  # p0 plays 6 of Spades as one-off
-            "0",  # resolve
+            "Play Queen of Hearts as face card",  # p0 Play Queen of Hearts (face card)
+            "Play Seven of Clubs as points",  # p1 plays seven as points
+            "Play Six of Spades as one-off",  # p0 plays 6 of Spades as one-off
+            "Resolve one-off Six of Spades",  # resolve
             "e",  # end game
             "n",  # Don't save game history
         ]

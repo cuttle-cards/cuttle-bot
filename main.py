@@ -6,7 +6,7 @@ import os
 import datetime
 import io
 import logging
-from typing import List
+from typing import List, Union
 from game.utils import log_print
 
 HISTORY_DIR = "game_history"
@@ -72,6 +72,19 @@ def get_yes_no_input(prompt: str) -> bool:
             return False
         print("Please enter 'y' or 'n'")
         time.sleep(0.1)  # Add small delay to prevent log spam
+
+
+def get_action_index_from_text_input(player_action: str, actions: List[str]) -> Union[int, None]:
+    """Get the index of the action from the text input."""
+    # Input as action index
+    if player_action.isdigit() and int(player_action) in range(len(actions)):
+        return int(player_action)
+    
+    # Input as action description
+    for i, action in enumerate(actions):
+        if player_action.lower() == str(action).lower():
+            return i
+    return None
 
 
 def select_saved_game() -> str:
@@ -212,10 +225,10 @@ async def main():
                 game_over = True
                 break
 
+            action_index = get_action_index_from_text_input(player_action, actions)
+
             # invalid player input
-            if not player_action.isdigit() or not int(player_action) in range(
-                len(actions)
-            ):
+            if action_index is None:
                 log_print("Invalid input, please enter a number")
                 invalid_input_count += 1
                 if invalid_input_count >= MAX_INVALID_INPUTS:
@@ -228,7 +241,7 @@ async def main():
 
             # Reset invalid input counter after a valid input
             invalid_input_count = 0
-            player_action = int(player_action)
+            player_action = action_index
             log_print(
                 f"Player {game.game_state.current_action_player} chose {actions[player_action]}"
             )
