@@ -220,14 +220,17 @@ async def main():
                 try:
                     action_index = get_interactive_input(
                         f"Enter your action for player {game.game_state.current_action_player} ('e' to end game):",
-                        [str(action) for action in actions]
+                        [f"{i}: {str(action)}" for i, action in enumerate(actions)]
                     )
-                    player_action = str(action_index)
+                    if action_index == -1:
+                        player_action = "end game"
+                    else:
+                        player_action = str(action_index)
                 except KeyboardInterrupt:
                     player_action = 'e'
 
             # Check for end game input
-            if player_action.lower() == "e":
+            if player_action.lower() == "end game":
                 game_over = True
                 break
 

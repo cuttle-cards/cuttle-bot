@@ -58,7 +58,7 @@ class TestMainQueen(MainTestBase):
             "Play Seven of Clubs as points",  # p1 plays seven as points
             "Play Six of Spades as one-off",  # p0 plays 6 of Spades as one-off
             "Resolve one-off Six of Spades",  # resolve
-            "e",  # end game
+            "end game",  # end game
             "n",  # Don't save game history
         ]
         self.setup_mock_input(mock_input, mock_inputs)

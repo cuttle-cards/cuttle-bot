@@ -62,7 +62,7 @@ class TestMainThree(MainTestBase):
             "4",  # p0 Play Three of Hearts (one-off)
             "0",  # p1 resolves
             "0",  # p0 Select Ace of Diamonds from discard pile
-            "e",  # p1 End game
+            "end game",  # p1 End game
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
@@ -162,7 +162,7 @@ class TestMainThree(MainTestBase):
             # Game actions
             "6",  # p0 Play Three of Hearts (one-off)
             "0",  # p1 resolves
-            "e",  # End game
+            "end game",  # End game
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
@@ -245,7 +245,7 @@ class TestMainThree(MainTestBase):
             "6",  # p0 Play Three of Hearts (one-off)
             "0",  # p1 counters with Two of Diamonds
             "0",  # p0 resolves
-            "e",  # End game
+            "end game",  # End game
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)

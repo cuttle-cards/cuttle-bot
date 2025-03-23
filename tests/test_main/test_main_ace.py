@@ -60,7 +60,7 @@ class TestMainAce(MainTestBase):
             "2",  # p1 Play 7 of Hearts (points)
             "4",  # p0 Play Ace of Hearts (one-off) - Counterable
             "0",  # p1 resolves
-            "e",  # End game
+            "end game",  # End game
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
@@ -207,7 +207,7 @@ class TestMainAce(MainTestBase):
             "4",  # p0 Play Ace of Hearts (one-off) - Counterable
             "0",  # p1 counters with two of clubs
             "0",  # p0 resolves
-            "e",  # End game
+            "end game",  # End game
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)

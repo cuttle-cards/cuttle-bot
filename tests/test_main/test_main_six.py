@@ -59,7 +59,7 @@ class TestMainSix(MainTestBase):
             "4",  # p1 Play King of Diamonds (face card)
             "5",  # p0 Play Six of Hearts (one-off) - Counterable
             "0",  # p1 resolves
-            "e",  # End game
+            "end game",  # End game
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
