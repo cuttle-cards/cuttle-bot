@@ -4,14 +4,26 @@ from typing import List, Tuple
 
 def is_interactive_terminal():
     """Check if we're in an interactive terminal."""
-    # Check if we're in a test environment
-    if 'pytest' in sys.modules or 'unittest' in sys.modules:
+    # Check if we're in a test environment or CI
+    if ('pytest' in sys.modules or 
+        'unittest' in sys.modules or 
+        os.environ.get('CI') or 
+        os.environ.get('GITHUB_ACTIONS')):
+        print("Running in test environment or CI")
         return False
         
     # Check if we have a real terminal
     try:
         import termios
-        return sys.stdin.isatty() and os.environ.get('TERM') is not None
+        # Only try to get terminal attributes if we have a TTY
+        if not sys.stdin.isatty() or not sys.stdout.isatty():
+            return False
+        # Try to get terminal attributes, but don't actually use them
+        try:
+            termios.tcgetattr(sys.stdin.fileno())
+            return os.environ.get('TERM') is not None
+        except termios.error:
+            return False
     except (ImportError, AttributeError):
         return False
 
