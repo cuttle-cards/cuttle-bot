@@ -29,14 +29,14 @@ def clear_lines(num_lines: int):
             sys.stdout.write('\033[F')  # Move cursor up one line
             sys.stdout.write('\033[K')  # Clear line
 
-def display_options(prompt: str, current_input: str, filtered_options: List[str], selected_idx: int, max_display: int, terminal_width: int):
+def display_options(prompt: str, current_input: str, pre_filtered_options: List[str], filtered_options: List[str], selected_idx: int, max_display: int, terminal_width: int):
     """Helper function to display the prompt and options."""
     if is_interactive_terminal():
         # Clear the entire display area first
-        if filtered_options:
-            clear_lines(min(len(filtered_options), max_display) + 2)
+        if len(pre_filtered_options) == 0:
+            clear_lines(min(len(pre_filtered_options), max_display) + 2)
         else:
-            clear_lines(2)
+            clear_lines(min(len(pre_filtered_options), max_display) + 1)
         
         # Print prompt and current input
         sys.stdout.write(f"\r{prompt} {current_input}")
@@ -88,6 +88,7 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
             # Initialize variables
             current_input = ""
             filtered_options = options
+            pre_filtered_options = options
             selected_idx = 0
             max_display = 10  # Maximum number of options to display at once
             
@@ -95,12 +96,12 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
             terminal_width, _ = get_terminal_size()
             
             # Initial display
-            display_options(prompt, current_input, filtered_options, selected_idx, max_display, terminal_width)
+            display_options(prompt, current_input, pre_filtered_options, filtered_options, selected_idx, max_display, terminal_width)
             
             while True:
                 # Read a single character
                 char = sys.stdin.read(1)
-                
+                pre_filtered_options = filtered_options
                 # Handle special keys
                 if ord(char) == 3:  # Ctrl+C
                     raise KeyboardInterrupt
@@ -131,7 +132,7 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
                     selected_idx = 0
                 
                 # Refresh display after any change
-                display_options(prompt, current_input, filtered_options, selected_idx, max_display, terminal_width)
+                display_options(prompt, current_input, pre_filtered_options, filtered_options, selected_idx, max_display, terminal_width)
         
         finally:
             # Restore terminal settings
@@ -149,7 +150,7 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
 def get_non_interactive_input(prompt: str, options: List[str]) -> int:
     """Simple input handler for non-interactive environments."""
     # Display options
-    display_options(prompt, "", options, 0, len(options), 80)
+    display_options(prompt, "", options, options, 0, len(options), 80)
     
     # Get input (this will use the mocked input in tests)
     response = input().strip()
