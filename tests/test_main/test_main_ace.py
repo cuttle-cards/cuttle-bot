@@ -54,12 +54,12 @@ class TestMainAce(MainTestBase):
             "0",  # Select 3 of Clubs
             "n",  # Don't save initial state
             # Game actions
-            "2",  # p0 Play 10 of Hearts (points)
-            "1",  # p1 Play 9 of Diamonds (points)
-            "2",  # p0 Play 5 of Diamonds (points)
-            "2",  # p1 Play 7 of Hearts (points)
-            "4",  # p0 Play Ace of Hearts (one-off) - Counterable
-            "0",  # p1 resolves
+            "Ten of Hearts as points",  # p0 Play 10 of Hearts (points)
+            "Nine of Diamonds as points",  # p1 Play 9 of Diamonds (points)
+            "Five of Diamonds as points",  # p0 Play 5 of Diamonds (points)
+            "Seven of Hearts as points",  # p1 Play 7 of Hearts (points)
+            "Ace of Hearts as one-off",  # p0 Play Ace of Hearts (one-off) - Counterable
+            "Resolve",  # p1 resolves
             "end game",  # End game
             "n",  # Don't save final game state
         ]
@@ -200,13 +200,13 @@ class TestMainAce(MainTestBase):
             "0",  # Select 3 of Clubs
             "n",  # Don't save initial state
             # Game actions
-            "2",  # p0 Play 10 of Hearts (points)
-            "1",  # p1 Play 9 of Diamonds (points)
-            "2",  # p0 Play 5 of Diamonds (points)
-            "2",  # p1 Play 7 of Hearts (points)
-            "4",  # p0 Play Ace of Hearts (one-off) - Counterable
-            "0",  # p1 counters with two of clubs
-            "0",  # p0 resolves
+            "Ten of Hearts as points",  # p0 Play 10 of Hearts (points)
+            "Nine of Diamonds as points",  # p1 Play 9 of Diamonds (points)
+            "Five of Diamonds as points",  # p0 Play 5 of Diamonds (points)
+            "Seven of Hearts as points",  # p1 Play 7 of Hearts (points)
+            "Ace of Hearts as one-off",  # p0 Play Ace of Hearts (one-off) - Counterable
+            "Counter",  # p1 counters with two of clubs
+            "Resolve",  # p0 resolves
             "end game",  # End game
             "n",  # Don't save final game state
         ]

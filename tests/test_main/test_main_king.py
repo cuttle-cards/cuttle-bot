@@ -54,11 +54,11 @@ class TestMainKing(MainTestBase):
             "0",  # Select all cards for Player 1
             "n",  # Don't save initial state
             # Game actions
-            "5",  # p0 Play first King (face card)
-            "1",  # p1 Play 8 of Diamonds (points)
-            "4",  # p0 Play second King (face card)
-            "0",  # p1 draws
-            "1",  # p0 plays 10 of Hearts (points)
+            "King of Hearts as face card",  # p0 Play first King (face card)
+            "Eight of Diamonds as points",  # p1 Play 8 of Diamonds (points)
+            "King of Spades as face card",  # p0 Play second King (face card)
+            "Draw",  # p1 draws
+            "Ten of Hearts as points",  # p0 plays 10 of Hearts (points)
             "n",  # Don't save game history
         ]
         self.setup_mock_input(mock_input, mock_inputs)
