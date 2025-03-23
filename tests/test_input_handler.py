@@ -6,6 +6,8 @@ import termios
 import tty
 import os
 import re
+import pty
+import fcntl
 from game.input_handler import get_interactive_input
 
 class TestInputHandler(unittest.TestCase):
@@ -19,13 +21,20 @@ class TestInputHandler(unittest.TestCase):
             "4: Ace of Clubs"
         ]
         
+        # Create a pseudo-terminal pair
+        self.master_fd, self.slave_fd = pty.openpty()
+        
         # Save original stdout and create StringIO for capturing output
         self.original_stdout = sys.stdout
         self.stdout_capture = io.StringIO()
         sys.stdout = self.stdout_capture
 
-        # Create mock terminal settings
-        self.mock_termios_settings = termios.tcgetattr(sys.__stdout__.fileno())
+        # Set up terminal settings for the slave
+        self.mock_termios_settings = termios.tcgetattr(self.slave_fd)
+        
+        # Make the slave's file descriptor non-blocking
+        flags = fcntl.fcntl(self.slave_fd, fcntl.F_GETFL)
+        fcntl.fcntl(self.slave_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
         # Number of cleanup characters needed (based on max display lines + prompt)
         self.cleanup_chars = ['\r'] * 12  # Increased from 8 to 12 for more thorough cleanup
@@ -34,6 +43,10 @@ class TestInputHandler(unittest.TestCase):
         # Restore original stdout
         sys.stdout = self.original_stdout
         self.stdout_capture.close()
+        
+        # Close the pseudo-terminal pair
+        os.close(self.master_fd)
+        os.close(self.slave_fd)
 
     def get_captured_output(self):
         """Helper to get captured output and reset the buffer"""
@@ -55,7 +68,7 @@ class TestInputHandler(unittest.TestCase):
     def setup_terminal_mocks(self, mock_stdin):
         """Helper to set up terminal-related mocks"""
         mock_stdin.isatty.return_value = True
-        mock_stdin.fileno.return_value = 0  # Use 0 as mock file descriptor
+        mock_stdin.fileno.return_value = self.slave_fd  # Use slave fd instead of 0
         
         # Create mock terminal size tuple
         mock_terminal_size = os.terminal_size((80, 24))
@@ -65,7 +78,7 @@ class TestInputHandler(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
         
-        # Patch termios.tcgetattr
+        # Patch termios.tcgetattr to use our slave fd
         patcher = patch('termios.tcgetattr', return_value=self.mock_termios_settings)
         patcher.start()
         self.addCleanup(patcher.stop)
