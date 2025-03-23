@@ -36,7 +36,7 @@ Rules:
 
 
 Strategies:
-1. Optimize to increase your score and decrease your target score. If you have a high value point card, try to play it as points.
+1. Optimize to increase your score and decrease your target score. If you have a high value point card, try to play it as points. If a move increases your score to meet or exceed your target score, do it straight away.
 2. Prioritize playing Kings early to reduce your target score
 3. Save Twos for countering important one-off effects. Favor drawing a card over playing a two as points.
 4. Use Jacks to steal high-value point cards
@@ -58,7 +58,7 @@ The Strategy is key to winning the game.
 
     def __init__(self):
         """Initialize the AI player."""
-        self.model = "llama3.2"  # Default to mistral model
+        self.model = "gemma3:4b"  # Default to mistral model
         self.max_retries = 3
         self.retry_delay = 1  # seconds
 
