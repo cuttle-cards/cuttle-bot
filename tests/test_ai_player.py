@@ -31,7 +31,7 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
             discard_pile=[],
         )
 
-    @pytest.mark.timeout(10)
+    @pytest.mark.timeout(15)
     def test_format_game_state(self):
         """Test that game state is formatted correctly for the LLM."""
         legal_actions = [

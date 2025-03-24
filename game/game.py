@@ -28,7 +28,7 @@ class Game:
         load_game: Optional[str] = None,
         test_deck: Optional[List[Card]] = None,
         logger=print,  # Default to print if no logger provided
-        use_ai: bool = False,
+        ai_player: Optional[AIPlayer] = None,
     ):
         self.players = [0, 1]
         self.logger = logger
@@ -45,8 +45,8 @@ class Game:
             self.initialize_with_manual_selection()
         else:
             self.initialize_with_random_hands()
-        self.game_state.use_ai = use_ai
-        self.ai_player = AIPlayer() if use_ai else None
+        self.game_state.use_ai = ai_player is not None
+        self.ai_player = ai_player
         self.game_state.ai_player = self.ai_player
 
     def save_game(self, filename: str):
