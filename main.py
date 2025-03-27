@@ -18,29 +18,22 @@ os.makedirs(HISTORY_DIR, exist_ok=True)
 
 def setup_logging():
     """Set up logging to capture game history"""
-    # Create string IO for capturing output
     log_stream = io.StringIO()
 
-    # Create formatter
     formatter = logging.Formatter("%(message)s")
 
-    # Create string handler
     string_handler = logging.StreamHandler(log_stream)
     string_handler.setFormatter(formatter)
 
-    # Create console handler
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
 
-    # Get logger
     logger = logging.getLogger("cuttle")
     logger.setLevel(logging.INFO)
 
-    # Add handlers
     logger.addHandler(string_handler)
     logger.addHandler(console_handler)
 
-    # Clear any existing handlers
     logger.handlers = [string_handler, console_handler]
 
     return logger, log_stream
@@ -48,15 +41,12 @@ def setup_logging():
 
 def save_game_history(log_output: List[str]):
     """Save game history to a file"""
-    # Create game_history directory if it doesn't exist
     os.makedirs(HISTORY_DIR, exist_ok=True)
 
-    # Generate filename with timestamp
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"game_history_{timestamp}.txt"
     filepath = os.path.join(HISTORY_DIR, filename)
 
-    # Write history to file
     with open(filepath, "w") as f:
         f.write("\n".join(log_output))
 
@@ -76,12 +66,17 @@ def get_yes_no_input(prompt: str) -> bool:
 
 
 def get_action_index_from_text_input(player_action: str, actions: List[str]) -> Union[int, None]:
-    """Get the index of the action from the text input."""
-    # Input as action index
+    """Get the index of the action from the text input.
+    Args:
+        player_action (str): The action to get the index of. Could be a number in string form 
+                                or a string detailing the action.
+        actions (List[str]): The list of actions to choose from.
+    Returns:
+        Union[int, None]: The index of the action, or None if the action is not found.
+    """
     if player_action.isdigit() and int(player_action) in range(len(actions)):
         return int(player_action)
     
-    # Input as action description
     for i, action in enumerate(actions):
         if player_action.lower() == str(action).lower():
             return i
@@ -125,12 +120,10 @@ async def initialize_game(use_ai: bool, ai_player: AIPlayer) -> Game:
                 log_print(f"Error loading game: {e}")
                 log_print("Starting new game instead.")
     
-    # Create new game
     manual_selection = get_yes_no_input("Would you like to manually select initial cards?")
     print(f"use_ai: {use_ai}")
     game = Game(manual_selection=manual_selection, ai_player=ai_player)
     
-    # Handle initial game state saving
     if get_yes_no_input("Would you like to save this initial game state?"):
         save_initial_game_state(game)
     
@@ -223,13 +216,11 @@ async def game_loop(game: Game, use_ai: bool, ai_player: AIPlayer) -> int:
         while not turn_finished and not game_over:
             time.sleep(0.1)  # Add small delay to prevent log spam
             
-            # Display current state and get legal actions
             display_game_state(game)
             actions = game.game_state.get_legal_actions()
             for i, action in enumerate(actions):
                 log_print(f"{i}: {action}")
 
-            # Handle player turn
             player_action, is_end_game = await handle_player_turn(game, use_ai, ai_player, actions)
             
             if is_end_game:
@@ -268,29 +259,22 @@ def display_game_state(game: Game):
         log_print(f"Actions for player {game.game_state.turn}:")
 
 async def main():
-    # Set up logging
+    """Main entry point for the game."""
     logger, log_stream = setup_logging()
-
-    # Ask if user wants to play against AI
     use_ai = get_yes_no_input("Would you like to play against AI (as Player 2)?")
     ai_player = AIPlayer() if use_ai else None
 
     while True:
-        # Initialize game
         game = await initialize_game(use_ai, ai_player)
         
         log_print("\nStarting game...")
-        # Hide AI's hand (player 1) if playing against AI
         game.game_state.print_state(hide_player_hand=1 if use_ai else None)
 
-        # Run game loop
         winner = await game_loop(game, use_ai, ai_player)
 
         log_print(f"Game over! Winner is player {winner}")
-        # Hide AI's hand in final state if playing against AI
         game.game_state.print_state(hide_player_hand=1 if use_ai else None)
 
-        # Ask if user wants to save game history
         if get_yes_no_input("Would you like to save the game history?"):
             save_game_history(log_stream.getvalue().splitlines())
         
