@@ -283,3 +283,99 @@ class TestMainFour(MainTestBase):
         # Verify final game state - opponent should have no cards
         final_state = [text for text in log_output if "Player 0's hand" in text][-1]
         self.assertIn("[]", final_state)
+
+    @pytest.mark.timeout(5)
+    @patch("builtins.input")
+    @patch("builtins.print")
+    @patch("game.game.Game.generate_all_cards")
+    async def test_play_four_with_empty_opponent_hand_through_main(
+        self, mock_generate_cards, mock_print, mock_input
+    ):
+        """Test playing a Four as a one-off when opponent has no cards in hand."""
+        # Set up print mock to both capture and display
+        mock_print.side_effect = print_and_capture
+
+        # Create test deck with specific cards
+        p0_cards = [
+            Card("1", Suit.HEARTS, Rank.FOUR),  # Four of Hearts
+            Card("2", Suit.SPADES, Rank.KING),  # King of Spades
+            Card("3", Suit.HEARTS, Rank.TEN),  # 10 of Hearts
+            Card("4", Suit.DIAMONDS, Rank.FOUR),  # 4 of Diamonds
+            Card("5", Suit.CLUBS, Rank.FOUR),  # 4 of Clubs
+        ]
+        p1_cards = [
+            Card("6", Suit.DIAMONDS, Rank.NINE),  # 9 of Diamonds
+            Card("7", Suit.CLUBS, Rank.EIGHT),  # 8 of Clubs
+            Card("8", Suit.HEARTS, Rank.SEVEN),  # 7 of Hearts
+            Card("9", Suit.SPADES, Rank.FIVE),  # 5 of Spades
+            Card("10", Suit.DIAMONDS, Rank.FIVE),  # 5 of Diamonds
+            Card("11", Suit.CLUBS, Rank.THREE),  # 3 of Clubs
+        ]
+        test_deck = self.generate_test_deck(p0_cards, p1_cards)
+        mock_generate_cards.return_value = test_deck
+
+        # Mock sequence of inputs for the entire game
+        mock_inputs = [
+            "n",  # Don't load saved game
+            "y",  # Use manual selection
+            # Player 0 selects cards
+            "0",  # Select Four of Hearts
+            "0",  # Select King of Spades
+            "0",  # Select 10 of Hearts
+            "0",  # Select 5 of Diamonds
+            "0",  # Select 2 of Clubs
+            # Player 1 selects cards
+            "0",  # Select 9 of Diamonds
+            "0",  # Select 8 of Clubs
+            "0",  # Select 7 of Hearts
+            "0",  # Select 5 of Spades
+            "0",  # Select 4 of Diamonds
+            "0",  # Select 3 of Clubs
+            "n",  # Don't save initial state
+            # Game actions
+            # First, make Player 1 play all their cards as points to empty their hand
+            "Four of Diamonds as one-off",  # p0 plays 4 of Diamonds as points
+            "Resolve", # p1 resolves
+            "0",  # p1 discards first card
+            "0",  # p1 discards second card
+            "Seven of Hearts as points",   # p1 plays 7 of Hearts as points
+            "Four of Hearts as one-off",  # p0 plays 4 of Hearts as one-off
+            "Resolve", # p1 resolves
+            "0",  # p1 discards first card
+            "0",  # p1 discards second card
+            "Three of Clubs as points",    # p1 plays 3 of Clubs as points
+            "Four of Clubs as one-off",  # p0 plays 4 of Clubs as one-off
+            "Resolve", # p1 resolves
+            # p1 has no cards to discard
+            "end game",  # End game
+            "n",  # Don't save final game state
+        ]
+        self.setup_mock_input(mock_input, mock_inputs)
+
+        # Import and run main
+        from main import main
+
+        await main()
+
+        # Get all logged output
+        log_output = self.get_log_output()
+        self.print_game_output(log_output)
+
+        # Verify all 3 Four cards were played
+        four_played = [
+            text
+            for text in log_output
+            if "chose Play Four of" in text and "one-off" in text
+        ]
+        self.assertEqual(len(four_played), 3)
+
+        # Verify opponent had no cards to discard
+        no_cards_message = [
+            text for text in log_output 
+            if "has no cards to discard" in text or "cannot discard any cards" in text
+        ]
+        self.assertTrue(any(no_cards_message))
+
+        # Verify final game state - opponent should still have no cards
+        final_state = [text for text in log_output if "Player 1's hand" in text][-1]
+        self.assertIn("[]", final_state)

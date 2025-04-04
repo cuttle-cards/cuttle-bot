@@ -391,9 +391,10 @@ class GameState:
             opponent = (self.turn + 1) % len(self.hands)
             discard_prompt = f"player {opponent} must discard 2 cards"
             if len(self.hands[opponent]) == 1:
-                discard_prompt = f"player {opponent} must discard 1 cards"
+                discard_prompt = f"player {opponent} must discard 1 card"
             if len(self.hands[opponent]) == 0:
                 discard_prompt = f"player {opponent} has no cards to discard"
+                log_print(discard_prompt)
                 # end turn
                 return
             log_print(discard_prompt)
