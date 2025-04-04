@@ -380,7 +380,51 @@ class GameState:
                         print("Invalid number, please try again")
                     except ValueError:
                         print("Please enter a valid number")
+        elif card.rank == Rank.FOUR:
+            # Opponent needs to select 2 cards from their hand to discard
+            # if opponent only has 1 card, they can discard that one
 
+            # Get the player's choice
+            print(f"self.use_ai: {self.use_ai}")
+            print(f"self.turn: {self.turn}")
+            chosen_cards = None
+            opponent = (self.turn + 1) % len(self.hands)
+            discard_prompt = f"player {opponent} must discard 2 cards"
+            if len(self.hands[opponent]) == 1:
+                discard_prompt = f"player {opponent} must discard 1 cards"
+            if len(self.hands[opponent]) == 0:
+                discard_prompt = f"player {opponent} has no cards to discard"
+                # end turn
+                return
+            log_print(discard_prompt)
+            # print the opponent's hand with index
+            log_print(f"opponent's hand:")
+            for i, card in enumerate(self.hands[opponent]):
+                log_print(f"{i}: {card}")
+            if self.use_ai and self.current_action_player == opponent:  # AI's turn
+                # Let AI choose a card
+                chosen_cards = self.ai_player.choose_two_cards_from_hand(self.hands[opponent])
+                for card in chosen_cards:
+                    self.hands[opponent].remove(card)
+                    self.discard_pile.append(card)
+                    card.clear_player_info()
+            else:  # Human player's turn
+                cards_to_discard = []
+                while len(cards_to_discard) < 2 and len(self.hands[opponent]) > 0:
+                    try:
+                        choice = input("Enter the number of the card to discard: ")
+                        index = int(choice)
+                        if 0 <= index < len(self.hands[opponent]):
+                            # remove card from opponent's hand
+                            chosen_card = self.hands[opponent].pop(index)
+                            cards_to_discard.append(chosen_card)
+                            log_print(f"Opponent discarded {chosen_card}")
+                            # add card to discard pile
+                            self.discard_pile.append(chosen_card)
+                            chosen_card.clear_player_info()
+                    except ValueError:
+                        print("Please enter a valid number")
+                # Remove the chosen cards from the player's hand
         elif card.rank == Rank.FIVE:
             if len(self.hands[self.turn]) <= 6:
                 self.draw_card(2)
@@ -400,6 +444,7 @@ class GameState:
                     player_field.remove(face_card)
                     face_card.clear_player_info()
                     self.discard_pile.append(face_card)
+
 
     def play_face_card(self, card: Card) -> bool:
         """

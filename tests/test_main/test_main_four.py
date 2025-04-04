@@ -9,7 +9,9 @@ class TestMainFour(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    def test_play_four_through_main(self, mock_generate_cards, mock_print, mock_input):
+    async def test_play_four_through_main(
+        self, mock_generate_cards, mock_print, mock_input
+    ):
         """Test playing a Four as a one-off through main.py to force opponent to discard."""
         # Set up print mock to both capture and display
         mock_print.side_effect = print_and_capture
@@ -52,19 +54,19 @@ class TestMainFour(MainTestBase):
             "0",  # Select 3 of Clubs
             "n",  # Don't save initial state
             # Game actions
-            "6",  # p0 Play Four of Hearts (one-off)
+            "Four of Hearts as one-off",  # p0 Play Four of Hearts (one-off)
             "0",  # p1 resolves (doesn't counter)
             "0",  # p1 discards first card (9 of Diamonds)
             "0",  # p1 discards second card (8 of Clubs)
             "e",  # End game
             "n",  # Don't save final game state
         ]
-        mock_input.side_effect = mock_inputs
+        self.setup_mock_input(mock_input, mock_inputs)
 
         # Import and run main
         from main import main
 
-        main()
+        await main()
 
         # Get all logged output
         log_output = self.get_log_output()
@@ -86,8 +88,8 @@ class TestMainFour(MainTestBase):
         discarded_cards = [
             text
             for text in log_output
-            if "Discarded Nine of Diamonds" in text
-            or "Discarded Eight of Clubs" in text
+            if "discarded Nine of Diamonds" in text
+            or "discarded Eight of Clubs" in text
         ]
         self.assertEqual(len(discarded_cards), 2)
 
@@ -106,7 +108,7 @@ class TestMainFour(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    def test_play_four_with_counter_through_main(
+    async def test_play_four_with_counter_through_main(
         self, mock_generate_cards, mock_print, mock_input
     ):
         """Test playing a Four that gets countered by a Two."""
@@ -151,18 +153,18 @@ class TestMainFour(MainTestBase):
             "0",  # Select 3 of Clubs
             "n",  # Don't save initial state
             # Game actions
-            "6",  # p0 Play Four of Hearts (one-off)
-            "0",  # p1 counters with Two
-            "0",  # p0 resolves counter
-            "e",  # End game
+            "Four of Hearts as one-off",  # p0 Play Four of Hearts (one-off)
+            "Two of Clubs as counter",  # p1 counters with Two
+            "Resolve",  # p0 resolves counter
+            "end game",  # End game
             "n",  # Don't save final game state
         ]
-        mock_input.side_effect = mock_inputs
+        self.setup_mock_input(mock_input, mock_inputs)
 
         # Import and run main
         from main import main
 
-        main()
+        await main()
 
         # Get all logged output
         log_output = self.get_log_output()
@@ -197,7 +199,7 @@ class TestMainFour(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    def test_play_four_with_one_card_opponent_through_main(
+    async def test_play_four_with_one_card_opponent_through_main(
         self, mock_generate_cards, mock_print, mock_input
     ):
         """Test playing a Four when opponent only has one card to discard."""
@@ -237,24 +239,24 @@ class TestMainFour(MainTestBase):
             "done",  # Finish P1's selection
             "n",  # Don't save initial state
             # Game actions
-            "1",  # p0 Play Five of Hearts as points
-            "7",  # p1 plays Four of Diamonds one off
-            "0",  # p0 resolves
+            "Five of Hearts as points",  # p0 Play Five of Hearts as points
+            "Four of Diamonds as one-off",  # p1 plays Four of Diamonds one off
+            "Resolve",  # p0 resolves
             "0",  # p0 discards first card
             "0",  # p0 discards second card
-            "1",  # p0 plays Ace of Spades as points
-            "6",  # p1 Play Four of Hearts (one-off)
-            "0",  # p1 resolves (doesn't counter)
+            "Three of Clubs as points", 
+            "Four of Hearts as one-off",  # p1 Play Four of Hearts (one-off)
+            "Resolve",  # p0 resolves (doesn't counter)
             "0",  # p0 discards only card
-            "e",  # End game
+            "end game",  # End game
             "n",  # Don't save final game state
         ]
-        mock_input.side_effect = mock_inputs
+        self.setup_mock_input(mock_input, mock_inputs)
 
         # Import and run main
         from main import main
 
-        main()
+        await main()
 
         # Get all logged output
         log_output = self.get_log_output()
@@ -274,7 +276,7 @@ class TestMainFour(MainTestBase):
 
         # Verify card was discarded
         discarded_cards = [
-            text for text in log_output if "Discarded Three of Clubs" in text
+            text for text in log_output if "discarded Five of Diamonds" in text
         ]
         self.assertEqual(len(discarded_cards), 1)
 
