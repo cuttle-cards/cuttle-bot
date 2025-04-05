@@ -38,14 +38,15 @@ def clear_lines(num_lines: int):
             sys.stdout.write('\033[F')  # Move cursor up one line
             sys.stdout.write('\033[K')  # Clear line
 
-def display_options(prompt: str, current_input: str, pre_filtered_options: List[str], filtered_options: List[str], selected_idx: int, max_display: int, terminal_width: int):
+def display_options(prompt: str, current_input: str, pre_filtered_options: List[str], filtered_options: List[str], selected_idx: int, max_display: int, terminal_width: int, is_initial_display: bool = False):
     """Helper function to display the prompt and options."""
     if is_interactive_terminal():
         # Clear the entire display area first
-        if len(pre_filtered_options) == 0:
-            clear_lines(min(len(pre_filtered_options), max_display) + 2)
-        else:
-            clear_lines(min(len(pre_filtered_options), max_display) + 1)
+        if not is_initial_display:
+            if len(pre_filtered_options) == 0:
+                clear_lines(min(len(pre_filtered_options), max_display) + 2)
+            else:
+                clear_lines(min(len(pre_filtered_options), max_display) + 1)
         
         # Print prompt and current input
         sys.stdout.write(f"\r{prompt} {current_input}")
@@ -105,7 +106,7 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
             terminal_width, _ = get_terminal_size()
             
             # Initial display
-            display_options(prompt, current_input, pre_filtered_options, filtered_options, selected_idx, max_display, terminal_width)
+            display_options(prompt=prompt, current_input=current_input, pre_filtered_options=pre_filtered_options, filtered_options=filtered_options, selected_idx=selected_idx, max_display=max_display, terminal_width=terminal_width, is_initial_display=True)
             
             while True:
                 try:
@@ -144,7 +145,7 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
                         selected_idx = 0
                     
                     # Refresh display after any change
-                    display_options(prompt, current_input, pre_filtered_options, filtered_options, selected_idx, max_display, terminal_width)
+                    display_options(prompt=prompt, current_input=current_input, pre_filtered_options=pre_filtered_options, filtered_options=filtered_options, selected_idx=selected_idx, max_display=max_display, terminal_width=terminal_width, is_initial_display=False)
                 except (IOError, OSError) as e:
                     if e.errno == errno.EAGAIN:  # Resource temporarily unavailable
                         continue

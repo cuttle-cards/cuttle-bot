@@ -271,7 +271,7 @@ class TestMainFour(MainTestBase):
         self.assertTrue(any(four_played))
 
         # Verify opponent had to discard
-        discard_prompt = [text for text in log_output if "must discard 1 cards" in text]
+        discard_prompt = [text for text in log_output if "must discard 1 card" in text]
         self.assertTrue(any(discard_prompt))
 
         # Verify card was discarded

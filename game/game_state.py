@@ -351,11 +351,6 @@ class GameState:
                 print("No cards in discard pile to take")
                 return
 
-            # Show available cards in discard pile
-            print("\nAvailable cards in discard pile:")
-            for i, card in enumerate(self.discard_pile):
-                print(f"{i}: {card}")
-
             # Get the player's choice
             print(f"self.use_ai: {self.use_ai}")
             print(f"self.turn: {self.turn}")
@@ -364,22 +359,23 @@ class GameState:
                 # Let AI choose a card
                 chosen_card = self.ai_player.choose_card_from_discard(self.discard_pile)
                 self.hands[self.turn].append(chosen_card)
-
                 print(f"AI chose {chosen_card} from discard pile")
             else:  # Human player's turn
-                while True:
-                    try:
-                        choice = input("Enter the number of the card to take: ")
-                        index = int(choice)
-                        if 0 <= index < len(self.discard_pile):
-                            chosen_card = self.discard_pile.pop(index)
-                            chosen_card.clear_player_info()
-                            self.hands[self.turn].append(chosen_card)
-                            print(f"Took {chosen_card} from discard pile")
-                            break
-                        print("Invalid number, please try again")
-                    except ValueError:
-                        print("Please enter a valid number")
+                # Create a list of card options for the input handler
+                card_options = [str(card) for card in self.discard_pile]
+                
+                # Use the input handler to get the player's choice
+                from game.input_handler import get_interactive_input
+                index = get_interactive_input("Select a card from the discard pile:", card_options)
+                
+                # Handle the selection
+                if 0 <= index < len(self.discard_pile):
+                    chosen_card = self.discard_pile.pop(index)
+                    chosen_card.clear_player_info()
+                    self.hands[self.turn].append(chosen_card)
+                    print(f"Took {chosen_card} from discard pile")
+                else:
+                    print("Invalid selection")
         elif card.rank == Rank.FOUR:
             # Opponent needs to select 2 cards from their hand to discard
             # if opponent only has 1 card, they can discard that one
@@ -398,10 +394,7 @@ class GameState:
                 # end turn
                 return
             log_print(discard_prompt)
-            # print the opponent's hand with index
-            log_print(f"opponent's hand:")
-            for i, card in enumerate(self.hands[opponent]):
-                log_print(f"{i}: {card}")
+            
             if self.use_ai and self.current_action_player == opponent:  # AI's turn
                 # Let AI choose a card
                 chosen_cards = self.ai_player.choose_two_cards_from_hand(self.hands[opponent])
@@ -411,21 +404,34 @@ class GameState:
                     card.clear_player_info()
             else:  # Human player's turn
                 cards_to_discard = []
-                while len(cards_to_discard) < 2 and len(self.hands[opponent]) > 0:
-                    try:
-                        choice = input("Enter the number of the card to discard: ")
-                        index = int(choice)
-                        if 0 <= index < len(self.hands[opponent]):
-                            # remove card from opponent's hand
-                            chosen_card = self.hands[opponent].pop(index)
-                            cards_to_discard.append(chosen_card)
-                            log_print(f"Opponent discarded {chosen_card}")
-                            # add card to discard pile
-                            self.discard_pile.append(chosen_card)
-                            chosen_card.clear_player_info()
-                    except ValueError:
-                        print("Please enter a valid number")
-                # Remove the chosen cards from the player's hand
+                cards_remaining = self.hands[opponent].copy()
+                
+                # Determine how many cards to discard
+                num_cards_to_discard = min(2, len(cards_remaining))
+                
+                for i in range(num_cards_to_discard):
+                    if not cards_remaining:
+                        break
+                        
+                    # Create a list of card options for the input handler
+                    card_options = [str(card) for card in cards_remaining]
+                    
+                    # Use the input handler to get the player's choice
+                    from game.input_handler import get_interactive_input
+                    index = get_interactive_input(f"Select card {i+1} to discard:", card_options)
+                    
+                    # Handle the selection
+                    if 0 <= index < len(cards_remaining):
+                        chosen_card = cards_remaining.pop(index)
+                        cards_to_discard.append(chosen_card)
+                        log_print(f"Opponent discarded {chosen_card}")
+                        
+                        # Remove card from opponent's hand and add to discard pile
+                        self.hands[opponent].remove(chosen_card)
+                        self.discard_pile.append(chosen_card)
+                        chosen_card.clear_player_info()
+                    else:
+                        log_print("Invalid selection")
         elif card.rank == Rank.FIVE:
             if len(self.hands[self.turn]) <= 6:
                 self.draw_card(2)
