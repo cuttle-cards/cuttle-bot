@@ -273,5 +273,86 @@ Make your choice now:
                     time.sleep(self.retry_delay)
                 continue
 
-        print(f"All retries failed. Using first card. Last error: {last_error}")
+        print(f"All retries failed. Using first card from discard pile. Last error: {last_error}")
         return discard_pile[0]
+
+    def choose_two_cards_from_hand(self, hand: List[Card]) -> List[Card]:
+        """Choose up to two cards to discard from hand when affected by a Four one-off effect."""
+        # Format the prompt for the LLM
+        prompt = f"""
+        You need to choose up to two cards to discard from your hand. Here are the available cards:
+        {[str(card) for card in hand]}
+
+        Consider these factors when choosing:
+        1. Prioritize discarding low-value point cards (1-6)
+        2. Avoid discarding valuable cards like:
+           - High point cards (7-10)
+           - Face cards (Kings, Queens, Jacks)
+           - Twos (valuable for countering one-offs)
+           - One-off cards (Aces, Threes, Fives, Sixes)
+        3. If you have multiple low-value cards, choose the ones with the lowest point values
+
+        Instructions:
+        1. Analyze the available cards
+        2. Choose up to two cards to discard based on the game rules and strategies
+        3. IMPORTANT: Your response MUST be a comma-separated list of numbers from 0 to {len(hand) - 1}
+        4. Format your response as:
+           Reasoning: [brief explanation]
+           Choice: [index1, index2]
+
+        Make your choice now:
+        """
+
+        retries = 0
+        last_error = None
+
+        while retries < self.max_retries:
+            try:
+                # Get response from Ollama with system context
+                response = ollama.chat(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": self.GAME_CONTEXT},
+                        {"role": "user", "content": prompt},
+                    ],
+                )
+
+                # Extract the card indices from the response
+                response_text = response.message.content
+                print("AI response:", response_text)
+
+                # Look for "Choice: [number1, number2]" pattern first
+                import re
+                choice_match = re.search(r"Choice:\s*\[([\d,\s]+)\]", response_text)
+                if choice_match:
+                    indices_str = choice_match.group(1)
+                    card_indices = [int(idx.strip()) for idx in indices_str.split(',') if idx.strip()]
+                else:
+                    # Fallback to finding any numbers in the response
+                    numbers = re.findall(r"\d+", response_text)
+                    if not numbers:
+                        raise ValueError("No card indices found in response")
+                    # Take up to 2 numbers from the response
+                    card_indices = [int(num) for num in numbers[:2]]
+
+                # Validate the card indices
+                valid_indices = [idx for idx in card_indices if 0 <= idx < len(hand)]
+                if not valid_indices:
+                    raise ValueError(f"No valid card indices found: {card_indices}")
+
+                # Return up to 2 cards
+                return [hand[idx] for idx in valid_indices[:2]]
+
+            except Exception as e:
+                last_error = e
+                print(
+                    f"Error choosing cards from hand (attempt {retries + 1}/{self.max_retries}): {e}"
+                )
+                retries += 1
+                if retries < self.max_retries:
+                    time.sleep(self.retry_delay)
+                continue
+
+        print(f"All retries failed. Using first two cards from hand. Last error: {last_error}")
+        # Return up to 2 cards from the hand
+        return hand[:min(2, len(hand))]

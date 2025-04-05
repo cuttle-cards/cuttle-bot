@@ -398,6 +398,7 @@ class GameState:
             if self.use_ai and self.current_action_player == opponent:  # AI's turn
                 # Let AI choose a card
                 chosen_cards = self.ai_player.choose_two_cards_from_hand(self.hands[opponent])
+                log_print(f"AI chose {chosen_cards} from hand to discard")
                 for card in chosen_cards:
                     self.hands[opponent].remove(card)
                     self.discard_pile.append(card)
