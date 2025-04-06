@@ -67,7 +67,7 @@ class GameState:
     def is_game_over(self) -> bool:
         return self.winner() is not None
     
-    def player_point_cards(self, player: int) -> List[Card]:
+    def get_player_point_cards(self, player: int) -> List[Card]:
         point_cards = []
         player_field = self.fields[player]
         for card in player_field:
@@ -80,7 +80,26 @@ class GameState:
         return point_cards
 
     def get_player_score(self, player: int) -> int:
-        return sum([card.point_value() for card in self.player_point_cards(player)])
+        return sum([card.point_value() for card in self.get_player_point_cards(player)])
+
+    def get_player_field(self, player: int) -> List[Card]:
+        """
+        Returns the player's field, excluding points cards that are stolen by the opponent.
+        """
+        field = []
+        for card in self.fields[player]:
+            if card.purpose != Purpose.POINTS:
+                field.append(card)
+
+        for card in self.fields[player]:
+            if card.purpose == Purpose.POINTS and not card.is_stolen():
+                field.append(card)
+        
+        opponent = (player + 1) % len(self.hands)
+        for card in self.fields[opponent]:
+            if card.purpose == Purpose.POINTS and card.is_stolen():
+                field.append(card)
+        return field
 
     def get_player_target(self, player: int) -> int:
         # kings affect targets
@@ -500,36 +519,35 @@ class GameState:
             card.played_by = self.turn
             self.fields[self.turn].append(card)
 
-        if card.rank == Rank.JACK:
-            opponent = (self.turn + 1) % len(self.hands)
-            queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in self.fields[opponent])
-            if queen_on_opponent_field:
-                raise Exception("Cannot play jack as face card if opponent has a queen on their field")
-            
-            # Verify target is a point card
-            if not target.is_point_card() or target.purpose != Purpose.POINTS:
-                raise Exception("Jack can only be played on point cards")
-            
-            # Remove Jack from hand
-            card.purpose = Purpose.JACK
-            card.played_by = self.turn
-            self.hands[self.turn].remove(card)
-            
-            # Attach Jack to the target card
-            target.attachments.append(card)
-            
-            if self.winner() is not None:
+                    # Check for instant win with King (if points already meet new target)
+            if card.rank == Rank.KING and self.is_winner(self.turn):
+                print(
+                    f"Player {self.turn} wins! Score: {self.get_player_score(self.turn)} points (target: {self.get_player_target(self.turn)} with {len([c for c in self.fields[self.turn] if c.rank == Rank.KING])} Kings)"
+                )
+                self.status = "win"
                 return True
+            
             return False
 
-        # Check for instant win with King (if points already meet new target)
-        if card.rank == Rank.KING and self.is_winner(self.turn):
-            print(
-                f"Player {self.turn} wins! Score: {self.get_player_score(self.turn)} points (target: {self.get_player_target(self.turn)} with {len([c for c in self.fields[self.turn] if c.rank == Rank.KING])} Kings)"
-            )
-            self.status = "win"
+        opponent = (self.turn + 1) % len(self.hands)
+        queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in self.fields[opponent])
+        if queen_on_opponent_field:
+            raise Exception("Cannot play jack as face card if opponent has a queen on their field")
+        
+        # Verify target is a point card
+        if not target.is_point_card() or target.purpose != Purpose.POINTS:
+            raise Exception("Jack can only be played on point cards")
+        
+        # Remove Jack from hand
+        card.purpose = Purpose.JACK
+        card.played_by = self.turn
+        self.hands[self.turn].remove(card)
+        
+        # Attach Jack to the target card
+        target.attachments.append(card)
+        
+        if self.winner() is not None:
             return True
-
         return False
 
     def get_legal_actions(self) -> List[Action]:
@@ -654,8 +672,8 @@ class GameState:
                 print(f"Player {i}'s hand: [Hidden]")
             else:
                 print(f"Player {i}'s hand: {hand}")
-        for i, field in enumerate(self.fields):
-            print(f"Player {i}'s field: {field}")
+        for i in range(len(self.fields)):
+            print(f"Player {i}'s field: {self.get_player_field(i)}")
         print("--------------------------------")
 
     def to_dict(self) -> Dict:

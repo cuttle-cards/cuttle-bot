@@ -39,7 +39,6 @@ class TestMainSix(MainTestBase):
         mock_inputs = [
             "n",  # Don't load saved game
             "y",  # Use manual selection
-            "n",  # Don't use AI player
             # Player 0 selects cards
             "0",  # Select Six of Hearts
             "0",  # Select King of Spades
