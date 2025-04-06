@@ -16,16 +16,16 @@ class Card:
         id: str,
         suit: Suit,
         rank: Rank,
-        attachments: Optional[List[Card]] = [],
         played_by: Optional[int] = None,
         purpose: Optional[Purpose] = None,
+        attachments: Optional[List[Card]] = None,
     ):
         self.id = id
         self.suit = suit
         self.rank = rank
-        self.attachments = attachments
         self.played_by = played_by
         self.purpose = purpose
+        self.attachments = attachments if attachments is not None else list()
 
     def __str__(self):
         return f"{self.rank.value[0]} of {self.suit.value[0]}"
@@ -36,7 +36,7 @@ class Card:
     def clear_player_info(self):
         self.played_by = None
         self.purpose = None
-
+    
     def is_point_card(self) -> bool:
         return self.point_value() <= Rank.TEN.value[1]
 
@@ -56,6 +56,9 @@ class Card:
     def is_one_off(self) -> bool:
         """Check if the card can be played as a one-off effect."""
         return self.rank in [Rank.ACE, Rank.THREE, Rank.FOUR, Rank.FIVE, Rank.SIX]
+    
+    def is_stolen(self) -> bool:
+        return len(self.attachments) % 2 == 1
 
 
 class Suit(Enum):
@@ -98,3 +101,4 @@ class Purpose(Enum):
     FACE_CARD = "Face Card"
     ONE_OFF = "One Off"
     COUNTER = "Counter"
+    JACK = "Jack"

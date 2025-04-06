@@ -57,6 +57,8 @@ class Action:
             return "Draw a card from deck"
         elif self.action_type == ActionType.COUNTER:
             return f"Counter {self.target} with {self.card}"
+        elif self.action_type == ActionType.JACK:
+            return f"Play {self.card} as jack on {self.target}"
         elif self.action_type == ActionType.RESOLVE:
             return f"Resolve one-off {self.target}"
 
@@ -76,6 +78,7 @@ class ActionType(Enum):
     COUNTER = "Counter"
     RESOLVE = "Resolve"
     SCUTTLE = "Scuttle"
+    JACK = "Jack"
     REQUEST_STALEMATE = "Request Stalemate"
     ACCEPT_STALEMATE = "Accept Stalemate"
     REJECT_STALEMATE = "Reject Stalemate"

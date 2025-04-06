@@ -66,18 +66,21 @@ class GameState:
 
     def is_game_over(self) -> bool:
         return self.winner() is not None
+    
+    def player_point_cards(self, player: int) -> List[Card]:
+        point_cards = []
+        player_field = self.fields[player]
+        for card in player_field:
+            if card.purpose == Purpose.POINTS and not card.is_stolen():
+                point_cards.append(card)
+        opponent = (player + 1) % len(self.hands)
+        for card in self.fields[opponent]:
+            if card.purpose == Purpose.POINTS and card.is_stolen():
+                point_cards.append(card)
+        return point_cards
 
     def get_player_score(self, player: int) -> int:
-        hand = self.hands[player]
-        field = self.fields[player]
-        point_cards = [
-            card
-            for card in field
-            if card.point_value() <= Rank.TEN.value[1]
-            and card.purpose == Purpose.POINTS
-        ]
-
-        return sum([card.point_value() for card in point_cards])
+        return sum([card.point_value() for card in self.player_point_cards(player)])
 
     def get_player_target(self, player: int) -> int:
         # kings affect targets
@@ -118,7 +121,7 @@ class GameState:
         Returns:
             Tuple[bool, bool, int | None]
               - Whether the turn is over,
-              - Whether the turn is finished, and
+              - Whether the game should stop,
               - The winner if the game is over.
         """
         # Implement logic to update the game state based on the action taken
@@ -184,6 +187,15 @@ class GameState:
                 should_stop = True
                 winner = self.turn
             return turn_finished, should_stop, winner
+        elif action.action_type == ActionType.JACK:
+            # Check if opponent has a queen on their field
+            # implement play_face_card with optional target
+            won = self.play_face_card(action.card, action.target)
+            turn_finished = True
+            if won:
+                should_stop = True
+                winner = self.turn
+            return turn_finished, should_stop, winner
 
         return turn_finished, should_stop, winner
 
@@ -232,9 +244,15 @@ class GameState:
         self.hands[card.played_by].remove(card)
         card.clear_player_info()
         self.discard_pile.append(card)
+        for card in card.attachments:
+            card.clear_player_info()
+            self.discard_pile.append(card)
         self.fields[target.played_by].remove(target)
         target.clear_player_info()
         self.discard_pile.append(target)
+        for card in target.attachments:
+            card.clear_player_info()
+            self.discard_pile.append(card)
 
     def play_one_off(
         self,
@@ -345,6 +363,9 @@ class GameState:
                     player_field.remove(point_card)
                     point_card.clear_player_info()
                     self.discard_pile.append(point_card)
+                    for attachment in point_card.attachments:
+                        attachment.clear_player_info()
+                        self.discard_pile.append(attachment)
         elif card.rank == Rank.THREE:
             # Allow player to take a card from the discard pile
             if not self.discard_pile:
@@ -453,20 +474,16 @@ class GameState:
                     face_card.clear_player_info()
                     self.discard_pile.append(face_card)
 
-
-    def play_face_card(self, card: Card) -> bool:
+    def play_face_card(self, card: Card, target: Card = None):
         """
-        Play a face card (King, Queen, Jack, Eight) to the field.
-
+        Play a face card (King, Queen, Jack).
+        
         Args:
-            card: The face card to play
-
+            card (Card): The face card to play
+            target (Card, optional): The target card for Jack. Required for Jack, ignored for other face cards.
+            
         Returns:
-            bool: True if this play results in a win, False otherwise
-
-        Raises:
-            Exception: If the card is not in the current player's hand
-            Exception: If the card is not a face card
+            bool: True if the player has won, False otherwise
         """
         # Validate card is in current player's hand
         if card not in self.hands[self.turn]:
@@ -477,10 +494,33 @@ class GameState:
             raise Exception(f"{card} is not a face card")
 
         # Remove from hand and add to field
-        self.hands[self.turn].remove(card)
-        card.purpose = Purpose.FACE_CARD
-        card.played_by = self.turn
-        self.fields[self.turn].append(card)
+        if card.rank != Rank.JACK:
+            self.hands[self.turn].remove(card)
+            card.purpose = Purpose.FACE_CARD
+            card.played_by = self.turn
+            self.fields[self.turn].append(card)
+
+        if card.rank == Rank.JACK:
+            opponent = (self.turn + 1) % len(self.hands)
+            queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in self.fields[opponent])
+            if queen_on_opponent_field:
+                raise Exception("Cannot play jack as face card if opponent has a queen on their field")
+            
+            # Verify target is a point card
+            if not target.is_point_card() or target.purpose != Purpose.POINTS:
+                raise Exception("Jack can only be played on point cards")
+            
+            # Remove Jack from hand
+            card.purpose = Purpose.JACK
+            card.played_by = self.turn
+            self.hands[self.turn].remove(card)
+            
+            # Attach Jack to the target card
+            target.attachments.append(card)
+            
+            if self.winner() is not None:
+                return True
+            return False
 
         # Check for instant win with King (if points already meet new target)
         if card.rank == Rank.KING and self.is_winner(self.turn):
@@ -557,6 +597,16 @@ class GameState:
             # TODO: Implement Queens, Jacks, and Eights
             if card.is_face_card() and card.rank in [Rank.KING, Rank.QUEEN]:
                 actions.append(Action(ActionType.FACE_CARD, card, None, self.turn))
+        
+        opponent = (self.current_action_player + 1) % len(self.hands)   
+        queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in self.fields[opponent])
+        # Can play Jacks on opponent's point cards on field
+        for card in hand:
+            if card.rank == Rank.JACK and not queen_on_opponent_field:
+                for opponent_card in self.fields[opponent]:
+                    if opponent_card.purpose == Purpose.POINTS:
+                        # TODO: also check if card has jacks attached
+                        actions.append(Action(ActionType.JACK, card, opponent_card, self.turn))
 
         # Can play one-offs
         for card in hand:

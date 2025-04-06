@@ -757,275 +757,239 @@ class TestGameState(unittest.TestCase):
         self.assertEqual(len(game_state.fields[1]), 1)  # Queen remains
         self.assertEqual(len(game_state.discard_pile), 2)  # Six + Two in discard
 
-    def test_play_ace_one_off(self):
-        """Test playing an Ace as a one-off to destroy all point cards."""
-        # Setup initial game state with point cards on both players' fields
-        self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
-        self.hands = [
-            [Card("002", Suit.HEARTS, Rank.ACE)],  # Player 0's hand with ACE
-            [Card("003", Suit.SPADES, Rank.TWO)],  # Player 1's hand
-        ]
-        # Add point cards to both players' fields
-        self.fields = [
-            [
-                Card(
-                    "004",
-                    Suit.DIAMONDS,
-                    Rank.SEVEN,
-                    played_by=0,
-                    purpose=Purpose.POINTS,
-                ),
-                Card("005", Suit.CLUBS, Rank.FOUR, played_by=0, purpose=Purpose.POINTS),
-            ],
-            [
-                Card(
-                    "006", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS
-                ),
-                Card(
-                    "007", Suit.SPADES, Rank.THREE, played_by=1, purpose=Purpose.POINTS
-                ),
-            ],
-        ]
-        self.discard_pile = []
-
-        self.game_state = GameState(
-            self.hands, self.fields, self.deck, self.discard_pile
-        )
-
-        # Play ACE as one-off
-        ace_card = self.hands[0][0]
-        finished, played_by = self.game_state.play_one_off(0, ace_card)
-        self.assertFalse(finished)
-        self.assertIsNone(played_by)
-
-        # Player 1 resolves (doesn't counter)
-        finished, played_by = self.game_state.play_one_off(1, ace_card, None, 1)
-        self.assertTrue(finished)
-        self.assertIsNone(played_by)
-
-        # Verify all point cards are cleared from both fields
-        self.assertEqual(len(self.game_state.fields[0]), 0)
-        self.assertEqual(len(self.game_state.fields[1]), 0)
-        self.assertEqual(len(self.game_state.discard_pile), 5)  # ACE + 4 point cards
-
-    def test_play_ace_one_off_countered(self):
-        """Test playing an Ace as a one-off that gets countered."""
-        # Setup initial game state
-        self.deck = [Card("001", Suit.CLUBS, Rank.THREE)]
-        self.hands = [
-            [Card("002", Suit.HEARTS, Rank.ACE)],  # Player 0's hand with ACE
-            [Card("003", Suit.SPADES, Rank.TWO)],  # Player 1's hand with TWO
-        ]
-        # Add point cards to both players' fields
-        self.fields = [
-            [
-                Card(
-                    "004",
-                    Suit.DIAMONDS,
-                    Rank.SEVEN,
-                    played_by=0,
-                    purpose=Purpose.POINTS,
-                )
-            ],
-            [Card("005", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS)],
-        ]
-        self.discard_pile = []
-
-        self.game_state = GameState(
-            self.hands, self.fields, self.deck, self.discard_pile
-        )
-
-        # Play ACE as one-off
-        ace_card = self.hands[0][0]
-        finished, played_by = self.game_state.play_one_off(0, ace_card)
-        self.assertFalse(finished)
-        self.assertIsNone(played_by)
-
-        # Player 1 counters with TWO
-        two_card = self.hands[1][0]
-        two_card.purpose = Purpose.COUNTER
-        two_card.played_by = 1
-        finished, played_by = self.game_state.play_one_off(
-            1, ace_card, countered_with=two_card
-        )
-        self.assertFalse(finished)
-        self.assertEqual(played_by, 1)
-
-        # Player 0 resolves (accepts counter)
-        finished, played_by = self.game_state.play_one_off(0, ace_card, None, 0)
-        self.assertTrue(finished)
-        self.assertIsNone(played_by)
-
-        # Verify point cards remain and ACE + TWO are in discard
-        self.assertEqual(len(self.game_state.fields[0]), 1)  # Point card remains
-        self.assertEqual(len(self.game_state.fields[1]), 1)  # Point card remains
-        self.assertEqual(len(self.game_state.discard_pile), 2)  # ACE + TWO in discard
-
-    @patch("builtins.input")
-    def test_play_three_one_off(self, mock_input):
-        """Test playing a Three as a one-off to take a card from discard pile."""
-        # Setup initial state with cards in discard pile
-        three_card = Card("1", Suit.HEARTS, Rank.THREE)
-        two_card = Card("2", Suit.DIAMONDS, Rank.TWO)
-        king_card = Card("3", Suit.SPADES, Rank.KING)
-        queen_card = Card("4", Suit.HEARTS, Rank.QUEEN)
-        jack_card = Card("5", Suit.CLUBS, Rank.JACK)
-
+    def test_play_jack_face_card(self):
+        """Test playing a Jack as a face card to steal a point card from opponent."""
+        # Set up initial state with point cards on opponent's field
         hands = [
-            [three_card],  # Player 0's hand with Three
-            [two_card],  # Player 1's hand with Two
+            [Card("1", Suit.HEARTS, Rank.JACK)],  # Player 0's hand with Jack
+            [Card("2", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand
         ]
-        fields = [[], []]
-        deck = []
-        discard = [
-            king_card,  # King in discard
-            queen_card,  # Queen in discard
-            jack_card,  # Jack in discard
+        fields = [
+            [],  # Player 0's field (empty)
+            [  # Player 1's field with point cards
+                Card("3", Suit.SPADES, Rank.SEVEN, played_by=1, purpose=Purpose.POINTS),
+                Card("4", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
+            ],
         ]
-
-        game_state = GameState(hands, fields, deck, discard)
-
-        # Mock input to select first card from discard
-        mock_input.return_value = "0"
-
-        # Play Three as one-off
-        turn_finished, played_by = game_state.play_one_off(
-            0, three_card, None, 1
-        )  # Player 1 resolves
-
-        # Verify Three is moved to discard
-        self.assertIn(three_card, game_state.discard_pile)
-        self.assertNotIn(three_card, game_state.hands[0])
-
-        # Verify King was taken from discard
-        self.assertIn(king_card, game_state.hands[0])
-        self.assertNotIn(king_card, game_state.discard_pile)
-
-        # Verify other cards remain in discard
-        self.assertEqual(len(game_state.discard_pile), 3)  # Three + Queen + Jack
-        self.assertIn(queen_card, game_state.discard_pile)
-        self.assertIn(jack_card, game_state.discard_pile)
-
-    @patch("builtins.input")
-    def test_play_three_one_off_empty_discard(self, mock_input):
-        """Test playing a Three as a one-off with empty discard pile."""
-        # Setup initial state with empty discard pile
-        three_card = Card("1", Suit.HEARTS, Rank.THREE)
-        two_card = Card("2", Suit.DIAMONDS, Rank.TWO)
-
-        hands = [
-            [three_card],  # Player 0's hand with Three
-            [two_card],  # Player 1's hand with Two
-        ]
-        fields = [[], []]
         deck = []
         discard = []
 
         game_state = GameState(hands, fields, deck, discard)
 
-        # Play Three as one-off
-        turn_finished, played_by = game_state.play_one_off(
-            0, three_card, None, 1
-        )  # Player 1 resolves
+        # Verify initial scores
+        self.assertEqual(game_state.get_player_score(0), 0)
+        self.assertEqual(game_state.get_player_score(1), 16)  # 7 + 9 = 16
 
-        # Verify Three is moved to discard
-        self.assertIn(three_card, game_state.discard_pile)
-        self.assertNotIn(three_card, game_state.hands[0])
+        # Play Jack as face card
+        jack_card = hands[0][0]
+        target_card = fields[1][0]  # Seven of Spades
+        game_state.play_face_card(jack_card, target_card)
 
-        # Verify hand remains unchanged (no card taken as discard was empty)
-        self.assertEqual(len(game_state.hands[0]), 0)
+        # Verify Jack is removed from hand
+        self.assertNotIn(jack_card, game_state.hands[0])
 
-    @patch("builtins.input")
-    def test_play_three_one_off_with_counter(self, mock_input):
-        """Test playing a Three as a one-off that gets countered."""
-        # Setup initial state
-        three_card = Card("1", Suit.HEARTS, Rank.THREE)
-        two_card = Card("2", Suit.DIAMONDS, Rank.TWO)
-        king_card = Card("3", Suit.SPADES, Rank.KING)
+        # Verify Jack is attached to the target card
+        self.assertIn(jack_card, target_card.attachments)
+        self.assertEqual(len(target_card.attachments), 1)
 
+        # Verify the point card is now stolen (counts for player 0)
+        self.assertTrue(target_card.is_stolen())
+
+        # Verify scores are updated correctly
+        self.assertEqual(game_state.get_player_score(0), 7)  # Stolen card counts for player 0
+        self.assertEqual(game_state.get_player_score(1), 9)  # Only the second card counts for player 1
+
+    def test_play_jack_with_queen_on_field(self):
+        """Test that Jack cannot be played if opponent has a Queen on their field."""
+        # Set up initial state with a Queen on opponent's field
         hands = [
-            [three_card],  # Player 0's hand with Three
-            [two_card],  # Player 1's hand with Two
+            [Card("1", Suit.HEARTS, Rank.JACK)],  # Player 0's hand with Jack
+            [Card("2", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand
         ]
-        fields = [[], []]
+        fields = [
+            [],  # Player 0's field (empty)
+            [  # Player 1's field with Queen and point card
+                Card("3", Suit.SPADES, Rank.QUEEN, played_by=1, purpose=Purpose.FACE_CARD),
+                Card("4", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
+            ],
+        ]
         deck = []
-        discard = [king_card]  # King in discard
+        discard = []
 
         game_state = GameState(hands, fields, deck, discard)
 
-        # Play Three as one-off
-        turn_finished, played_by = game_state.play_one_off(0, three_card)
-        self.assertFalse(turn_finished)
-        self.assertIsNone(played_by)
-        game_state.next_player()
+        # Try to play Jack as face card
+        jack_card = hands[0][0]
+        with self.assertRaises(Exception) as context:
+            game_state.play_face_card(jack_card)
+        
+        # Verify error message
+        self.assertIn("Cannot play jack as face card if opponent has a queen on their field", str(context.exception))
 
-        # Counter with Two
-        two_card.purpose = Purpose.COUNTER
-        two_card.played_by = 1
-        turn_finished, played_by = game_state.play_one_off(
-            1, three_card, countered_with=two_card
-        )
-        self.assertFalse(turn_finished)
-        self.assertEqual(played_by, 1)
-        game_state.next_player()
+        # Verify game state unchanged
+        self.assertEqual(len(game_state.fields[1][1].attachments), 0)
+        self.assertFalse(game_state.fields[1][1].is_stolen())
 
-        # Original player accepts counter
-        turn_finished, played_by = game_state.play_one_off(
-            0, two_card, None, last_resolved_by=0
-        )
-        self.assertTrue(turn_finished)
-        self.assertIsNone(played_by)
-
-        # Verify both cards are in discard
-        self.assertIn(three_card, game_state.discard_pile)
-        self.assertIn(two_card, game_state.discard_pile)
-
-        # Verify King remains in discard (effect not applied)
-        self.assertIn(king_card, game_state.discard_pile)
-        self.assertEqual(len(game_state.discard_pile), 3)
-
-    @patch("builtins.input")
-    def test_play_three_one_off_invalid_selection(self, mock_input):
-        """Test playing a Three as a one-off with invalid card selection."""
-        # Setup initial state
-        three_card = Card("1", Suit.HEARTS, Rank.THREE)
-        two_card = Card("2", Suit.DIAMONDS, Rank.TWO)
-        king_card = Card("3", Suit.SPADES, Rank.KING)
-        queen_card = Card("4", Suit.HEARTS, Rank.QUEEN)
-
+    def test_play_jack_multiple_cards(self):
+        """Test playing multiple Jacks to steal multiple point cards."""
+        # Set up initial state with multiple point cards on opponent's field
         hands = [
-            [three_card],  # Player 0's hand with Three
-            [two_card],  # Player 1's hand with Two
+            [  # Player 0's hand with multiple Jacks
+                Card("1", Suit.HEARTS, Rank.JACK),
+                Card("2", Suit.DIAMONDS, Rank.JACK),
+            ],
+            [Card("3", Suit.SPADES, Rank.TWO)],  # Player 1's hand
         ]
-        fields = [[], []]
+        fields = [
+            [],  # Player 0's field (empty)
+            [  # Player 1's field with multiple point cards
+                Card("4", Suit.CLUBS, Rank.SEVEN, played_by=1, purpose=Purpose.POINTS),
+                Card("5", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
+                Card("6", Suit.SPADES, Rank.TEN, played_by=1, purpose=Purpose.POINTS),
+            ],
+        ]
         deck = []
-        discard = [
-            king_card,
-            queen_card,
-        ]
+        discard = []
 
         game_state = GameState(hands, fields, deck, discard)
 
-        # Mock invalid input followed by valid input
-        mock_input.side_effect = ["invalid", "-1", "999", "0"]
+        # Verify initial scores
+        self.assertEqual(game_state.get_player_score(0), 0)
+        self.assertEqual(game_state.get_player_score(1), 26)  # 7 + 9 + 10 = 26
 
-        # Play Three as one-off
-        turn_finished, played_by = game_state.play_one_off(
-            0, three_card, None, 1
-        )  # Player 1 resolves
+        # Play first Jack
+        jack1 = hands[0][0]
+        target1 = fields[1][0]  # Seven of Clubs
+        game_state.play_face_card(jack1, target1)
 
-        # Verify Three is moved to discard
-        self.assertIn(three_card, game_state.discard_pile)
-        self.assertNotIn(three_card, game_state.hands[0])
+        # Verify first Jack is attached to the first point card
+        self.assertNotIn(jack1, game_state.hands[0])  # Jack should be removed from hand
+        self.assertIn(jack1, target1.attachments)
+        self.assertTrue(target1.is_stolen())
 
-        # Verify King was taken from discard (after invalid attempts)
-        self.assertIn(king_card, game_state.hands[0])
-        self.assertNotIn(king_card, game_state.discard_pile)
+        # Play second Jack
+        jack2 = hands[0][0]  # Now the second Jack is at index 0
+        target2 = fields[1][1]  # Nine of Hearts
+        game_state.play_face_card(jack2, target2)
 
-        # Verify Queen remains in discard
-        self.assertIn(queen_card, game_state.discard_pile)
-        self.assertEqual(len(game_state.discard_pile), 2)  # Three + Queen
+        # Verify second Jack is attached to the second point card
+        self.assertNotIn(jack2, game_state.hands[0])  # Jack should be removed from hand
+        self.assertIn(jack2, target2.attachments)
+        self.assertTrue(target2.is_stolen())
 
+        # Verify scores are updated correctly
+        self.assertEqual(game_state.get_player_score(0), 16)  # 7 + 9 = 16 (stolen cards)
+        self.assertEqual(game_state.get_player_score(1), 10)  # Only the third card counts for player 1
+
+    def test_play_jack_on_non_point_card(self):
+        """Test that Jack can only be played on point cards."""
+        # Set up initial state with face cards on opponent's field
+        hands = [
+            [Card("1", Suit.HEARTS, Rank.JACK)],  # Player 0's hand with Jack
+            [Card("2", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand
+        ]
+        fields = [
+            [],  # Player 0's field (empty)
+            [  # Player 1's field with face cards
+                Card("3", Suit.SPADES, Rank.KING, played_by=1, purpose=Purpose.FACE_CARD),
+                Card("4", Suit.HEARTS, Rank.QUEEN, played_by=1, purpose=Purpose.FACE_CARD),
+            ],
+        ]
+        deck = []
+        discard = []
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Try to play Jack as face card
+        jack_card = hands[0][0]
+        with self.assertRaises(Exception) as context:
+            game_state.play_face_card(jack_card)
+        
+        # Verify error message
+        self.assertIn("Cannot play jack as face card if opponent has a queen on their field", str(context.exception))
+
+        # Verify game state unchanged
+        self.assertIn(jack_card, game_state.hands[0])
+        self.assertEqual(len(game_state.fields[1][0].attachments), 0)
+        self.assertEqual(len(game_state.fields[1][1].attachments), 0)
+    
+    def test_jack_face_card_instant_win(self):
+        """Test that Jack as a face card can win the game."""
+        # Set up initial state with a Jack on player 0's field
+        hands = [
+            [Card("1", Suit.HEARTS, Rank.JACK)],  # Player 0's hand with Jack
+            [Card("2", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand
+        ]
+        fields = [
+            [Card("3", Suit.SPADES, Rank.TEN, played_by=0, purpose=Purpose.POINTS),
+             Card("4", Suit.HEARTS, Rank.KING, played_by=0, purpose=Purpose.FACE_CARD)],  # Player 0's field with Ten and King
+            [  # Player 1's field with point cards
+                Card("5", Suit.SPADES, Rank.SEVEN, played_by=1, purpose=Purpose.POINTS),
+                Card("6", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
+            ],
+        ]
+        deck = []
+        discard = []
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Play Jack as face card
+        jack_card = hands[0][0]
+
+        # Verify initial scores
+        self.assertEqual(game_state.get_player_score(0), 10)
+        self.assertEqual(game_state.get_player_score(1), 16)  # 7 + 9 = 16
+        target_card = fields[1][0] # Seven of Spades from player 1
+
+        # Player 0 plays Jack as face card
+        game_state.play_face_card(jack_card, target_card)
+
+        # Verify game state
+        self.assertEqual(game_state.get_player_score(0), 17)
+        self.assertEqual(game_state.get_player_score(1), 9)
+        self.assertEqual(game_state.winner(), 0)
+
+    def test_jack_scuttle(self):
+        """If a point card is stolen by a jack, and the point card is being scuttled, the jack should be discarded together with the point cards."""
+        # Set up initial state with a Jack and a point card on player 0's field
+        hands = [
+            [Card("1", Suit.HEARTS, Rank.JACK)],  # Player 0's hand with Jack
+            [Card("2", Suit.DIAMONDS, Rank.TWO),
+             Card("3", Suit.CLUBS, Rank.NINE)],  # Player 1's hand
+        ]
+        fields = [
+            [],  # Player 0's field (empty)
+            [  # Player 1's field with point cards
+                Card("3", Suit.SPADES, Rank.SEVEN, played_by=1, purpose=Purpose.POINTS),
+                Card("4", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
+            ],
+        ]
+        deck = []
+        discard = []
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Play Jack as face card
+        jack_card = hands[0][0]
+        target_card = fields[1][0]
+        game_state.play_face_card(jack_card, target_card)
+
+        # Verify Jack is attached to the target card
+        self.assertIn(jack_card, target_card.attachments)
+        self.assertEqual(len(target_card.attachments), 1)
+        
+        game_state.next_turn()
+
+        # P1 Scuttles the target card using Nine of Hearts
+        nine_hearts = hands[1][1]
+        game_state.scuttle(nine_hearts, target_card)
+
+        # Verify Jack is discarded
+        self.assertIn(jack_card, game_state.discard_pile)
+        self.assertIn(target_card, game_state.discard_pile)
+        self.assertIn(nine_hearts, game_state.discard_pile)
+        
+        
 
 if __name__ == "__main__":
     unittest.main()
