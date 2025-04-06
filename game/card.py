@@ -28,9 +28,9 @@ class Card:
         self.attachments = attachments if attachments is not None else list()
 
     def __str__(self):
-        if self.is_stolen():
-            return f"[Stolen from opponent] {self.rank.value[0]} of {self.suit.value[0]}"
-        return f"{self.rank.value[0]} of {self.suit.value[0]}"
+        jack_prefix = "[Jack]" * len(self.attachments) + " " if len(self.attachments) > 0 else ""
+        stolen_prefix = "[Stolen from opponent] " if self.is_stolen() else ""
+        return f"{stolen_prefix}{jack_prefix}{self.rank.value[0]} of {self.suit.value[0]}"
 
     def __repr__(self):
         return self.__str__()

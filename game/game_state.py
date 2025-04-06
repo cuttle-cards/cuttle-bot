@@ -67,7 +67,7 @@ class GameState:
     def is_game_over(self) -> bool:
         return self.winner() is not None
     
-    def get_player_point_cards(self, player: int) -> List[Card]:
+    def player_point_cards(self, player: int) -> List[Card]:
         point_cards = []
         player_field = self.fields[player]
         for card in player_field:
@@ -80,7 +80,7 @@ class GameState:
         return point_cards
 
     def get_player_score(self, player: int) -> int:
-        return sum([card.point_value() for card in self.get_player_point_cards(player)])
+        return sum([card.point_value() for card in self.player_point_cards(player)])
 
     def get_player_field(self, player: int) -> List[Card]:
         """
@@ -621,7 +621,7 @@ class GameState:
         # Can play Jacks on opponent's point cards on field
         for card in hand:
             if card.rank == Rank.JACK and not queen_on_opponent_field:
-                for opponent_card in self.fields[opponent]:
+                for opponent_card in self.get_player_field(opponent):
                     if opponent_card.purpose == Purpose.POINTS:
                         # TODO: also check if card has jacks attached
                         actions.append(Action(ActionType.JACK, card, opponent_card, self.turn))
