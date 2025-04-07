@@ -493,10 +493,9 @@ class GameState:
                     face_card.clear_player_info()
                     self.discard_pile.append(face_card)
 
-    def play_face_card(self, card: Card, target: Card = None):
-        """
-        Play a face card (King, Queen, Jack).
-        
+    def play_face_card(self, card: Card, target: Optional[Card] = None) -> bool:
+        """Play a face card (King, Queen, Jack) from hand to field.
+
         Args:
             card (Card): The face card to play
             target (Card, optional): The target card for Jack. Required for Jack, ignored for other face cards.
@@ -512,6 +511,13 @@ class GameState:
         if not card.is_face_card():
             raise Exception(f"{card} is not a face card")
 
+        # For Jack, target is required
+        if card.rank == Rank.JACK and target is None:
+            raise Exception("Target card is required for playing Jack")
+        
+        if card.rank == Rank.JACK and target.purpose != Purpose.POINTS:
+            raise Exception("Target card must be a point card for playing Jack")
+
         # Remove from hand and add to field
         if card.rank != Rank.JACK:
             self.hands[self.turn].remove(card)
@@ -519,7 +525,7 @@ class GameState:
             card.played_by = self.turn
             self.fields[self.turn].append(card)
 
-                    # Check for instant win with King (if points already meet new target)
+            # Check for instant win with King (if points already meet new target)
             if card.rank == Rank.KING and self.is_winner(self.turn):
                 print(
                     f"Player {self.turn} wins! Score: {self.get_player_score(self.turn)} points (target: {self.get_player_target(self.turn)} with {len([c for c in self.fields[self.turn] if c.rank == Rank.KING])} Kings)"

@@ -100,7 +100,7 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
             filtered_options = options
             pre_filtered_options = options
             selected_idx = 0
-            max_display = 10  # Maximum number of options to display at once
+            max_display = 20  # Maximum number of options to display at once
             
             # Get terminal width for proper alignment
             terminal_width, _ = get_terminal_size()
@@ -191,4 +191,4 @@ def get_non_interactive_input(prompt: str, options: List[str]) -> int:
         pass
         
     # If no match found, return the first option
-    return 0 
+    return 0

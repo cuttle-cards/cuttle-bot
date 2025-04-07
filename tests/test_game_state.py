@@ -820,8 +820,9 @@ class TestGameState(unittest.TestCase):
 
         # Try to play Jack as face card
         jack_card = hands[0][0]
+        target_card = fields[1][1]
         with self.assertRaises(Exception) as context:
-            game_state.play_face_card(jack_card)
+            game_state.play_face_card(jack_card, target_card)
         
         # Verify error message
         self.assertIn("Cannot play jack as face card if opponent has a queen on their field", str(context.exception))
@@ -900,13 +901,14 @@ class TestGameState(unittest.TestCase):
 
         game_state = GameState(hands, fields, deck, discard)
 
-        # Try to play Jack as face card
+        # Try to play Jack as face card, targeting a non-point card
         jack_card = hands[0][0]
+        target_card = fields[1][0]
         with self.assertRaises(Exception) as context:
-            game_state.play_face_card(jack_card)
+            game_state.play_face_card(jack_card, target_card)
         
         # Verify error message
-        self.assertIn("Cannot play jack as face card if opponent has a queen on their field", str(context.exception))
+        self.assertIn("Target card must be a point card for playing Jack", str(context.exception))
 
         # Verify game state unchanged
         self.assertIn(jack_card, game_state.hands[0])
