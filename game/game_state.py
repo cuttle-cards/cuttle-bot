@@ -137,6 +137,7 @@ class GameState:
 
     def update_state(self, action: Action):
         """
+        Update the game state based on the action taken.
         Returns:
             Tuple[bool, bool, int | None]
               - Whether the turn is over,
@@ -559,6 +560,9 @@ class GameState:
     def get_legal_actions(self) -> List[Action]:
         """
         Get all legal actions for the current player.
+
+        Returns:
+            List[Action]: A list of legal actions
         """
         actions = []
 
