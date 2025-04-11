@@ -4,6 +4,8 @@ import pytest
 from game.game import Game
 from game.card import Card, Suit, Rank, Purpose
 from game.action import Action, ActionType
+from game.game_state import GameState
+from game.utils import log_print
 
 
 class TestGame(unittest.TestCase):
@@ -562,6 +564,95 @@ class TestGame(unittest.TestCase):
         # If we get here, we didn't find a winning sequence
         # This is also fine - not every random hand will lead to a win
         pass
+
+    def test_play_jack_action(self):
+        """Test playing a Jack action to steal a point card from opponent."""
+        # Set up initial state with point cards on opponent's field
+        hands = [
+            [Card("1", Suit.HEARTS, Rank.JACK)],  # Player 0's hand with Jack
+            [Card("2", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand
+        ]
+        fields = [
+            [],  # Player 0's field (empty)
+            [  # Player 1's field with point cards
+                Card("3", Suit.SPADES, Rank.SEVEN, played_by=1, purpose=Purpose.POINTS),
+                Card("4", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
+            ],
+        ]
+        deck = []
+        discard = []
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Verify initial scores
+        self.assertEqual(game_state.get_player_score(0), 0)
+        self.assertEqual(game_state.get_player_score(1), 16)  # 7 + 9 = 16
+
+        # Create Jack action
+        jack_card = hands[0][0]
+        target_card = fields[1][0]  # Seven of Spades
+        jack_action = Action(ActionType.JACK, jack_card, target_card, 0)
+
+        # Apply the action
+        turn_finished, should_stop, winner = game_state.update_state(jack_action)
+
+        # Verify action was successful
+        self.assertTrue(turn_finished)
+        self.assertFalse(should_stop)
+        self.assertIsNone(winner)
+
+        # Verify Jack is removed from hand
+        self.assertNotIn(jack_card, game_state.hands[0])
+
+        # Verify Jack is attached to the target card
+        self.assertIn(jack_card, target_card.attachments)
+        self.assertEqual(len(target_card.attachments), 1)
+        for card in fields[1]:
+            print(card, card.attachments)
+        self.assertEqual(len(fields[1][1].attachments), 0) # no attachments on the other point card
+
+        # Verify the point card is now stolen (counts for player 0)
+        self.assertTrue(target_card.is_stolen())
+
+        # Verify scores are updated correctly
+        self.assertEqual(game_state.get_player_score(0), 7)  # Stolen card counts for player 0
+        self.assertEqual(game_state.get_player_score(1), 9)  # Only the second card counts for player 1
+
+    def test_play_jack_action_with_queen_on_field(self):
+        """Test that Jack action cannot be played if opponent has a Queen on their field."""
+        # Set up initial state with a Queen on opponent's field
+        hands = [
+            [Card("1", Suit.HEARTS, Rank.JACK)],  # Player 0's hand with Jack
+            [Card("2", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand
+        ]
+        fields = [
+            [],  # Player 0's field (empty)
+            [  # Player 1's field with Queen and point card
+                Card("3", Suit.SPADES, Rank.QUEEN, played_by=1, purpose=Purpose.FACE_CARD),
+                Card("4", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
+            ],
+        ]
+        deck = []
+        discard = []
+
+        game_state = GameState(hands, fields, deck, discard)
+
+        # Create Jack action
+        jack_card = hands[0][0]
+        target_card = fields[1][1]  # Nine of Hearts
+        jack_action = Action(ActionType.JACK, jack_card, target_card, 0)
+
+        # Try to apply the action
+        with self.assertRaises(Exception) as context:
+            game_state.update_state(jack_action)
+        
+        # Verify error message
+        self.assertIn("Cannot play jack as face card if opponent has a queen on their field", str(context.exception))
+
+        # Verify game state unchanged
+        self.assertIn(jack_card, game_state.hands[0])
+        self.assertEqual(len(target_card.attachments), 0)
+        self.assertFalse(target_card.is_stolen())
 
 
 if __name__ == "__main__":

@@ -146,7 +146,7 @@ class TestGameStateScuttle(unittest.TestCase):
         """Test that only point cards on the field can be scuttled."""
         # Add a face card to opponent's field
         queen_hearts = Card(
-            "13", Suit.HEARTS, Rank.QUEEN, Purpose.FACE_CARD, played_by=1
+            id="13", suit=Suit.HEARTS, rank=Rank.QUEEN, purpose=Purpose.FACE_CARD, played_by=1
         )
         self.game_state.fields[1].append(queen_hearts)
 
