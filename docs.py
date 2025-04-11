@@ -41,7 +41,7 @@ def generate_docs():
     for module in modules:
         try:
             pdoc.pdoc(
-                module,
+                *modules,
                 output_directory=output_dir,
             )
             print(f"Generated documentation for {module}")
