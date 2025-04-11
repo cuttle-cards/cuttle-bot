@@ -1,3 +1,11 @@
+"""
+AI player module for the Cuttle card game.
+
+This module provides the AIPlayer class that uses the Ollama language model
+to make strategic decisions in the game. The AI player understands game rules,
+implements strategies, and makes decisions based on the current game state.
+"""
+
 from __future__ import annotations
 from game.utils import log_print
 import ollama
@@ -9,7 +17,24 @@ from game.card import Card, Purpose
 
 
 class AIPlayer:
-    """AI player that uses Ollama LLM to make decisions in the game."""
+    """AI player that uses Ollama LLM to make decisions in the game.
+
+    This class implements an AI player that uses a large language model (LLM)
+    to analyze game states and make strategic decisions. It understands game rules,
+    implements various strategies, and tries to avoid common mistakes.
+
+    The AI player can:
+    - Analyze the current game state
+    - Choose optimal actions from available legal moves
+    - Make strategic decisions about card usage
+    - Handle special card effects and combinations
+
+    Attributes:
+        model (str): The Ollama model to use for decision making.
+        max_retries (int): Maximum number of retries for failed LLM calls.
+        retry_delay (int): Delay in seconds between retries.
+        GAME_CONTEXT (str): Detailed game rules and strategy guide for the LLM.
+    """
 
     # Game rules and strategy context for the LLM
     GAME_CONTEXT = """
@@ -57,7 +82,13 @@ The Strategy is key to winning the game.
     """
 
     def __init__(self):
-        """Initialize the AI player."""
+        """Initialize the AI player.
+
+        Sets up:
+        - The default language model (gemma3:4b)
+        - Retry settings for LLM calls
+        - Verifies AI's understanding of game rules
+        """
         self.model = "gemma3:4b"  # Default to mistral model
         self.max_retries = 3
         self.retry_delay = 1  # seconds
@@ -66,7 +97,14 @@ The Strategy is key to winning the game.
         self._verify_ai_understanding()
 
     def _verify_ai_understanding(self):
-        """Verify that the AI understands the game rules and strategies."""
+        """Verify that the AI understands the game rules and strategies.
+
+        This method sends a test prompt to the LLM to confirm it understands
+        the game rules and strategies. The response is logged for debugging.
+
+        Note:
+            If verification fails, a warning is logged but the AI can still function.
+        """
         verification_prompt = """Please confirm that you understand the game rules and strategies for Cuttle.
 Respond with a brief summary of your understanding and confirm that you will avoid the common mistakes listed.
 Keep your response concise."""
@@ -90,7 +128,22 @@ Keep your response concise."""
         legal_actions: List[Action],
         is_human_view: bool = False,
     ) -> str:
-        """Format the current game state and legal actions into a prompt for the LLM."""
+        """Format the current game state and legal actions into a prompt for the LLM.
+
+        This method creates a detailed prompt that includes:
+        - Current state of both players (hand, field, score, target)
+        - Deck and discard pile information
+        - List of legal actions
+        - Instructions for the LLM
+
+        Args:
+            game_state (GameState): The current state of the game.
+            legal_actions (List[Action]): List of legal actions available.
+            is_human_view (bool, optional): Whether to hide AI's hand. Defaults to False.
+
+        Returns:
+            str: Formatted prompt string for the LLM.
+        """
         opponent_point_cards = [
             card for card in game_state.fields[0] if card.purpose == Purpose.POINTS
         ]
@@ -142,7 +195,28 @@ Make your choice now:
     async def get_action(
         self, game_state: GameState, legal_actions: List[Action]
     ) -> Action:
-        """Get the AI's chosen action based on the current game state."""
+        """Get the AI's chosen action based on the current game state.
+
+        This method:
+        1. Validates that legal actions are available
+        2. Formats the game state into a prompt
+        3. Sends the prompt to the LLM
+        4. Extracts and validates the chosen action
+        5. Retries on failure up to max_retries times
+
+        Args:
+            game_state (GameState): The current state of the game.
+            legal_actions (List[Action]): List of legal actions available.
+
+        Returns:
+            Action: The chosen action to perform.
+
+        Raises:
+            ValueError: If no legal actions are available.
+
+        Note:
+            If all retries fail, returns the first legal action as a fallback.
+        """
         if not legal_actions:
             raise ValueError("No legal actions available")
 

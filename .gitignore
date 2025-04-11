@@ -170,3 +170,4 @@ cython_debug/
 test_games/
 tmp.txt
 game_history/
+docs/

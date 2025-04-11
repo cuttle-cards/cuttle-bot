@@ -1,10 +1,28 @@
+"""Input handling module for the Cuttle card game.
+
+This module provides interactive and non-interactive input handling capabilities for the game.
+It includes functions for terminal detection, size management, and user input processing with
+filtered options display.
+
+The module supports both interactive terminal environments and non-interactive environments
+(such as testing or automated environments), automatically adapting its behavior accordingly.
+"""
+
 import sys
 import os
 from typing import List, Tuple
 import errno
 
-def is_interactive_terminal():
-    """Check if we're in an interactive terminal."""
+def is_interactive_terminal() -> bool:
+    """Check if the current environment is an interactive terminal.
+
+    This function determines if the program is running in an interactive terminal
+    by checking for TTY presence and terminal attributes. It also handles special
+    cases like test environments with pseudo-terminals.
+
+    Returns:
+        bool: True if running in an interactive terminal, False otherwise.
+    """
     try:
         import termios
         # Only try to get terminal attributes if we have a TTY
@@ -25,21 +43,50 @@ def is_interactive_terminal():
         return False
 
 def get_terminal_size() -> Tuple[int, int]:
-    """Get the dimensions of the terminal window."""
+    """Get the dimensions of the terminal window.
+
+    Returns:
+        Tuple[int, int]: A tuple containing (width, height) of the terminal.
+        If the size cannot be determined, returns (80, 24) as default values.
+    """
     try:
         return os.get_terminal_size()
     except OSError:
         return (80, 24)  # Default size
 
-def clear_lines(num_lines: int):
-    """Clear the specified number of lines above the cursor."""
+def clear_lines(num_lines: int) -> None:
+    """Clear the specified number of lines above the cursor.
+
+    This function uses ANSI escape sequences to move the cursor up and clear lines.
+    It only performs the clearing operation if running in an interactive terminal.
+
+    Args:
+        num_lines: The number of lines to clear above the current cursor position.
+    """
     if is_interactive_terminal():
         for _ in range(num_lines):
             sys.stdout.write('\033[F')  # Move cursor up one line
             sys.stdout.write('\033[K')  # Clear line
 
-def display_options(prompt: str, current_input: str, pre_filtered_options: List[str], filtered_options: List[str], selected_idx: int, max_display: int, terminal_width: int, is_initial_display: bool = False):
-    """Helper function to display the prompt and options."""
+def display_options(prompt: str, current_input: str, pre_filtered_options: List[str], 
+                   filtered_options: List[str], selected_idx: int, max_display: int, 
+                   terminal_width: int, is_initial_display: bool = False) -> None:
+    """Display the prompt and filtered options in an interactive manner.
+
+    This function handles the visual display of the input prompt and available options.
+    It supports both interactive and non-interactive modes, adapting the display
+    accordingly.
+
+    Args:
+        prompt: The prompt text to display to the user.
+        current_input: The current user input string.
+        pre_filtered_options: List of options before filtering.
+        filtered_options: List of options after filtering based on user input.
+        selected_idx: Index of the currently selected option.
+        max_display: Maximum number of options to display at once.
+        terminal_width: Width of the terminal for proper alignment.
+        is_initial_display: Whether this is the first display of options.
+    """
     if is_interactive_terminal():
         # Clear the entire display area first
         if not is_initial_display:
@@ -71,15 +118,21 @@ def display_options(prompt: str, current_input: str, pre_filtered_options: List[
             print(f"{i}: {option}")
 
 def get_interactive_input(prompt: str, options: List[str]) -> int:
-    """
-    Display an interactive input prompt with filtered options that update as the user types.
-    
+    """Get user input interactively with filtered options display.
+
+    This function provides an interactive input interface where options are filtered
+    as the user types. It supports arrow key navigation and handles special keys
+    like Enter, Backspace, and Escape sequences.
+
     Args:
-        prompt: The prompt to display to the user
-        options: List of options to choose from
-        
+        prompt: The prompt text to display to the user.
+        options: List of available options to choose from.
+
     Returns:
-        The index of the selected option
+        int: The index of the selected option in the original options list.
+
+    Raises:
+        KeyboardInterrupt: If the user presses Ctrl+C.
     """
     # If we're in a test environment or non-interactive terminal, use simple input
     if not is_interactive_terminal():
@@ -165,7 +218,19 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
         return get_non_interactive_input(prompt, options)
 
 def get_non_interactive_input(prompt: str, options: List[str]) -> int:
-    """Simple input handler for non-interactive environments."""
+    """Get user input in a non-interactive environment.
+
+    This function provides a simple input interface for non-interactive environments
+    like testing or automated environments. It displays all options and accepts
+    either option text or index numbers as input.
+
+    Args:
+        prompt: The prompt text to display to the user.
+        options: List of available options to choose from.
+
+    Returns:
+        int: The index of the selected option, or -1 for end game command.
+    """
     # Display options
     display_options(prompt, "", options, options, 0, len(options), 80)
     

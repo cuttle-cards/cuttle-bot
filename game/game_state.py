@@ -1,25 +1,48 @@
+"""
+Game state module for the Cuttle card game.
+
+This module provides the GameState class that manages the core game mechanics,
+including card playing, turn management, scoring, and win conditions. It handles
+all game rules and state transitions.
+"""
+
 from __future__ import annotations
 
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from game.card import Card, Purpose, Rank
 from game.action import Action, ActionType, ActionSource
 from game.utils import log_print
 
 
 class GameState:
-    """
-    A class that represents the state of the game.
+    """A class that represents the state of a Cuttle game.
+
+    This class manages all aspects of the game state, including:
+    - Player hands and fields
+    - Deck and discard pile
+    - Turn management
+    - Score tracking
+    - Game rules enforcement
+    - Action resolution
+    - Win condition checking
 
     Attributes:
-        hands: List[List[Card]] - The hands of the players.
-        fields: List[List[Card]] - The fields of the players.
-        deck: List[Card] - The deck of the game.
-        discard_pile: List[Card] - The discard pile of the game.
-        scores: List[int] - The scores of the players.
-        targets: List[int] - The score targets of the players.
-        turn: int - Whose turn it is - 0 for p0, 1 for p1.
-        logger: callable - The logger to use for output.
-
+        hands (List[List[Card]]): The hands of both players. Index 0 is player 0's hand.
+        fields (List[List[Card]]): The fields of both players. Index 0 is player 0's field.
+        deck (List[Card]): The remaining cards in the deck.
+        discard_pile (List[Card]): The cards in the discard pile.
+        turn (int): Current player's turn (0 or 1).
+        last_action_played_by (Optional[int]): The player who played the last action.
+        current_action_player (int): The player currently taking an action.
+        status (Optional[str]): Current game status message.
+        resolving_two (bool): Whether a Two's effect is being resolved.
+        resolving_one_off (bool): Whether a one-off effect is being resolved.
+        resolving_three (bool): Whether a Three's effect is being resolved.
+        one_off_card_to_counter (Optional[Card]): The one-off card that can be countered.
+        logger (callable): Function to use for logging.
+        use_ai (bool): Whether AI player is enabled.
+        ai_player: The AI player instance if enabled.
+        overall_turn (int): The total number of turns played.
     """
 
     use_ai: bool
@@ -35,8 +58,18 @@ class GameState:
         use_ai: bool = False,
         ai_player=None,
     ):
-        """
-        Initialize the game state.
+        """Initialize a new game state.
+
+        Args:
+            hands (List[List[Card]]): Initial hands for both players.
+                Index 0 is player 0's hand (5 cards).
+                Index 1 is player 1's hand (6 cards).
+            fields (List[List[Card]]): Initial fields for both players (usually empty).
+            deck (List[Card]): Initial deck of cards.
+            discard_pile (List[Card]): Initial discard pile (usually empty).
+            logger (callable, optional): Function to use for logging. Defaults to print.
+            use_ai (bool, optional): Whether to use AI player. Defaults to False.
+            ai_player (optional): AI player instance. Defaults to None.
         """
         self.hands = hands
         self.fields = fields
@@ -55,19 +88,48 @@ class GameState:
         self.ai_player = ai_player
         self.overall_turn = 0
 
-    def next_turn(self):
+    def next_turn(self) -> None:
+        """Advance to the next player's turn.
+        
+        This method:
+        1. Updates the turn counter
+        2. Updates the current action player
+        3. Increments the overall turn counter if returning to player 0
+        """
         self.turn = (self.turn + 1) % len(self.hands)
         self.current_action_player = self.turn
         if self.turn == 0:
             self.overall_turn += 1
 
-    def next_player(self):
+    def next_player(self) -> None:
+        """Move to the next player in the action sequence.
+        
+        Used during card effect resolution when multiple players
+        need to take actions (e.g., countering one-off effects).
+        """
         self.current_action_player = (self.current_action_player + 1) % len(self.hands)
 
     def is_game_over(self) -> bool:
+        """Check if the game is over.
+
+        Returns:
+            bool: True if there is a winner, False otherwise.
+        """
         return self.winner() is not None
     
     def player_point_cards(self, player: int) -> List[Card]:
+        """Get all point cards that count towards a player's score.
+
+        This includes:
+        - Point cards on the player's field that haven't been stolen
+        - Point cards on the opponent's field that have been stolen by the player
+
+        Args:
+            player (int): The player index (0 or 1).
+
+        Returns:
+            List[Card]: List of cards that count towards the player's score.
+        """
         point_cards = []
         player_field = self.fields[player]
         for card in player_field:
@@ -80,11 +142,29 @@ class GameState:
         return point_cards
 
     def get_player_score(self, player: int) -> int:
+        """Calculate a player's current score.
+
+        Args:
+            player (int): The player index (0 or 1).
+
+        Returns:
+            int: The sum of all point values from the player's point cards.
+        """
         return sum([card.point_value() for card in self.player_point_cards(player)])
 
     def get_player_field(self, player: int) -> List[Card]:
-        """
-        Returns the player's field, excluding points cards that are stolen by the opponent.
+        """Get all cards that are effectively on a player's field.
+
+        This includes:
+        - All non-point cards on their field
+        - Point cards on their field that haven't been stolen
+        - Point cards on the opponent's field that they've stolen
+
+        Args:
+            player (int): The player index (0 or 1).
+
+        Returns:
+            List[Card]: List of cards effectively on the player's field.
         """
         field = []
         for card in self.fields[player]:
@@ -102,13 +182,21 @@ class GameState:
         return field
 
     def get_player_target(self, player: int) -> int:
-        # kings affect targets
-        # 1 king on player's field: target is 14
-        # 2 kings on player's field: target is 10
-        # 3 kings on player's field: target is 5
-        # 4 kings on player's field: target is 0
-        # no kings, 21
+        """Calculate a player's current target score based on Kings.
 
+        The target score is determined by the number of Kings on the player's field:
+        - 0 Kings: target is 21
+        - 1 King:  target is 14
+        - 2 Kings: target is 10
+        - 3 Kings: target is 5
+        - 4 Kings: target is 0
+
+        Args:
+            player (int): The player index (0 or 1).
+
+        Returns:
+            int: The target score needed to win.
+        """
         kings = [card for card in self.fields[player] if card.rank == Rank.KING]
         num_kings = len(kings)
 
@@ -124,28 +212,62 @@ class GameState:
             return 0
 
     def is_winner(self, player: int) -> bool:
+        """Check if a player has won the game.
+
+        A player wins if their score equals or exceeds their target score.
+
+        Args:
+            player (int): The player index (0 or 1).
+
+        Returns:
+            bool: True if the player has won, False otherwise.
+        """
         return self.get_player_score(player) >= self.get_player_target(player)
 
-    def winner(self) -> int | None:
+    def winner(self) -> Optional[int]:
+        """Get the winning player if the game is over.
+
+        Returns:
+            Optional[int]: The winning player's index (0 or 1),
+                or None if the game isn't over.
+        """
         for player in range(len(self.hands)):
             if self.is_winner(player):
                 return player
         return None
 
     def is_stalemate(self) -> bool:
+        """Check if the game has reached a stalemate.
+
+        A stalemate occurs when:
+        1. The deck is empty
+        2. No player has won
+
+        Returns:
+            bool: True if the game is in stalemate, False otherwise.
+        """
         return self.deck == [] and not self.winner()
 
-    def update_state(self, action: Action):
-        """
-        Update the game state based on the action taken.
-        Returns:
-            Tuple[bool, bool, int | None]
-              - Whether the turn is over,
-              - Whether the game should stop,
-              - The winner if the game is over.
-        """
-        # Implement logic to update the game state based on the action taken
+    def update_state(self, action: Action) -> Tuple[bool, bool, Optional[int]]:
+        """Update the game state based on an action.
 
+        This is the main method for executing game actions. It handles:
+        - Drawing cards
+        - Playing point cards
+        - Scuttling cards
+        - One-off effects
+        - Countering
+        - Effect resolution
+
+        Args:
+            action (Action): The action to execute.
+
+        Returns:
+            Tuple[bool, bool, Optional[int]]: A tuple containing:
+                - bool: Whether the turn is finished
+                - bool: Whether the game should stop
+                - Optional[int]: The winner's index if game is over, None otherwise
+        """
         turn_finished = False
         should_stop = False
         winner = None
