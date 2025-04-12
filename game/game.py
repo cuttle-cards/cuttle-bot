@@ -135,7 +135,7 @@ class Game:
         deck = self.generate_shuffled_deck()
         hands = self.deal_cards(deck)
         fields = [[], []]
-        self.game_state = GameState(hands, fields, deck[11:], [])
+        self.game_state = GameState(hands, fields, deck[11:], [], logger=self.logger)
 
     def initialize_with_manual_selection(self) -> None:
         """Initialize the game with manual card selection.
@@ -304,4 +304,4 @@ class Game:
         """
         hands = self.deal_cards(test_deck)
         fields = [[], []]
-        self.game_state = GameState(hands, fields, test_deck[11:], [])
+        self.game_state = GameState(hands, fields, test_deck[11:], [], logger=self.logger)

@@ -28,3 +28,11 @@ setup:
 # Clean virtual environment
 clean-venv:
 	rm -rf $(VENV_NAME)/
+
+# Default target
+all: test
+
+# Type checking
+typecheck:
+	@echo "Running mypy type checks..."
+	source $(VENV_NAME)/bin/activate && mypy .

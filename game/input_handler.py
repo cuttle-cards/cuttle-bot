@@ -129,7 +129,7 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
         options: List of available options to choose from.
 
     Returns:
-        int: The index of the selected option in the original options list.
+        int: The index of the selected option in the original options list, or -1 for end game.
 
     Raises:
         KeyboardInterrupt: If the user presses Ctrl+C.
@@ -176,6 +176,15 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
                             # Find the original index of the selected option
                             selected_option = filtered_options[selected_idx]
                             original_idx = options.index(selected_option)
+                            # Restore terminal settings before returning
+                            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                            # Clear the final display
+                            if filtered_options:
+                                clear_lines(min(len(filtered_options), max_display) + 2)
+                            else:
+                                clear_lines(2)
+                            sys.stdout.write("\n")
+                            # Return the original index
                             return original_idx
                     elif ord(char) == 127:  # Backspace
                         if current_input:
@@ -205,55 +214,79 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
                     raise
         
         finally:
-            # Restore terminal settings
-            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-            # Clear the input area
-            if filtered_options:
-                clear_lines(min(len(filtered_options), max_display) + 2)
-            else:
-                clear_lines(2)
-            sys.stdout.write("\n")
+            # Restore terminal settings if they were successfully changed
+            if 'old_settings' in locals() and 'termios' in sys.modules and 'tty' in sys.modules:
+                 try:
+                      termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                 except termios.error:
+                      # Ignore errors if terminal state is messed up, e.g., during exit
+                      pass
+            # Clear the final display if possible
+            if is_interactive_terminal():
+                if 'filtered_options' in locals() and filtered_options:
+                    clear_lines(min(len(filtered_options), max_display) + 2)
+                else:
+                    # Need to clear at least the prompt line
+                    clear_lines(2) 
+                sys.stdout.write("\n")
+            # DO NOT return from finally block, let the return in try or except handle it
+
+        # This part is now only reachable if the loop breaks due to EOF
+        # Return -1 to indicate cancellation/end game in this case
+        return -1
+
     except (ImportError, AttributeError, termios.error):
         # Fallback to non-interactive mode if terminal control is not available
         return get_non_interactive_input(prompt, options)
+    except KeyboardInterrupt:
+        # Restore terminal settings is now handled in the finally block
+        # Re-raise KeyboardInterrupt as per original expectation
+        raise KeyboardInterrupt
 
 def get_non_interactive_input(prompt: str, options: List[str]) -> int:
     """Get user input in a non-interactive environment.
 
-    This function provides a simple input interface for non-interactive environments
-    like testing or automated environments. It displays all options and accepts
-    either option text or index numbers as input.
+    Prioritizes matching by index, then exact text match (case-insensitive),
+    then substring match (case-insensitive, returns first match index).
 
     Args:
         prompt: The prompt text to display to the user.
         options: List of available options to choose from.
 
     Returns:
-        int: The index of the selected option, or -1 for end game command.
+        int: The index of the selected option, or -1 if cancelled or invalid.
     """
-    # Display options
-    display_options(prompt, "", options, options, 0, len(options), 80)
-    
+    # Display options (simplified for non-interactive)
+    print(prompt)
+    for i, option in enumerate(options):
+        print(f"{i}: {option}")
+
     # Get input (this will use the mocked input in tests)
     response = input().strip()
-    
+    response_lower = response.lower()
+
     # Handle 'e' or 'end game' for end game
-    if response.lower() in ['e', 'end game']:
+    if response_lower in ['e', 'end game']:
         return -1
-        
-    # Try to match the input against the options
-    # First try exact match
-    for i, option in enumerate(options):
-        if response.lower() in option.lower():
-            return i
-            
-    # Then try to match just the number
+
+    # 1. Try to match by index first
     try:
         index = int(response)
         if 0 <= index < len(options):
-            return index
+            return index # Return the index
     except ValueError:
-        pass
-        
-    # If no match found, return the first option
-    return 0
+        pass # Not a valid number, proceed to text matching
+
+    # 2. Try exact text match (case-insensitive)
+    for i, option in enumerate(options):
+        if response_lower == option.lower():
+            return i
+
+    # 3. Try substring match (case-insensitive, return first match index)
+    for i, option in enumerate(options):
+        if response_lower in option.lower():
+            return i # Return the index of the first substring match
+
+    # If no match found by any method
+    print(f"Invalid input: '{response}'. Please enter a valid index or text.")
+    return -1

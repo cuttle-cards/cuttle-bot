@@ -8,14 +8,16 @@ It handles both AI and human players, game state management, and game history lo
 from game.game import Game
 from game.ai_player import AIPlayer
 from game.input_handler import get_interactive_input
+from game.action import Action  # Import Action
 import asyncio
 import time
 import os
 import datetime
 import io
 import logging
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 from game.utils import log_print
+from game.game_state import GameState # Import GameState for type hint
 
 HISTORY_DIR = "game_history"
 
@@ -92,25 +94,31 @@ def get_yes_no_input(prompt: str) -> bool:
         time.sleep(0.1)  # Add small delay to prevent log spam
 
 
-def get_action_index_from_text_input(player_action: str, actions: List[str]) -> Union[int, None]:
-    """Get the index of the action from the text input.
+def get_action_from_text_input(player_action: str, actions: List[Action]) -> Optional[Action]:
+    """Get the Action object from the text input.
 
     This function supports both numeric indices and exact text matches.
 
     Args:
-        player_action (str): The action to get the index of. Could be a number in string form 
+        player_action (str): The action to get the index of. Could be a number in string form
                             or a string detailing the action.
-        actions (List[str]): The list of actions to choose from.
+        actions (List[Action]): The list of Action objects to choose from.
 
     Returns:
-        Union[int, None]: The index of the action, or None if the action is not found.
+        Optional[Action]: The chosen Action object, or None if the action is not found.
     """
-    if player_action.isdigit() and int(player_action) in range(len(actions)):
-        return int(player_action)
-    
-    for i, action in enumerate(actions):
-        if player_action.lower() == str(action).lower():
-            return i
+    if player_action.isdigit():
+        try:
+            index = int(player_action)
+            if 0 <= index < len(actions):
+                return actions[index]
+        except ValueError:
+            pass # Fall through to check text match
+
+    action_str = player_action.lower()
+    for action in actions:
+        if action_str == str(action).lower():
+            return action
     return None
 
 
@@ -142,12 +150,12 @@ def select_saved_game() -> Union[str, None]:
             print("Please enter a number or 'cancel'.")
 
 
-async def initialize_game(use_ai: bool, ai_player: AIPlayer) -> Game:
+async def initialize_game(use_ai: bool, ai_player: Optional[AIPlayer]) -> Game:
     """Initialize a new game or load a saved game.
 
     Args:
         use_ai (bool): Whether to use AI player.
-        ai_player (AIPlayer): The AI player instance if use_ai is True.
+        ai_player (Optional[AIPlayer]): The AI player instance if use_ai is True.
 
     Returns:
         Game: The initialized game instance.
@@ -164,7 +172,7 @@ async def initialize_game(use_ai: bool, ai_player: AIPlayer) -> Game:
                 log_print("Starting new game instead.")
     
     manual_selection = get_yes_no_input("Would you like to manually select initial cards?")
-    print(f"use_ai: {use_ai}")
+    log_print(f"use_ai: {use_ai}")
     game = Game(manual_selection=manual_selection, ai_player=ai_player)
     
     if get_yes_no_input("Would you like to save this initial game state?"):
@@ -192,99 +200,119 @@ def save_initial_game_state(game: Game) -> None:
         else:
             log_print("Please enter a valid filename.")
 
-async def handle_player_turn(game: Game, use_ai: bool, ai_player: AIPlayer, actions: List[str]) -> Tuple[str, bool]:
+async def handle_player_turn(game: Game, use_ai: bool, ai_player: Optional[AIPlayer], actions: List[Action]) -> Tuple[Optional[Action], bool]:
     """Handle a player's turn, either AI or human.
 
     Args:
         game (Game): The current game instance.
         use_ai (bool): Whether AI player is enabled.
-        ai_player (AIPlayer): The AI player instance.
-        actions (List[str]): List of available actions.
+        ai_player (Optional[AIPlayer]): The AI player instance.
+        actions (List[Action]): List of available Action objects.
 
     Returns:
-        Tuple[str, bool]: A tuple containing:
-            - str: The chosen action index or "end game"
+        Tuple[Optional[Action], bool]: A tuple containing:
+            - Optional[Action]: The chosen Action object or None to end game
             - bool: Whether the game should end
     """
-    is_ai_turn = use_ai and (
+    is_ai_turn = use_ai and ai_player is not None and (
         (game.game_state.resolving_one_off and game.game_state.current_action_player == 1)
         or (not game.game_state.resolving_one_off and game.game_state.turn == 1)
     )
 
     if is_ai_turn:
+        # Check ai_player is not None before calling handle_ai_turn
+        # Assert that ai_player is not None, satisfying mypy
+        assert ai_player is not None, "AI turn triggered but ai_player is None. This should not happen."
         return await handle_ai_turn(game, ai_player, actions)
     else:
         return handle_human_turn(game, actions)
 
-async def handle_ai_turn(game: Game, ai_player: AIPlayer, actions: List[str]) -> Tuple[str, bool]:
+async def handle_ai_turn(game: Game, ai_player: AIPlayer, actions: List[Action]) -> Tuple[Optional[Action], bool]:
     """Handle AI player's turn.
 
     Args:
         game (Game): The current game instance.
         ai_player (AIPlayer): The AI player instance.
-        actions (List[str]): List of available actions.
+        actions (List[Action]): List of available Action objects.
 
     Returns:
-        Tuple[str, bool]: A tuple containing:
-            - str: The chosen action index
+        Tuple[Optional[Action], bool]: A tuple containing:
+            - Optional[Action]: The chosen Action object
             - bool: Whether the game should end (always False for AI)
     """
     log_print("AI is thinking...")
     try:
         chosen_action = await ai_player.get_action(game.game_state, actions)
-        action_index = actions.index(chosen_action)
         log_print(f"AI chose: {chosen_action}")
-        return str(action_index), False
+        return chosen_action, False
     except Exception as e:
         log_print(f"AI error: {e}. Defaulting to first action.")
-        return "0", False
+        return actions[0] if actions else None, False
 
-def handle_human_turn(game: Game, actions: List[str]) -> Tuple[str, bool]:
+def handle_human_turn(game: Game, actions: List[Action]) -> Tuple[Optional[Action], bool]:
     """Handle human player's turn.
 
     Args:
         game (Game): The current game instance.
-        actions (List[str]): List of available actions.
+        actions (List[Action]): List of available Action objects.
 
     Returns:
-        Tuple[str, bool]: A tuple containing:
-            - str: The chosen action index or "end game"
+        Tuple[Optional[Action], bool]: A tuple containing:
+            - Optional[Action]: The chosen Action object or None to end game
             - bool: Whether the game should end
     """
+    action_strs = [str(action) for action in actions] # Convert actions to strings for display
+    
+    # Use try-except for KeyboardInterrupt
     try:
-        action_index = get_interactive_input(
+        chosen_action_index = get_interactive_input(
             f"Enter your action for player {game.game_state.current_action_player} ('e' to end game):",
-            [f"{i}: {str(action)}" for i, action in enumerate(actions)]
+            action_strs
         )
-        if action_index == -1:
-            return "end game", True
-        return str(action_index), False
-    except KeyboardInterrupt:
-        return "e", True
 
-def process_game_action(game: Game, action_index: int, actions: List[str]) -> Tuple[bool, bool, int]:
-    """Process a game action and return the game state.
+        if chosen_action_index == -1: # Indicates 'end game' or cancellation
+            return None, True
+
+        # Check if the returned index is valid for the current actions list
+        if 0 <= chosen_action_index < len(actions):
+            chosen_action = actions[chosen_action_index]
+            return chosen_action, False
+        else:
+            log_print(
+                f"Invalid action index received: {chosen_action_index}. Please try again."
+            )
+            # Indicate failure to choose a valid action this turn
+            # Let the loop retry
+            return None, False # Returning None action, but game does not end
+            
+    except KeyboardInterrupt:
+        # Handle Ctrl+C
+        log_print("\nGame interrupted by user (Ctrl+C). Ending game.")
+        return None, True
+
+def process_game_action(game: Game, action: Action) -> Tuple[bool, bool, Optional[int]]:
+    """Process the chosen game action.
 
     Args:
         game (Game): The current game instance.
-        action_index (int): The index of the chosen action.
-        actions (List[str]): List of available actions.
+        action (Action): The Action object chosen by the player.
 
     Returns:
-        Tuple[bool, bool, int]: A tuple containing:
-            - bool: Whether the game is over
-            - bool: Whether the turn is finished
-            - int: The winner index (if game is over)
+        Tuple[bool, bool, Optional[int]]: A tuple containing:
+            - bool: Whether the turn finished
+            - bool: Whether the game ended
+            - Optional[int]: The winner's index, if any
     """
-    log_print(f"Player {game.game_state.current_action_player} chose {actions[action_index]}")
-    return game.game_state.update_state(actions[action_index])
+    # Pass the Action object directly to update_state
+    turn_finished, turn_ended, winner = game.game_state.update_state(action)
+    return turn_finished, turn_ended, winner
 
 def update_game_state(game: Game, turn_finished: bool, use_ai: bool) -> None:
-    """Update the game state after an action.
+    """Update game state after an action (draw card, switch turn).
 
     Args:
         game (Game): The current game instance.
-        turn_finished (bool): Whether the current turn is finished.
+        turn_finished (bool): Whether the current player's turn is finished.
         use_ai (bool): Whether AI player is enabled.
     """
     if turn_finished:
@@ -297,7 +325,7 @@ def update_game_state(game: Game, turn_finished: bool, use_ai: bool) -> None:
         game.game_state.print_state(hide_player_hand=1 if use_ai else None)
         game.game_state.next_turn()
 
-async def game_loop(game: Game, use_ai: bool, ai_player: AIPlayer) -> int:
+async def game_loop(game: Game, use_ai: bool, ai_player: Optional[AIPlayer]) -> Optional[int]:
     """Main game loop. Returns the winner."""
     game_over = False
     winner = None
@@ -311,71 +339,123 @@ async def game_loop(game: Game, use_ai: bool, ai_player: AIPlayer) -> int:
         if game.game_state.turn == 0:
             log_print(f"================ Turn {game.game_state.overall_turn} =================")
 
+        # Moved print_state out of the inner loop
+        # Display state once per player's attempt cycle
+        display_game_state(game) # Includes printing available actions
+
         while not turn_finished and not game_over:
-            time.sleep(0.1)  # Add small delay to prevent log spam
-            
-            display_game_state(game)
-            actions = game.game_state.get_legal_actions()
-            for i, action in enumerate(actions):
-                log_print(f"{i}: {action}")
+            # Get legal actions for the current state
+            actions: List[Action] = game.game_state.get_legal_actions()
 
-            player_action, is_end_game = await handle_player_turn(game, use_ai, ai_player, actions)
-            
+            # Check for no actions (should be rare)
+            if not actions:
+                log_print(f"Player {game.game_state.current_action_player} has no legal actions!")
+                if not game.game_state.deck:
+                    log_print("Deck empty and no actions. Ending turn.")
+                    game.game_state.next_turn()
+                    # Break inner loop to re-evaluate outer loop condition (stalemate/game over)
+                    break 
+                else:
+                    log_print("Error: No legal actions but deck is not empty. Skipping turn.")
+                    game.game_state.next_turn()
+                    # Break inner loop to re-evaluate state
+                    break 
+
+            # Print actions only if human turn
+            if not (use_ai and game.game_state.current_action_player == 1):
+                log_print("Available actions:")
+                for i, action in enumerate(actions):
+                    log_print(f"{i}: {action}")
+
+            # Handle turn
+            chosen_action, is_end_game = await handle_player_turn(game, use_ai, ai_player, actions)
+
             if is_end_game:
+                log_print("Game ended by player.")
                 game_over = True
-                break
+                break # Break inner loop
 
-            try:
-                action_index = int(player_action)
-                if action_index is None:
-                    raise ValueError
-                
-                turn_finished, should_stop, winner = process_game_action(game, action_index, actions)
-                
-                if should_stop or winner is not None:
-                    game_over = True
-                    break
-                    
-            except (ValueError, IndexError):
-                log_print("Invalid input, please enter a number")
+            if chosen_action is None: # Human entered invalid input or AI failed
+                log_print("Invalid input received. Please try again.")
                 invalid_input_count += 1
                 if invalid_input_count >= MAX_INVALID_INPUTS:
                     log_print(f"Too many invalid inputs ({MAX_INVALID_INPUTS}). Game terminated.")
                     game_over = True
-                    break
-                continue
+                    break # Break inner loop
+                continue # Retry input in the inner loop
 
-            update_game_state(game, turn_finished, use_ai)
+            # Reset invalid count on valid action
+            invalid_input_count = 0
 
+            # Process the valid action
+            try:
+                turn_finished, should_stop, winner_result = process_game_action(game, chosen_action)
+                
+                if should_stop:
+                    game_over = True
+                    winner = winner_result
+                    break # Break inner loop
+
+                # Update game state (draw, switch turn) only if the turn finished
+                update_game_state(game, turn_finished, use_ai)
+
+            except Exception as e:
+                # Catch potential errors during action processing
+                log_print(f"Error processing action '{chosen_action}': {e}")
+                log_print("Attempting to recover or end turn.")
+                # Decide recovery strategy: maybe force draw or end turn?
+                # For now, just end the turn to avoid infinite loops
+                turn_finished = True 
+                update_game_state(game, turn_finished, use_ai)
+                # Continue to next turn in the outer loop
+                break # Break inner loop
+        
+        # After inner loop: check if game ended or continue outer loop
+        if game.game_state.is_game_over():
+            winner = game.game_state.winner()
+            game_over = True
+        elif game.game_state.is_stalemate():
+            log_print("Stalemate detected!")
+            game_over = True
+            winner = None # Indicate stalemate
+            
+    # Final state display after loop ends
+    display_game_state(game)
     return winner
 
-def display_game_state(game: Game):
+def display_game_state(game: Game) -> None:
     """Display the current game state."""
-    if game.game_state.resolving_one_off:
-        log_print(f"Actions for player {game.game_state.current_action_player}:")
-    else:
-        log_print(f"Actions for player {game.game_state.turn}:")
+    hide_hand = 1 if game.game_state.use_ai else None
+    game.game_state.print_state(hide_player_hand=hide_hand)
 
-async def main():
+
+async def main() -> None:
     """Main entry point for the game."""
     logger, log_stream = setup_logging()
-    use_ai = get_yes_no_input("Would you like to play against AI (as Player 2)?")
+    use_ai = get_yes_no_input("Would you like to play against AI (as Player 1)?") # Changed to Player 1
     ai_player = AIPlayer() if use_ai else None
 
     while True:
+        # Pass Optional[AIPlayer] to initialize_game
         game = await initialize_game(use_ai, ai_player)
         
         log_print("\nStarting game...")
-        game.game_state.print_state(hide_player_hand=1 if use_ai else None)
+        # display_game_state(game) # Initial display happens in game_loop
 
+        # Pass Optional[AIPlayer] to game_loop
         winner = await game_loop(game, use_ai, ai_player)
 
-        log_print(f"Game over! Winner is player {winner}")
-        game.game_state.print_state(hide_player_hand=1 if use_ai else None)
+        if winner is not None:
+            log_print(f"Game over! Winner is player {winner}")
+        else:
+            log_print("Game over! Ended by player or Stalemate.")
+
+        # game.game_state.print_state(hide_player_hand=1 if use_ai else None)
 
         if get_yes_no_input("Would you like to save the game history?"):
             save_game_history(log_stream.getvalue().splitlines())
         
+        # Changed condition to check if AI was used for replay prompt
         keep_playing = use_ai and get_yes_no_input("Would you like to play again with AI?") 
         if not keep_playing:
             break

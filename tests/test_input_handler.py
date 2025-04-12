@@ -115,7 +115,8 @@ class TestInputHandler(unittest.TestCase):
         self.assertIn("King of Hearts", last_display)
         self.assertIn("King of Diamonds", last_display)
         self.assertNotIn("Queen of Hearts", last_display)
-        self.assertEqual(selected, 0)  # First King should be selected
+        # Expect the original index
+        self.assertEqual(selected, 0) # Should select King of Hearts index
 
     @patch('game.input_handler.is_interactive_terminal')
     @patch('sys.stdin')
@@ -139,7 +140,8 @@ class TestInputHandler(unittest.TestCase):
         last_display = self.get_last_display(output)
         
         # Verify second King was selected
-        self.assertEqual(selected, 1)  # Should select King of Diamonds
+        # Expect the original index
+        self.assertEqual(selected, 1)  # Should select King of Diamonds index
         
         # Verify both Kings were shown in output
         self.assertIn("King of Hearts", last_display)
@@ -177,7 +179,8 @@ class TestInputHandler(unittest.TestCase):
         
         # After backspace, "queg" should match "Queen"
         self.assertIn("Queen", last_display)
-        self.assertEqual(selected, 2)  # Should select first Queen
+        # Expect the original index
+        self.assertEqual(selected, 2)  # Should select Queen of Hearts index
 
     @patch('game.input_handler.is_interactive_terminal')
     @patch('sys.stdin')
@@ -196,13 +199,29 @@ class TestInputHandler(unittest.TestCase):
 
     def test_non_interactive_terminal(self):
         """Test fallback behavior for non-interactive terminals"""
+        # Test selecting by index
         with patch('builtins.input', return_value='0'):
             selected = get_interactive_input("Select a card:", self.test_options)
+            # Expect the original index
             self.assertEqual(selected, 0)
 
+        # Test selecting by text match
         with patch('builtins.input', return_value='king'):
             selected = get_interactive_input("Select a card:", self.test_options)
-            self.assertEqual(selected, 0)  # Should match first king
+            # Expect the original index
+            self.assertEqual(selected, 0)  # Should match first king index
+
+        # Test ending game
+        with patch('builtins.input', return_value='e'):
+            selected = get_interactive_input("Select a card:", self.test_options)
+            # Expect -1 for end game
+            self.assertEqual(selected, -1)
+
+        # Test invalid input
+        with patch('builtins.input', return_value='invalid'):
+            selected = get_interactive_input("Select a card:", self.test_options)
+            # Expect -1 for invalid input
+            self.assertEqual(selected, -1)
 
     @patch('game.input_handler.is_interactive_terminal')
     @patch('sys.stdin')
@@ -229,4 +248,5 @@ class TestInputHandler(unittest.TestCase):
         # Should show "No matching options" then recover
         self.assertIn("No matching options", output)
         self.assertIn("King", last_display)  # After backspace and 'k'
-        self.assertEqual(selected, 0)  # Should select first King 
+        # Expect the original index
+        self.assertEqual(selected, 0)  # Should select King of Hearts index 

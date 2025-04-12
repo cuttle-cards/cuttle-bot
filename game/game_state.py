@@ -790,23 +790,47 @@ class GameState:
                     )
         return actions
 
-    def print_state(self, hide_player_hand: int = None):
-        print("--------------------------------")
-        print(f"Player {self.current_action_player}'s turn")
-        print(f"Deck: {len(self.deck)}")
-        print(f"Discard Pile: {len(self.discard_pile)}")
-        print("Points: ")
-        for i, hand in enumerate(self.hands):
-            points = self.get_player_score(i)
-            print(f"Player {i}: {points}")
-        for i, hand in enumerate(self.hands):
-            if i == hide_player_hand:
-                print(f"Player {i}'s hand: [Hidden]")
+    def print_state(self, hide_player_hand: Optional[int] = None):
+        """Print the current game state to the console.
+
+        Args:
+            hide_player_hand (Optional[int], optional): Index of the player whose hand
+                should be hidden (e.g., for privacy). Defaults to None (show both).
+        """
+        winner = self.winner()
+        if winner is not None:
+            self.logger(f"Player {winner} wins!")
+            return
+
+        if self.is_stalemate():
+            self.logger("Stalemate!")
+            return
+
+        self.logger("\n" + "=" * 20)
+        self.logger(f"Turn: Player {self.turn} (Overall Turn: {self.overall_turn})")
+        self.logger(f"Current Action Player: {self.current_action_player}")
+
+        for player in range(len(self.hands)):
+            self.logger("-" * 20)
+            self.logger(f"Player {player}: Score = {self.get_player_score(player)}, Target = {self.get_player_target(player)}")
+            # Use a check for None before comparing hide_player_hand
+            if hide_player_hand is not None and hide_player_hand == player:
+                self.logger(f"  Hand: [{len(self.hands[player])} cards hidden]")
             else:
-                print(f"Player {i}'s hand: {hand}")
-        for i in range(len(self.fields)):
-            print(f"Player {i}'s field: {self.get_player_field(i)}")
-        print("--------------------------------")
+                hand_str = ", ".join(map(str, self.hands[player]))
+                self.logger(f"  Hand: [{hand_str}]")
+
+            field_str = ", ".join(map(str, self.get_player_field(player)))
+            self.logger(f"  Field: [{field_str}]")
+
+        self.logger("-" * 20)
+        self.logger(f"Deck: {len(self.deck)} cards remaining")
+        discard_str = ", ".join(map(str, self.discard_pile))
+        self.logger(f"Discard Pile: [{discard_str}]")
+
+        if self.status:
+            self.logger(f"Status: {self.status}")
+        self.logger("=" * 20 + "\n")
 
     def to_dict(self) -> Dict:
         """

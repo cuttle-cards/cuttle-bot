@@ -9,7 +9,7 @@ import sys
 import pdoc
 from pathlib import Path
 
-def generate_docs():
+def generate_docs() -> None:
     """
     Generate documentation for the project.
     """

@@ -116,6 +116,9 @@ class Action:
             return f"Play {self.card} as jack on {self.target}"
         elif self.action_type == ActionType.RESOLVE:
             return f"Resolve one-off {self.target}"
+        else:
+            # Handle any unexpected action types
+            return f"Unknown Action: {self.action_type.value} with card {self.card}"
 
     def __str__(self) -> str:
         """Get a string representation of the action.
