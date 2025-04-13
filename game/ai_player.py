@@ -147,11 +147,12 @@ Keep your response concise."""
         Returns:
             str: Formatted prompt string for the LLM.
         """
-        opponent_point_cards = [
-            card for card in game_state.fields[0] if card.purpose == Purpose.POINTS
-        ]
+        opponent = 0
+        opponent_point_cards = game_state.player_point_cards(opponent)
         opponent_face_cards = [
-            card for card in game_state.fields[0] if card.purpose == Purpose.FACE_CARD
+            card
+            for card in game_state.fields[0]
+            if card.purpose == Purpose.FACE_CARD
         ]
 
         legal_actions_str = "\n".join(
@@ -162,13 +163,13 @@ Keep your response concise."""
 Current Game State:
 AI
 {"AI Hand: " + str(game_state.hands[1]) if not is_human_view else "AI Hand: [Hidden]"}
-AI Field: {game_state.fields[1]}
+AI Field: {game_state.get_player_field(1)}
 AI Score: {game_state.get_player_score(1)}
 AI Target: {game_state.get_player_target(1)}
 
 Opponent
 Opponent's Hand Size: {len(game_state.hands[0])}
-Opponent's Field: {game_state.fields[0]}
+Opponent's Field: {game_state.get_player_field(0)}
 Opponent's Point Cards: {opponent_point_cards}
 Opponent's Face Cards: {opponent_face_cards}
 Opponent's Score: {game_state.get_player_score(0)}
@@ -223,7 +224,7 @@ Make your choice now:
         if not legal_actions:
             raise ValueError("No legal actions available")
 
-        # Format the game state and actions into a prompt
+        # Format the game state and actions into a prompt using the moved method
         prompt = self._format_game_state(game_state, legal_actions)
         retries = 0
         last_error = None

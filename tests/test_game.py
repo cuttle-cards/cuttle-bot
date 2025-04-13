@@ -596,7 +596,7 @@ class TestGame(unittest.TestCase):
         # Create Jack action
         jack_card = hands[0][0]
         target_card = fields[1][0]  # Seven of Spades
-        jack_action = Action(ActionType.JACK, jack_card, target_card, 0)
+        jack_action = Action(action_type=ActionType.JACK, card=jack_card, target=target_card, played_by=0)
 
         # Apply the action
         turn_finished, should_stop, winner = game_state.update_state(jack_action)
@@ -653,7 +653,7 @@ class TestGame(unittest.TestCase):
         # Create Jack action
         jack_card = hands[0][0]
         target_card = fields[1][1]  # Nine of Hearts
-        jack_action = Action(ActionType.JACK, jack_card, target_card, 0)
+        jack_action = Action(action_type=ActionType.JACK, card=jack_card, target=target_card, played_by=0)
 
         # Try to apply the action
         with self.assertRaises(Exception) as context:

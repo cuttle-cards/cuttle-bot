@@ -11,7 +11,7 @@ This module defines the core card-related classes and enums used in the game:
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class Card:
@@ -171,6 +171,34 @@ class Card:
             bool: True if the card is stolen.
         """
         return len(self.attachments) % 2 == 1
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize the Card object to a dictionary."""
+        return {
+            "id": self.id,
+            "suit": self.suit.name,
+            "rank": self.rank.name,
+            "played_by": self.played_by,
+            "purpose": self.purpose.name if self.purpose else None,
+            "attachments": [att.to_dict() for att in self.attachments],
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> Card:
+        """Deserialize a Card object from a dictionary."""
+        attachments_data = data.get("attachments", [])
+        attachments = [
+            cls.from_dict(att_data) for att_data in attachments_data if att_data
+        ]
+        purpose_name = data.get("purpose")
+        return cls(
+            id=data["id"],
+            suit=Suit[data["suit"]],
+            rank=Rank[data["rank"]],
+            played_by=data.get("played_by"),
+            purpose=Purpose[purpose_name] if purpose_name else None,
+            attachments=attachments,
+        )
 
 
 class Suit(Enum):

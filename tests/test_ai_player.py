@@ -37,8 +37,8 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
     def test_format_game_state(self):
         """Test that game state is formatted correctly for the LLM."""
         legal_actions = [
-            Action(ActionType.DRAW, None, None, 1),
-            Action(ActionType.POINTS, self.p1_cards[1], None, 1),
+            Action(action_type=ActionType.DRAW, card=None, target=None, played_by=1),
+            Action(action_type=ActionType.POINTS, card=self.p1_cards[1], target=None, played_by=1),
         ]
 
         formatted_state = self.ai_player._format_game_state(
@@ -58,8 +58,8 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
     async def test_get_action_success(self, mock_chat):
         """Test successful action selection by AI."""
         legal_actions = [
-            Action(ActionType.DRAW, None, None, 1),
-            Action(ActionType.POINTS, self.p1_cards[1], None, 1),
+            Action(action_type=ActionType.DRAW, card=None, target=None, played_by=1),
+            Action(action_type=ActionType.POINTS, card=self.p1_cards[1], target=None, played_by=1),
         ]
 
         # Mock Ollama response
@@ -80,8 +80,8 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
     async def test_get_action_invalid_response(self, mock_chat):
         """Test handling of invalid LLM response."""
         legal_actions = [
-            Action(ActionType.DRAW, None, None, 1),
-            Action(ActionType.POINTS, self.p1_cards[1], None, 1),
+            Action(action_type=ActionType.DRAW, card=None, target=None, played_by=1),
+            Action(action_type=ActionType.POINTS, card=self.p1_cards[1], target=None, played_by=1),
         ]
 
         # Mock invalid Ollama response
@@ -101,8 +101,8 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
     async def test_get_action_api_error(self, mock_chat):
         """Test handling of API errors."""
         legal_actions = [
-            Action(ActionType.DRAW, None, None, 1),
-            Action(ActionType.POINTS, self.p1_cards[1], None, 1),
+            Action(action_type=ActionType.DRAW, card=None, target=None, played_by=1),
+            Action(action_type=ActionType.POINTS, card=self.p1_cards[1], target=None, played_by=1),
         ]
 
         # Mock API error

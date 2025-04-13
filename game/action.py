@@ -10,6 +10,7 @@ This module defines the classes and enums related to game actions:
 from __future__ import annotations
 
 from enum import Enum
+from typing import Optional
 
 from game.card import Card
 
@@ -51,8 +52,8 @@ class Action:
     """
 
     action_type: ActionType
-    card: Card
-    target: Card
+    card: Optional[Card]
+    target: Optional[Card]
     played_by: int
     requires_additional_input: bool
     source: ActionSource
@@ -60,9 +61,9 @@ class Action:
     def __init__(
         self,
         action_type: ActionType,
-        card: Card,
-        target: Card,
         played_by: int,
+        card: Optional[Card] = None,
+        target: Optional[Card] = None,
         requires_additional_input: bool = False,
         source: ActionSource = ActionSource.HAND,
     ):
@@ -70,9 +71,9 @@ class Action:
 
         Args:
             action_type (ActionType): The type of action being performed.
-            card (Card): The card being played or used.
-            target (Card): The target card (if any) for the action.
             played_by (int): Index of the player performing the action (0 or 1).
+            card (Optional[Card], optional): The card being played or used. Defaults to None.
+            target (Optional[Card], optional): The target card (if any) for the action. Defaults to None.
             requires_additional_input (bool, optional): Whether more input is needed.
                 Defaults to False.
             source (ActionSource, optional): Where the card comes from.
@@ -108,18 +109,27 @@ class Action:
         elif self.action_type == ActionType.ONE_OFF:
             return f"Play {self.card} as one-off"
         elif self.action_type == ActionType.SCUTTLE:
-            return f"Scuttle {self.target} on P{self.target.played_by}'s field with {self.card}"
+            target_str = str(self.target) if self.target else "None"
+            card_str = str(self.card) if self.card else "None"
+            target_player = self.target.played_by if self.target else '?'
+            return f"Scuttle {target_str} on P{target_player}'s field with {card_str}"
         elif self.action_type == ActionType.DRAW:
             return "Draw a card from deck"
         elif self.action_type == ActionType.COUNTER:
-            return f"Counter {self.target} with {self.card}"
+            target_str = str(self.target) if self.target else "None"
+            card_str = str(self.card) if self.card else "None"
+            return f"Counter {target_str} with {card_str}"
         elif self.action_type == ActionType.JACK:
-            return f"Play {self.card} as jack on {self.target}"
+            target_str = str(self.target) if self.target else "None"
+            card_str = str(self.card) if self.card else "None"
+            return f"Play {card_str} as jack on {target_str}"
         elif self.action_type == ActionType.RESOLVE:
-            return f"Resolve one-off {self.target}"
+            target_str = str(self.target) if self.target else "None"
+            return f"Resolve one-off {target_str}"
         else:
             # Handle any unexpected action types
-            return f"Unknown Action: {self.action_type.value} with card {self.card}"
+            card_str = str(self.card) if self.card else "None"
+            return f"Unknown Action: {self.action_type.value} with card {card_str}"
 
     def __str__(self) -> str:
         """Get a string representation of the action.

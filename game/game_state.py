@@ -8,10 +8,15 @@ all game rules and state transitions.
 
 from __future__ import annotations
 
-from typing import List, Optional, Dict, Tuple
-from game.card import Card, Purpose, Rank
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+
 from game.action import Action, ActionType
+from game.card import Card, Purpose, Rank
 from game.utils import log_print
+
+# Import AIPlayer only for type checking to avoid circular import
+if TYPE_CHECKING:
+    from game.ai_player import AIPlayer
 
 
 class GameState:
@@ -46,7 +51,8 @@ class GameState:
     """
 
     use_ai: bool
-    ai_player: None
+    ai_player: Optional["AIPlayer"]
+    one_off_card_to_counter: Optional[Card] = None
 
     def __init__(
         self,
@@ -54,9 +60,9 @@ class GameState:
         fields: List[List[Card]],
         deck: List[Card],
         discard_pile: List[Card],
-        logger=print,  # Default to print if no logger provided
+        logger: Callable[..., Any] = print,
         use_ai: bool = False,
-        ai_player=None,
+        ai_player: Optional["AIPlayer"] = None,
     ):
         """Initialize a new game state.
 
@@ -640,7 +646,7 @@ class GameState:
         """
         # Validate card is in current player's hand
         if card not in self.hands[self.turn]:
-            raise Exception("Can only play cards from your hand")
+            raise Exception(f"Can only play cards from your hand, card: {card} not in hand: {self.hands[self.turn]}")
 
         # Validate card is a face card
         if not card.is_face_card():
@@ -707,7 +713,7 @@ class GameState:
         # If resolving three, legal actions is to choose a card from the discard pile
         if self.resolving_three:
             for card in self.discard_pile:
-                actions.append(Action(ActionType.THREE, card, None, self.turn))
+                actions.append(Action(ActionType.THREE, self.turn, card=card))
             return actions
 
         # If resolving one-off, only allow counter or resolve
@@ -734,24 +740,23 @@ class GameState:
                     actions.append(
                         Action(
                             ActionType.COUNTER,
-                            two,
-                            self.one_off_card_to_counter,
                             self.current_action_player,
+                            card=two,
+                            target=self.one_off_card_to_counter,
                         )
                     )
             # Always allow resolving (not countering)
             actions.append(
                 Action(
                     ActionType.RESOLVE,
-                    None,
-                    self.one_off_card_to_counter,
                     self.current_action_player,
+                    target=self.one_off_card_to_counter,
                 )
             )
             return actions
 
         # Always allow drawing a card
-        actions.append(Action(ActionType.DRAW, None, None, self.turn))
+        actions.append(Action(ActionType.DRAW, self.turn))
 
         # Get cards in current player's hand
         hand = self.hands[self.turn]
@@ -759,14 +764,14 @@ class GameState:
         # Can play any card as points (2-10)
         for card in hand:
             if card.point_value() <= Rank.TEN.value[1]:
-                actions.append(Action(ActionType.POINTS, card, None, self.turn))
+                actions.append(Action(ActionType.POINTS, self.turn, card=card))
 
         # Can play face cards
         for card in hand:
             # Only Kings are implemented for now
             # TODO: Implement Queens, Jacks, and Eights
             if card.is_face_card() and card.rank in [Rank.KING, Rank.QUEEN]:
-                actions.append(Action(ActionType.FACE_CARD, card, None, self.turn))
+                actions.append(Action(ActionType.FACE_CARD, self.turn, card=card))
 
         opponent = (self.current_action_player + 1) % len(self.hands)
         queen_on_opponent_field = any(
@@ -779,13 +784,13 @@ class GameState:
                     if opponent_card.purpose == Purpose.POINTS:
                         # TODO: also check if card has jacks attached
                         actions.append(
-                            Action(ActionType.JACK, card, opponent_card, self.turn)
+                            Action(ActionType.JACK, self.turn, card=card, target=opponent_card)
                         )
 
         # Can play one-offs
         for card in hand:
             if card.is_one_off():
-                actions.append(Action(ActionType.ONE_OFF, card, None, self.turn))
+                actions.append(Action(ActionType.ONE_OFF, self.turn, card=card))
 
         # Can scuttle opponent's point cards with higher point cards (only point cards can scuttle)
         opponent = (self.turn + 1) % len(self.hands)
@@ -810,11 +815,11 @@ class GameState:
                     and card.suit_value() > opponent_card.suit_value()
                 ):
                     actions.append(
-                        Action(ActionType.SCUTTLE, card, opponent_card, self.turn)
+                        Action(ActionType.SCUTTLE, self.turn, card=card, target=opponent_card)
                     )
         return actions
 
-    def print_state(self, hide_player_hand: Optional[int] = None):
+    def print_state(self, hide_player_hand: Optional[int] = None) -> None:
         """Print the current game state to the console.
 
         Args:
@@ -869,20 +874,23 @@ class GameState:
             "hands": [[card.to_dict() for card in hand] for hand in self.hands],
             "fields": [[card.to_dict() for card in field] for field in self.fields],
             "deck": [card.to_dict() for card in self.deck],
-            "discard": [card.to_dict() for card in self.discard_pile],
+            "discard_pile": [card.to_dict() for card in self.discard_pile],
             "turn": self.turn,
+            "last_action_played_by": self.last_action_played_by,
+            "current_action_player": self.current_action_player,
             "status": self.status,
             "resolving_two": self.resolving_two,
             "resolving_one_off": self.resolving_one_off,
-            "one_off_card_to_counter": (
-                self.one_off_card_to_counter.to_dict()
-                if self.one_off_card_to_counter
-                else None
-            ),
+            "resolving_three": self.resolving_three,
+            "one_off_card_to_counter": self.one_off_card_to_counter.to_dict()
+            if self.one_off_card_to_counter is not None
+            else None,
+            "use_ai": self.use_ai,
+            "overall_turn": self.overall_turn,
         }
-
+    
     @classmethod
-    def from_dict(cls, data: Dict, logger=print) -> "GameState":
+    def from_dict(cls, data: Dict, logger: Callable[..., Any] = print) -> "GameState":
         """
         Create a game state from a dictionary.
 
@@ -892,25 +900,38 @@ class GameState:
         Returns:
             A new GameState instance
         """
-        hands = [
-            [Card.from_dict(card_data) for card_data in hand] for hand in data["hands"]
-        ]
-        fields = [
-            [Card.from_dict(card_data) for card_data in field]
-            for field in data["fields"]
-        ]
-        deck = [Card.from_dict(card_data) for card_data in data["deck"]]
-        discard_pile = [Card.from_dict(card_data) for card_data in data["discard"]]
+        hands_data = data.get("hands", [[], []])
+        fields_data = data.get("fields", [[], []])
+        deck_data = data.get("deck", [])
+        discard_pile_data = data.get("discard_pile", [])
+        one_off_counter_data = data.get("one_off_card_to_counter")
 
-        game_state = cls(hands, fields, deck, discard_pile, logger=logger)
-        game_state.turn = data["turn"]
-        game_state.status = data["status"]
-        game_state.resolving_two = data["resolving_two"]
-        game_state.resolving_one_off = data["resolving_one_off"]
-        game_state.one_off_card_to_counter = (
-            Card.from_dict(data["one_off_card_to_counter"])
-            if data["one_off_card_to_counter"]
+        hands = [[Card.from_dict(card) for card in hand] for hand in hands_data]
+        fields = [[Card.from_dict(card) for card in field] for field in fields_data]
+        deck = [Card.from_dict(card) for card in deck_data]
+        discard_pile = [Card.from_dict(card) for card in discard_pile_data]
+
+        state = cls(
+            hands=hands,
+            fields=fields,
+            deck=deck,
+            discard_pile=discard_pile,
+            logger=logger,
+            use_ai=data.get("use_ai", False),
+        )
+        state.turn = data.get("turn", 0)
+        state.last_action_played_by = data.get("last_action_played_by")
+        state.current_action_player = data.get("current_action_player", state.turn)
+        state.status = data.get("status")
+        state.resolving_two = data.get("resolving_two", False)
+        state.resolving_one_off = data.get("resolving_one_off", False)
+        state.resolving_three = data.get("resolving_three", False)
+        state.one_off_card_to_counter = (
+            Card.from_dict(one_off_counter_data)
+            if one_off_counter_data is not None
             else None
         )
+        state.ai_player = None  # Placeholder, actual instance set by Game
+        state.overall_turn = data.get("overall_turn", 0)
 
-        return game_state
+        return state
