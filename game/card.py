@@ -66,9 +66,13 @@ class Card:
         Returns:
             str: String representation of the card.
         """
-        jack_prefix = "[Jack]" * len(self.attachments) + " " if len(self.attachments) > 0 else ""
+        jack_prefix = (
+            "[Jack]" * len(self.attachments) + " " if len(self.attachments) > 0 else ""
+        )
         stolen_prefix = "[Stolen from opponent] " if self.is_stolen() else ""
-        return f"{stolen_prefix}{jack_prefix}{self.rank.value[0]} of {self.suit.value[0]}"
+        return (
+            f"{stolen_prefix}{jack_prefix}{self.rank.value[0]} of {self.suit.value[0]}"
+        )
 
     def __repr__(self) -> str:
         """Get a string representation of the card for debugging.
@@ -87,7 +91,7 @@ class Card:
         """
         self.played_by = None
         self.purpose = None
-    
+
     def is_point_card(self) -> bool:
         """Check if the card can be played for points.
 
@@ -156,7 +160,7 @@ class Card:
             bool: True if the card can be played as a one-off.
         """
         return self.rank in [Rank.ACE, Rank.THREE, Rank.FOUR, Rank.FIVE, Rank.SIX]
-    
+
     def is_stolen(self) -> bool:
         """Check if the card is currently stolen by the opponent.
 

@@ -1,11 +1,12 @@
 import unittest
 from unittest.mock import patch
+
 import pytest
-from game.game import Game
-from game.card import Card, Suit, Rank, Purpose
+
 from game.action import Action, ActionType
+from game.card import Card, Purpose, Rank, Suit
+from game.game import Game
 from game.game_state import GameState
-from game.utils import log_print
 
 
 class TestGame(unittest.TestCase):
@@ -521,21 +522,35 @@ class TestGame(unittest.TestCase):
         """Test a complete game scenario ending with King win condition."""
         # Mock inputs: P0 gets Kings, P1 gets points, P0 wins
         mock_inputs = [
-            "0", "1", "2", "3", "4", # P0 selects Kings + Ace
-            "0", "1", "2", "3", "4", "5", # P1 selects high points
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",  # P0 selects Kings + Ace
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",  # P1 selects high points
             # Game actions (mocked, not used as test deck is provided)
         ]
         mock_input.side_effect = mock_inputs
 
         # Test deck: P0 gets 4 Kings + Ace, P1 gets points
         test_deck = [
-            Card("KH", Suit.HEARTS, Rank.KING), Card("KD", Suit.DIAMONDS, Rank.KING),
-            Card("KS", Suit.SPADES, Rank.KING), Card("KC", Suit.CLUBS, Rank.KING),
-            Card("AH", Suit.HEARTS, Rank.ACE), # P0 hand
-            Card("10H", Suit.HEARTS, Rank.TEN), Card("10D", Suit.DIAMONDS, Rank.TEN),
-            Card("10S", Suit.SPADES, Rank.TEN), Card("9H", Suit.HEARTS, Rank.NINE),
-            Card("8H", Suit.HEARTS, Rank.EIGHT), Card("7H", Suit.HEARTS, Rank.SEVEN), # P1 hand
-        ] + [Card(str(i), Suit.CLUBS, Rank.TWO) for i in range(41)] # Filler
+            Card("KH", Suit.HEARTS, Rank.KING),
+            Card("KD", Suit.DIAMONDS, Rank.KING),
+            Card("KS", Suit.SPADES, Rank.KING),
+            Card("KC", Suit.CLUBS, Rank.KING),
+            Card("AH", Suit.HEARTS, Rank.ACE),  # P0 hand
+            Card("10H", Suit.HEARTS, Rank.TEN),
+            Card("10D", Suit.DIAMONDS, Rank.TEN),
+            Card("10S", Suit.SPADES, Rank.TEN),
+            Card("9H", Suit.HEARTS, Rank.NINE),
+            Card("8H", Suit.HEARTS, Rank.EIGHT),
+            Card("7H", Suit.HEARTS, Rank.SEVEN),  # P1 hand
+        ] + [Card(str(i), Suit.CLUBS, Rank.TWO) for i in range(41)]  # Filler
 
         # Pass the mock_print function as the logger
         game = Game(test_deck=test_deck, logger=mock_print)
@@ -599,14 +614,20 @@ class TestGame(unittest.TestCase):
         self.assertEqual(len(target_card.attachments), 1)
         for card in fields[1]:
             print(card, card.attachments)
-        self.assertEqual(len(fields[1][1].attachments), 0) # no attachments on the other point card
+        self.assertEqual(
+            len(fields[1][1].attachments), 0
+        )  # no attachments on the other point card
 
         # Verify the point card is now stolen (counts for player 0)
         self.assertTrue(target_card.is_stolen())
 
         # Verify scores are updated correctly
-        self.assertEqual(game_state.get_player_score(0), 7)  # Stolen card counts for player 0
-        self.assertEqual(game_state.get_player_score(1), 9)  # Only the second card counts for player 1
+        self.assertEqual(
+            game_state.get_player_score(0), 7
+        )  # Stolen card counts for player 0
+        self.assertEqual(
+            game_state.get_player_score(1), 9
+        )  # Only the second card counts for player 1
 
     def test_play_jack_action_with_queen_on_field(self):
         """Test that Jack action cannot be played if opponent has a Queen on their field."""
@@ -618,7 +639,9 @@ class TestGame(unittest.TestCase):
         fields = [
             [],  # Player 0's field (empty)
             [  # Player 1's field with Queen and point card
-                Card("3", Suit.SPADES, Rank.QUEEN, played_by=1, purpose=Purpose.FACE_CARD),
+                Card(
+                    "3", Suit.SPADES, Rank.QUEEN, played_by=1, purpose=Purpose.FACE_CARD
+                ),
                 Card("4", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
             ],
         ]
@@ -635,9 +658,12 @@ class TestGame(unittest.TestCase):
         # Try to apply the action
         with self.assertRaises(Exception) as context:
             game_state.update_state(jack_action)
-        
+
         # Verify error message
-        self.assertIn("Cannot play jack as face card if opponent has a queen on their field", str(context.exception))
+        self.assertIn(
+            "Cannot play jack as face card if opponent has a queen on their field",
+            str(context.exception),
+        )
 
         # Verify game state unchanged
         self.assertIn(jack_card, game_state.hands[0])

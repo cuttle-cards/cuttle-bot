@@ -1,11 +1,13 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import pytest
 import asyncio
-from game.ai_player import AIPlayer
-from game.game_state import GameState
-from game.card import Card, Suit, Rank
+import unittest
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from game.action import Action, ActionType
+from game.ai_player import AIPlayer
+from game.card import Card, Rank, Suit
+from game.game_state import GameState
 
 
 class TestAIPlayer(unittest.IsolatedAsyncioTestCase):

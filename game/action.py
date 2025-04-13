@@ -9,8 +9,9 @@ This module defines the classes and enums related to game actions:
 
 from __future__ import annotations
 
-from game.card import Card
 from enum import Enum
+
+from game.card import Card
 
 
 class ActionSource(Enum):

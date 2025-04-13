@@ -1,13 +1,9 @@
-import unittest
-import sys
-import logging
 import io
-from unittest.mock import patch, MagicMock
-import pytest
+import logging
+import sys
+import unittest
 
-from game.card import Card, Suit, Rank
-from game.game import Game
-
+from game.card import Card, Rank, Suit
 
 # Set up logging
 log_stream = io.StringIO()
@@ -44,7 +40,7 @@ class MainTestBase(unittest.TestCase):
         sys.stderr = self.stderr_capture
         # Store mocks passed to tests
         self.mock_input = None
-        self.mock_logger = None # Use this for Game logger
+        self.mock_logger = None  # Use this for Game logger
 
     def tearDown(self):
         # Restore original stdout and stderr
@@ -89,7 +85,7 @@ class MainTestBase(unittest.TestCase):
         """Generate a test deck ensuring specific player hands first."""
         deck = list(p0_cards) + list(p1_cards)
         existing_cards = set(str(c) for c in deck)
-        
+
         # Add filler cards, avoiding duplicates
         filler_count = 0
         card_id = len(deck) + 1
@@ -97,7 +93,7 @@ class MainTestBase(unittest.TestCase):
             for rank in Rank:
                 if filler_count >= num_filler:
                     break
-                card_str = f"{rank.value}{suit.value}" # Use a consistent string representation
+                card_str = f"{rank.value}{suit.value}"  # Use a consistent string representation
                 if card_str not in existing_cards:
                     deck.append(Card(str(card_id), suit, rank))
                     existing_cards.add(card_str)
@@ -107,20 +103,21 @@ class MainTestBase(unittest.TestCase):
                 break
         # Add more unique fillers if needed (e.g., different suits/ranks)
         while filler_count < num_filler:
-             # This fallback logic might be needed if standard deck runs out quickly
-             # For now, assume 52 cards are enough
-             rank = Rank(filler_count % 13 + 1) # Cycle through ranks
-             suit = Suit(list(Suit)[filler_count % 4]) # Cycle through suits
-             card_str = f"{rank.value}{suit.value}"
-             if card_str not in existing_cards:
-                  deck.append(Card(str(card_id), suit, rank))
-                  existing_cards.add(card_str)
-                  filler_count += 1
-                  card_id += 1
-             else:
-                  # If collision, just increment id and try next combo implicitly
-                  card_id += 1 
-                  # Safety break to prevent infinite loop in edge cases
-                  if card_id > 1000: break 
+            # This fallback logic might be needed if standard deck runs out quickly
+            # For now, assume 52 cards are enough
+            rank = Rank(filler_count % 13 + 1)  # Cycle through ranks
+            suit = Suit(list(Suit)[filler_count % 4])  # Cycle through suits
+            card_str = f"{rank.value}{suit.value}"
+            if card_str not in existing_cards:
+                deck.append(Card(str(card_id), suit, rank))
+                existing_cards.add(card_str)
+                filler_count += 1
+                card_id += 1
+            else:
+                # If collision, just increment id and try next combo implicitly
+                card_id += 1
+                # Safety break to prevent infinite loop in edge cases
+                if card_id > 1000:
+                    break
 
         return deck

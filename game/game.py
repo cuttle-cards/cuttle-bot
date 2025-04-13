@@ -6,17 +6,18 @@ saving/loading games, and initialization of game sessions. It supports both manu
 and automatic card selection, as well as AI players.
 """
 
-from typing import List, Dict, Optional
-from game.card import Card, Suit, Rank
-from game.game_state import GameState
-from game.serializer import save_game_state, load_game_state
-import uuid
-import random
-import os
 import glob
-import time
+import os
+import random
 import sys
+import time
+import uuid
+from typing import Dict, List, Optional
+
 from game.ai_player import AIPlayer
+from game.card import Card, Rank, Suit
+from game.game_state import GameState
+from game.serializer import load_game_state, save_game_state
 
 
 class Game:
@@ -143,7 +144,7 @@ class Game:
         This method allows players to manually select their starting hands:
         - Player 0 can select up to 5 cards
         - Player 1 can select up to 6 cards
-        
+
         Any unselected card slots will be filled randomly.
         The remaining cards form the deck.
 
@@ -304,4 +305,6 @@ class Game:
         """
         hands = self.deal_cards(test_deck)
         fields = [[], []]
-        self.game_state = GameState(hands, fields, test_deck[11:], [], logger=self.logger)
+        self.game_state = GameState(
+            hands, fields, test_deck[11:], [], logger=self.logger
+        )

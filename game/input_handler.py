@@ -13,6 +13,7 @@ import os
 from typing import List, Tuple
 import errno
 
+
 def is_interactive_terminal() -> bool:
     """Check if the current environment is an interactive terminal.
 
@@ -25,6 +26,7 @@ def is_interactive_terminal() -> bool:
     """
     try:
         import termios
+
         # Only try to get terminal attributes if we have a TTY
         if not sys.stdin.isatty() or not sys.stdout.isatty():
             return False
@@ -33,14 +35,15 @@ def is_interactive_terminal() -> bool:
             fd = sys.stdin.fileno()
             termios.tcgetattr(fd)
             # Also check if we're in a test environment with a pseudo-terminal
-            if 'pytest' in sys.modules:
+            if "pytest" in sys.modules:
                 # If we got here in a test environment, we have a working terminal
                 return True
-            return os.environ.get('TERM') is not None
+            return os.environ.get("TERM") is not None
         except termios.error:
             return False
     except (ImportError, AttributeError):
         return False
+
 
 def get_terminal_size() -> Tuple[int, int]:
     """Get the dimensions of the terminal window.
@@ -54,6 +57,7 @@ def get_terminal_size() -> Tuple[int, int]:
     except OSError:
         return (80, 24)  # Default size
 
+
 def clear_lines(num_lines: int) -> None:
     """Clear the specified number of lines above the cursor.
 
@@ -65,12 +69,20 @@ def clear_lines(num_lines: int) -> None:
     """
     if is_interactive_terminal():
         for _ in range(num_lines):
-            sys.stdout.write('\033[F')  # Move cursor up one line
-            sys.stdout.write('\033[K')  # Clear line
+            sys.stdout.write("\033[F")  # Move cursor up one line
+            sys.stdout.write("\033[K")  # Clear line
 
-def display_options(prompt: str, current_input: str, pre_filtered_options: List[str], 
-                   filtered_options: List[str], selected_idx: int, max_display: int, 
-                   terminal_width: int, is_initial_display: bool = False) -> None:
+
+def display_options(
+    prompt: str,
+    current_input: str,
+    pre_filtered_options: List[str],
+    filtered_options: List[str],
+    selected_idx: int,
+    max_display: int,
+    terminal_width: int,
+    is_initial_display: bool = False,
+) -> None:
     """Display the prompt and filtered options in an interactive manner.
 
     This function handles the visual display of the input prompt and available options.
@@ -94,11 +106,11 @@ def display_options(prompt: str, current_input: str, pre_filtered_options: List[
                 clear_lines(min(len(pre_filtered_options), max_display) + 2)
             else:
                 clear_lines(min(len(pre_filtered_options), max_display) + 1)
-        
+
         # Print prompt and current input
         sys.stdout.write(f"\r{prompt} {current_input}")
         sys.stdout.flush()
-        
+
         # Print filtered options
         if filtered_options:
             sys.stdout.write("\n")
@@ -116,6 +128,7 @@ def display_options(prompt: str, current_input: str, pre_filtered_options: List[
         print(f"{prompt}")
         for i, option in enumerate(filtered_options[:max_display]):
             print(f"{i}: {option}")
+
 
 def get_interactive_input(prompt: str, options: List[str]) -> int:
     """Get user input interactively with filtered options display.
@@ -137,30 +150,39 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
     # If we're in a test environment or non-interactive terminal, use simple input
     if not is_interactive_terminal():
         return get_non_interactive_input(prompt, options)
-        
+
     try:
         import termios
         import tty
-        
+
         # Save terminal settings
         old_settings = termios.tcgetattr(sys.stdin)
         try:
             # Set terminal to raw mode
             tty.setraw(sys.stdin)
-            
+
             # Initialize variables
             current_input = ""
             filtered_options = options
             pre_filtered_options = options
             selected_idx = 0
             max_display = 20  # Maximum number of options to display at once
-            
+
             # Get terminal width for proper alignment
             terminal_width, _ = get_terminal_size()
-            
+
             # Initial display
-            display_options(prompt=prompt, current_input=current_input, pre_filtered_options=pre_filtered_options, filtered_options=filtered_options, selected_idx=selected_idx, max_display=max_display, terminal_width=terminal_width, is_initial_display=True)
-            
+            display_options(
+                prompt=prompt,
+                current_input=current_input,
+                pre_filtered_options=pre_filtered_options,
+                filtered_options=filtered_options,
+                selected_idx=selected_idx,
+                max_display=max_display,
+                terminal_width=terminal_width,
+                is_initial_display=True,
+            )
+
             while True:
                 try:
                     # Read a single character
@@ -177,7 +199,9 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
                             selected_option = filtered_options[selected_idx]
                             original_idx = options.index(selected_option)
                             # Restore terminal settings before returning
-                            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                            termios.tcsetattr(
+                                sys.stdin, termios.TCSADRAIN, old_settings
+                            )
                             # Clear the final display
                             if filtered_options:
                                 clear_lines(min(len(filtered_options), max_display) + 2)
@@ -190,44 +214,73 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
                         if current_input:
                             current_input = current_input[:-1]
                             # Update filtered options
-                            filtered_options = [opt for opt in options if current_input.lower() in opt.lower()]
+                            filtered_options = [
+                                opt
+                                for opt in options
+                                if current_input.lower() in opt.lower()
+                            ]
                             selected_idx = 0
                     elif ord(char) == 27:  # Escape sequence
                         next_char = sys.stdin.read(1)
-                        if next_char == '[':  # Arrow keys
+                        if next_char == "[":  # Arrow keys
                             key = sys.stdin.read(1)
-                            if key == 'A':  # Up arrow
-                                selected_idx = (selected_idx - 1) % len(filtered_options) if filtered_options else 0
-                            elif key == 'B':  # Down arrow
-                                selected_idx = (selected_idx + 1) % len(filtered_options) if filtered_options else 0
+                            if key == "A":  # Up arrow
+                                selected_idx = (
+                                    (selected_idx - 1) % len(filtered_options)
+                                    if filtered_options
+                                    else 0
+                                )
+                            elif key == "B":  # Down arrow
+                                selected_idx = (
+                                    (selected_idx + 1) % len(filtered_options)
+                                    if filtered_options
+                                    else 0
+                                )
                     elif ord(char) >= 32:  # Printable characters
                         current_input += char
                         # Update filtered options
-                        filtered_options = [opt for opt in options if current_input.lower() in opt.lower()]
+                        filtered_options = [
+                            opt
+                            for opt in options
+                            if current_input.lower() in opt.lower()
+                        ]
                         selected_idx = 0
-                    
+
                     # Refresh display after any change
-                    display_options(prompt=prompt, current_input=current_input, pre_filtered_options=pre_filtered_options, filtered_options=filtered_options, selected_idx=selected_idx, max_display=max_display, terminal_width=terminal_width, is_initial_display=False)
+                    display_options(
+                        prompt=prompt,
+                        current_input=current_input,
+                        pre_filtered_options=pre_filtered_options,
+                        filtered_options=filtered_options,
+                        selected_idx=selected_idx,
+                        max_display=max_display,
+                        terminal_width=terminal_width,
+                        is_initial_display=False,
+                    )
                 except (IOError, OSError) as e:
                     if e.errno == errno.EAGAIN:  # Resource temporarily unavailable
                         continue
                     raise
-        
+
         finally:
             # Restore terminal settings if they were successfully changed
-            if 'old_settings' in locals() and 'termios' in sys.modules and 'tty' in sys.modules:
-                 try:
-                      termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-                 except termios.error:
-                      # Ignore errors if terminal state is messed up, e.g., during exit
-                      pass
+            if (
+                "old_settings" in locals()
+                and "termios" in sys.modules
+                and "tty" in sys.modules
+            ):
+                try:
+                    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                except termios.error:
+                    # Ignore errors if terminal state is messed up, e.g., during exit
+                    pass
             # Clear the final display if possible
             if is_interactive_terminal():
-                if 'filtered_options' in locals() and filtered_options:
+                if "filtered_options" in locals() and filtered_options:
                     clear_lines(min(len(filtered_options), max_display) + 2)
                 else:
                     # Need to clear at least the prompt line
-                    clear_lines(2) 
+                    clear_lines(2)
                 sys.stdout.write("\n")
             # DO NOT return from finally block, let the return in try or except handle it
 
@@ -242,6 +295,7 @@ def get_interactive_input(prompt: str, options: List[str]) -> int:
         # Restore terminal settings is now handled in the finally block
         # Re-raise KeyboardInterrupt as per original expectation
         raise KeyboardInterrupt
+
 
 def get_non_interactive_input(prompt: str, options: List[str]) -> int:
     """Get user input in a non-interactive environment.
@@ -266,16 +320,16 @@ def get_non_interactive_input(prompt: str, options: List[str]) -> int:
     response_lower = response.lower()
 
     # Handle 'e' or 'end game' for end game
-    if response_lower in ['e', 'end game']:
+    if response_lower in ["e", "end game"]:
         return -1
 
     # 1. Try to match by index first
     try:
         index = int(response)
         if 0 <= index < len(options):
-            return index # Return the index
+            return index  # Return the index
     except ValueError:
-        pass # Not a valid number, proceed to text matching
+        pass  # Not a valid number, proceed to text matching
 
     # 2. Try exact text match (case-insensitive)
     for i, option in enumerate(options):
@@ -285,7 +339,7 @@ def get_non_interactive_input(prompt: str, options: List[str]) -> int:
     # 3. Try substring match (case-insensitive, return first match index)
     for i, option in enumerate(options):
         if response_lower in option.lower():
-            return i # Return the index of the first substring match
+            return i  # Return the index of the first substring match
 
     # If no match found by any method
     print(f"Invalid input: '{response}'. Please enter a valid index or text.")

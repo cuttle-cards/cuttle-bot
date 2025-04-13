@@ -1,6 +1,8 @@
 from unittest.mock import patch
+
 import pytest
-from game.card import Card, Suit, Rank
+
+from game.card import Card, Rank, Suit
 from tests.test_main.test_main_base import MainTestBase, print_and_capture
 
 

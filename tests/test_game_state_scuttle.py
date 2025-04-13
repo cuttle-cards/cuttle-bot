@@ -1,7 +1,7 @@
 import unittest
 from game.game_state import GameState
 from game.card import Card, Suit, Rank, Purpose
-from game.action import Action, ActionType
+from game.action import ActionType
 
 
 class TestGameStateScuttle(unittest.TestCase):
@@ -146,7 +146,11 @@ class TestGameStateScuttle(unittest.TestCase):
         """Test that only point cards on the field can be scuttled."""
         # Add a face card to opponent's field
         queen_hearts = Card(
-            id="13", suit=Suit.HEARTS, rank=Rank.QUEEN, purpose=Purpose.FACE_CARD, played_by=1
+            id="13",
+            suit=Suit.HEARTS,
+            rank=Rank.QUEEN,
+            purpose=Purpose.FACE_CARD,
+            played_by=1,
         )
         self.game_state.fields[1].append(queen_hearts)
 

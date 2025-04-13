@@ -6,9 +6,11 @@ JSON files, enabling game persistence and state transfer between different insta
 """
 
 from __future__ import annotations
+
 import json
-from typing import Dict, List, Tuple
-from game.card import Card, Suit, Rank, Purpose
+from typing import Dict
+
+from game.card import Card, Purpose, Rank, Suit
 from game.game_state import GameState
 
 

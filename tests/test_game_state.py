@@ -1,11 +1,10 @@
 import unittest
-from game.card import Card, Purpose, Suit, Rank
+
+from game.card import Card, Purpose, Rank, Suit
 from game.game_state import GameState
-from unittest.mock import patch
 
 
 class TestGameState(unittest.TestCase):
-
     def setUp(self):
         # Create a sample deck and hands for testing
         self.deck = [Card(str(i), Suit.CLUBS, Rank.ACE) for i in range(10)]
@@ -611,12 +610,14 @@ class TestGameState(unittest.TestCase):
         self.assertIn(king, self.hands[0])
         self.assertNotIn(king, self.game_state.fields[0])
         self.assertEqual(self.game_state.get_player_target(0), 21)
-    
+
     def test_play_queen_face_card(self):
         """Test playing a Queen as a face card."""
         # Set up initial state with face cards on both fields
         hands = [
-            [Card("1", Suit.HEARTS, Rank.SIX)],  # Player 0's hand with Six and a point card
+            [
+                Card("1", Suit.HEARTS, Rank.SIX)
+            ],  # Player 0's hand with Six and a point card
             [Card("3", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand with Two
         ]
         fields = [
@@ -655,7 +656,6 @@ class TestGameState(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             game_state.play_one_off(1, six_card, countered_with=two_card)
         self.assertTrue("Cannot counter with a two" in str(context.exception))
-
 
     def test_play_six_one_off(self):
         """Test playing a Six as a one-off to destroy all face cards."""
@@ -796,8 +796,12 @@ class TestGameState(unittest.TestCase):
         self.assertTrue(target_card.is_stolen())
 
         # Verify scores are updated correctly
-        self.assertEqual(game_state.get_player_score(0), 7)  # Stolen card counts for player 0
-        self.assertEqual(game_state.get_player_score(1), 9)  # Only the second card counts for player 1
+        self.assertEqual(
+            game_state.get_player_score(0), 7
+        )  # Stolen card counts for player 0
+        self.assertEqual(
+            game_state.get_player_score(1), 9
+        )  # Only the second card counts for player 1
 
     def test_play_jack_with_queen_on_field(self):
         """Test that Jack cannot be played if opponent has a Queen on their field."""
@@ -809,7 +813,9 @@ class TestGameState(unittest.TestCase):
         fields = [
             [],  # Player 0's field (empty)
             [  # Player 1's field with Queen and point card
-                Card("3", Suit.SPADES, Rank.QUEEN, played_by=1, purpose=Purpose.FACE_CARD),
+                Card(
+                    "3", Suit.SPADES, Rank.QUEEN, played_by=1, purpose=Purpose.FACE_CARD
+                ),
                 Card("4", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
             ],
         ]
@@ -823,9 +829,12 @@ class TestGameState(unittest.TestCase):
         target_card = fields[1][1]
         with self.assertRaises(Exception) as context:
             game_state.play_face_card(jack_card, target_card)
-        
+
         # Verify error message
-        self.assertIn("Cannot play jack as face card if opponent has a queen on their field", str(context.exception))
+        self.assertIn(
+            "Cannot play jack as face card if opponent has a queen on their field",
+            str(context.exception),
+        )
 
         # Verify game state unchanged
         self.assertEqual(len(game_state.fields[1][1].attachments), 0)
@@ -879,8 +888,12 @@ class TestGameState(unittest.TestCase):
         self.assertTrue(target2.is_stolen())
 
         # Verify scores are updated correctly
-        self.assertEqual(game_state.get_player_score(0), 16)  # 7 + 9 = 16 (stolen cards)
-        self.assertEqual(game_state.get_player_score(1), 10)  # Only the third card counts for player 1
+        self.assertEqual(
+            game_state.get_player_score(0), 16
+        )  # 7 + 9 = 16 (stolen cards)
+        self.assertEqual(
+            game_state.get_player_score(1), 10
+        )  # Only the third card counts for player 1
 
     def test_play_jack_on_non_point_card(self):
         """Test that Jack can only be played on point cards."""
@@ -892,8 +905,12 @@ class TestGameState(unittest.TestCase):
         fields = [
             [],  # Player 0's field (empty)
             [  # Player 1's field with face cards
-                Card("3", Suit.SPADES, Rank.KING, played_by=1, purpose=Purpose.FACE_CARD),
-                Card("4", Suit.HEARTS, Rank.QUEEN, played_by=1, purpose=Purpose.FACE_CARD),
+                Card(
+                    "3", Suit.SPADES, Rank.KING, played_by=1, purpose=Purpose.FACE_CARD
+                ),
+                Card(
+                    "4", Suit.HEARTS, Rank.QUEEN, played_by=1, purpose=Purpose.FACE_CARD
+                ),
             ],
         ]
         deck = []
@@ -906,15 +923,17 @@ class TestGameState(unittest.TestCase):
         target_card = fields[1][0]
         with self.assertRaises(Exception) as context:
             game_state.play_face_card(jack_card, target_card)
-        
+
         # Verify error message
-        self.assertIn("Target card must be a point card for playing Jack", str(context.exception))
+        self.assertIn(
+            "Target card must be a point card for playing Jack", str(context.exception)
+        )
 
         # Verify game state unchanged
         self.assertIn(jack_card, game_state.hands[0])
         self.assertEqual(len(game_state.fields[1][0].attachments), 0)
         self.assertEqual(len(game_state.fields[1][1].attachments), 0)
-    
+
     def test_jack_face_card_instant_win(self):
         """Test that Jack as a face card can win the game."""
         # Set up initial state with a Jack on player 0's field
@@ -923,8 +942,12 @@ class TestGameState(unittest.TestCase):
             [Card("2", Suit.DIAMONDS, Rank.TWO)],  # Player 1's hand
         ]
         fields = [
-            [Card("3", Suit.SPADES, Rank.TEN, played_by=0, purpose=Purpose.POINTS),
-             Card("4", Suit.HEARTS, Rank.KING, played_by=0, purpose=Purpose.FACE_CARD)],  # Player 0's field with Ten and King
+            [
+                Card("3", Suit.SPADES, Rank.TEN, played_by=0, purpose=Purpose.POINTS),
+                Card(
+                    "4", Suit.HEARTS, Rank.KING, played_by=0, purpose=Purpose.FACE_CARD
+                ),
+            ],  # Player 0's field with Ten and King
             [  # Player 1's field with point cards
                 Card("5", Suit.SPADES, Rank.SEVEN, played_by=1, purpose=Purpose.POINTS),
                 Card("6", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
@@ -941,7 +964,7 @@ class TestGameState(unittest.TestCase):
         # Verify initial scores
         self.assertEqual(game_state.get_player_score(0), 10)
         self.assertEqual(game_state.get_player_score(1), 16)  # 7 + 9 = 16
-        target_card = fields[1][0] # Seven of Spades from player 1
+        target_card = fields[1][0]  # Seven of Spades from player 1
 
         # Player 0 plays Jack as face card
         game_state.play_face_card(jack_card, target_card)
@@ -956,8 +979,10 @@ class TestGameState(unittest.TestCase):
         # Set up initial state with a Jack and a point card on player 0's field
         hands = [
             [Card("1", Suit.HEARTS, Rank.JACK)],  # Player 0's hand with Jack
-            [Card("2", Suit.DIAMONDS, Rank.TWO),
-             Card("3", Suit.CLUBS, Rank.NINE)],  # Player 1's hand
+            [
+                Card("2", Suit.DIAMONDS, Rank.TWO),
+                Card("3", Suit.CLUBS, Rank.NINE),
+            ],  # Player 1's hand
         ]
         fields = [
             [],  # Player 0's field (empty)
@@ -979,7 +1004,7 @@ class TestGameState(unittest.TestCase):
         # Verify Jack is attached to the target card
         self.assertIn(jack_card, target_card.attachments)
         self.assertEqual(len(target_card.attachments), 1)
-        
+
         game_state.next_turn()
 
         # P1 Scuttles the target card using Nine of Hearts
@@ -990,8 +1015,7 @@ class TestGameState(unittest.TestCase):
         self.assertIn(jack_card, game_state.discard_pile)
         self.assertIn(target_card, game_state.discard_pile)
         self.assertIn(nine_hearts, game_state.discard_pile)
-        
-        
+
 
 if __name__ == "__main__":
     unittest.main()

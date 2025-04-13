@@ -7,13 +7,16 @@ implements strategies, and makes decisions based on the current game state.
 """
 
 from __future__ import annotations
-from game.utils import log_print
-import ollama
-from typing import List
+
 import time
+from typing import List
+
+import ollama
+
 from game.action import Action
-from game.game_state import GameState
 from game.card import Card, Purpose
+from game.game_state import GameState
+from game.utils import log_print
 
 
 class AIPlayer:
@@ -157,8 +160,8 @@ Keep your response concise."""
 
         prompt = f"""
 Current Game State:
-AI 
-{'AI Hand: ' + str(game_state.hands[1]) if not is_human_view else 'AI Hand: [Hidden]'}
+AI
+{"AI Hand: " + str(game_state.hands[1]) if not is_human_view else "AI Hand: [Hidden]"}
 AI Field: {game_state.fields[1]}
 AI Score: {game_state.get_player_score(1)}
 AI Target: {game_state.get_player_target(1)}
@@ -347,7 +350,9 @@ Make your choice now:
                     time.sleep(self.retry_delay)
                 continue
 
-        print(f"All retries failed. Using first card from discard pile. Last error: {last_error}")
+        print(
+            f"All retries failed. Using first card from discard pile. Last error: {last_error}"
+        )
         return discard_pile[0]
 
     def choose_two_cards_from_hand(self, hand: List[Card]) -> List[Card]:
@@ -397,10 +402,15 @@ Make your choice now:
 
                 # Look for "Choice: [number1, number2]" pattern first
                 import re
+
                 choice_match = re.search(r"Choice:\s*\[([\d,\s]+)\]", response_text)
                 if choice_match:
                     indices_str = choice_match.group(1)
-                    card_indices = [int(idx.strip()) for idx in indices_str.split(',') if idx.strip()]
+                    card_indices = [
+                        int(idx.strip())
+                        for idx in indices_str.split(",")
+                        if idx.strip()
+                    ]
                 else:
                     # Fallback to finding any numbers in the response
                     numbers = re.findall(r"\d+", response_text)
@@ -427,6 +437,8 @@ Make your choice now:
                     time.sleep(self.retry_delay)
                 continue
 
-        print(f"All retries failed. Using first two cards from hand. Last error: {last_error}")
+        print(
+            f"All retries failed. Using first two cards from hand. Last error: {last_error}"
+        )
         # Return up to 2 cards from the hand
-        return hand[:min(2, len(hand))]
+        return hand[: min(2, len(hand))]

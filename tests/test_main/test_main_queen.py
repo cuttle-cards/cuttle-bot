@@ -1,6 +1,8 @@
 from unittest.mock import patch
+
 import pytest
-from game.card import Card, Suit, Rank
+
+from game.card import Card, Rank, Suit
 from tests.test_main.test_main_base import MainTestBase, print_and_capture
 
 
@@ -19,18 +21,18 @@ class TestMainQueen(MainTestBase):
         # Create test deck with specific cards
         p0_cards = [
             Card("1", Suit.HEARTS, Rank.QUEEN),  # Queen of Hearts
-            Card("2", Suit.SPADES, Rank.SIX),    # 10 of Spades (points)
-            Card("3", Suit.HEARTS, Rank.NINE),   # 9 of Hearts
-            Card("4", Suit.DIAMONDS, Rank.FIVE), # 5 of Diamonds
-            Card("5", Suit.CLUBS, Rank.TWO),     # 2 of Clubs
+            Card("2", Suit.SPADES, Rank.SIX),  # 10 of Spades (points)
+            Card("3", Suit.HEARTS, Rank.NINE),  # 9 of Hearts
+            Card("4", Suit.DIAMONDS, Rank.FIVE),  # 5 of Diamonds
+            Card("5", Suit.CLUBS, Rank.TWO),  # 2 of Clubs
         ]
         p1_cards = [
             Card("6", Suit.DIAMONDS, Rank.TWO),  # 2 of Diamonds (potential counter)
-            Card("7", Suit.CLUBS, Rank.SEVEN),    # 7 of Clubs
-            Card("8", Suit.HEARTS, Rank.SIX),     # 6 of Hearts
-            Card("9", Suit.SPADES, Rank.FIVE),    # 5 of Spades
-            Card("10", Suit.DIAMONDS, Rank.FOUR), # 4 of Diamonds
-            Card("11", Suit.CLUBS, Rank.THREE),   # 3 of Clubs
+            Card("7", Suit.CLUBS, Rank.SEVEN),  # 7 of Clubs
+            Card("8", Suit.HEARTS, Rank.SIX),  # 6 of Hearts
+            Card("9", Suit.SPADES, Rank.FIVE),  # 5 of Spades
+            Card("10", Suit.DIAMONDS, Rank.FOUR),  # 4 of Diamonds
+            Card("11", Suit.CLUBS, Rank.THREE),  # 3 of Clubs
         ]
         test_deck = self.generate_test_deck(p0_cards, p1_cards)
         mock_generate_cards.return_value = test_deck
@@ -72,6 +74,7 @@ class TestMainQueen(MainTestBase):
         log_output = self.get_log_output()
         self.print_game_output(log_output)
 
-        self.assertIn("Cannot counter with a two if opponent has a queen on their field", log_output)
-
-        
+        self.assertIn(
+            "Cannot counter with a two if opponent has a queen on their field",
+            log_output,
+        )

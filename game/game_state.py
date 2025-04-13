@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Dict, Tuple
 from game.card import Card, Purpose, Rank
-from game.action import Action, ActionType, ActionSource
+from game.action import Action, ActionType
 from game.utils import log_print
 
 
@@ -90,7 +90,7 @@ class GameState:
 
     def next_turn(self) -> None:
         """Advance to the next player's turn.
-        
+
         This method:
         1. Updates the turn counter
         2. Updates the current action player
@@ -103,7 +103,7 @@ class GameState:
 
     def next_player(self) -> None:
         """Move to the next player in the action sequence.
-        
+
         Used during card effect resolution when multiple players
         need to take actions (e.g., countering one-off effects).
         """
@@ -116,7 +116,7 @@ class GameState:
             bool: True if there is a winner, False otherwise.
         """
         return self.winner() is not None
-    
+
     def player_point_cards(self, player: int) -> List[Card]:
         """Get all point cards that count towards a player's score.
 
@@ -174,7 +174,7 @@ class GameState:
         for card in self.fields[player]:
             if card.purpose == Purpose.POINTS and not card.is_stolen():
                 field.append(card)
-        
+
         opponent = (player + 1) % len(self.hands)
         for card in self.fields[opponent]:
             if card.purpose == Purpose.POINTS and card.is_stolen():
@@ -435,9 +435,13 @@ class GameState:
             other_player = (countered_with.played_by + 1) % len(self.hands)
             # check if other player has a queen on their field
             other_player_field = self.fields[other_player]
-            queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in other_player_field)
+            queen_on_opponent_field = any(
+                card.rank == Rank.QUEEN for card in other_player_field
+            )
             if queen_on_opponent_field:
-                raise Exception("Cannot counter with a two if opponent has a queen on their field")
+                raise Exception(
+                    "Cannot counter with a two if opponent has a queen on their field"
+                )
 
             # Move counter card to discard pile
             played_by = countered_with.played_by
@@ -526,11 +530,14 @@ class GameState:
             else:  # Human player's turn
                 # Create a list of card options for the input handler
                 card_options = [str(card) for card in self.discard_pile]
-                
+
                 # Use the input handler to get the player's choice
                 from game.input_handler import get_interactive_input
-                index = get_interactive_input("Select a card from the discard pile:", card_options)
-                
+
+                index = get_interactive_input(
+                    "Select a card from the discard pile:", card_options
+                )
+
                 # Handle the selection
                 if 0 <= index < len(self.discard_pile):
                     chosen_card = self.discard_pile.pop(index)
@@ -557,10 +564,12 @@ class GameState:
                 # end turn
                 return
             log_print(discard_prompt)
-            
+
             if self.use_ai and self.current_action_player == opponent:  # AI's turn
                 # Let AI choose a card
-                chosen_cards = self.ai_player.choose_two_cards_from_hand(self.hands[opponent])
+                chosen_cards = self.ai_player.choose_two_cards_from_hand(
+                    self.hands[opponent]
+                )
                 log_print(f"AI chose {chosen_cards} from hand to discard")
                 for card in chosen_cards:
                     self.hands[opponent].remove(card)
@@ -569,27 +578,30 @@ class GameState:
             else:  # Human player's turn
                 cards_to_discard = []
                 cards_remaining = self.hands[opponent].copy()
-                
+
                 # Determine how many cards to discard
                 num_cards_to_discard = min(2, len(cards_remaining))
-                
+
                 for i in range(num_cards_to_discard):
                     if not cards_remaining:
                         break
-                        
+
                     # Create a list of card options for the input handler
                     card_options = [str(card) for card in cards_remaining]
-                    
+
                     # Use the input handler to get the player's choice
                     from game.input_handler import get_interactive_input
-                    index = get_interactive_input(f"Select card {i+1} to discard:", card_options)
-                    
+
+                    index = get_interactive_input(
+                        f"Select card {i + 1} to discard:", card_options
+                    )
+
                     # Handle the selection
                     if 0 <= index < len(cards_remaining):
                         chosen_card = cards_remaining.pop(index)
                         cards_to_discard.append(chosen_card)
                         log_print(f"Opponent discarded {chosen_card}")
-                        
+
                         # Remove card from opponent's hand and add to discard pile
                         self.hands[opponent].remove(chosen_card)
                         self.discard_pile.append(chosen_card)
@@ -622,7 +634,7 @@ class GameState:
         Args:
             card (Card): The face card to play
             target (Card, optional): The target card for Jack. Required for Jack, ignored for other face cards.
-            
+
         Returns:
             bool: True if the player has won, False otherwise
         """
@@ -637,7 +649,7 @@ class GameState:
         # For Jack, target is required
         if card.rank == Rank.JACK and target is None:
             raise Exception("Target card is required for playing Jack")
-        
+
         if card.rank == Rank.JACK and target.purpose != Purpose.POINTS:
             raise Exception("Target card must be a point card for playing Jack")
 
@@ -655,26 +667,30 @@ class GameState:
                 )
                 self.status = "win"
                 return True
-            
+
             return False
 
         opponent = (self.turn + 1) % len(self.hands)
-        queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in self.fields[opponent])
+        queen_on_opponent_field = any(
+            card.rank == Rank.QUEEN for card in self.fields[opponent]
+        )
         if queen_on_opponent_field:
-            raise Exception("Cannot play jack as face card if opponent has a queen on their field")
-        
+            raise Exception(
+                "Cannot play jack as face card if opponent has a queen on their field"
+            )
+
         # Verify target is a point card
         if not target.is_point_card() or target.purpose != Purpose.POINTS:
             raise Exception("Jack can only be played on point cards")
-        
+
         # Remove Jack from hand
         card.purpose = Purpose.JACK
         card.played_by = self.turn
         self.hands[self.turn].remove(card)
-        
+
         # Attach Jack to the target card
         target.attachments.append(card)
-        
+
         if self.winner() is not None:
             return True
         return False
@@ -705,10 +721,14 @@ class GameState:
             # if opponent has a queen on their field, can't counter with a two, cannot counter
             other_player = (self.current_action_player + 1) % len(self.hands)
             other_player_field = self.fields[other_player]
-            queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in other_player_field)
+            queen_on_opponent_field = any(
+                card.rank == Rank.QUEEN for card in other_player_field
+            )
 
             if queen_on_opponent_field:
-                log_print("Cannot counter with a two if opponent has a queen on their field")
+                log_print(
+                    "Cannot counter with a two if opponent has a queen on their field"
+                )
             else:
                 for two in twos:
                     actions.append(
@@ -747,16 +767,20 @@ class GameState:
             # TODO: Implement Queens, Jacks, and Eights
             if card.is_face_card() and card.rank in [Rank.KING, Rank.QUEEN]:
                 actions.append(Action(ActionType.FACE_CARD, card, None, self.turn))
-        
-        opponent = (self.current_action_player + 1) % len(self.hands)   
-        queen_on_opponent_field = any(card.rank == Rank.QUEEN for card in self.fields[opponent])
+
+        opponent = (self.current_action_player + 1) % len(self.hands)
+        queen_on_opponent_field = any(
+            card.rank == Rank.QUEEN for card in self.fields[opponent]
+        )
         # Can play Jacks on opponent's point cards on field
         for card in hand:
             if card.rank == Rank.JACK and not queen_on_opponent_field:
                 for opponent_card in self.get_player_field(opponent):
                     if opponent_card.purpose == Purpose.POINTS:
                         # TODO: also check if card has jacks attached
-                        actions.append(Action(ActionType.JACK, card, opponent_card, self.turn))
+                        actions.append(
+                            Action(ActionType.JACK, card, opponent_card, self.turn)
+                        )
 
         # Can play one-offs
         for card in hand:
@@ -812,7 +836,9 @@ class GameState:
 
         for player in range(len(self.hands)):
             self.logger("-" * 20)
-            self.logger(f"Player {player}: Score = {self.get_player_score(player)}, Target = {self.get_player_target(player)}")
+            self.logger(
+                f"Player {player}: Score = {self.get_player_score(player)}, Target = {self.get_player_target(player)}"
+            )
             # Use a check for None before comparing hide_player_hand
             if hide_player_hand is not None and hide_player_hand == player:
                 self.logger(f"  Hand: [{len(self.hands[player])} cards hidden]")
