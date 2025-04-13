@@ -178,3 +178,6 @@ tmp.txt
 game_history/
 docs/
 test_outputs/
+
+# linters
+.ruff_cache/
