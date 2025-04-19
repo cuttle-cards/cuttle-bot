@@ -5,9 +5,10 @@ including logging and output handling functionality.
 """
 
 import logging
+from typing import Any
 
 
-def log_print(*args, **kwargs) -> None:
+def log_print(*args: Any, **kwargs: Any) -> None:
     """Print output to console and log it using the game's logger.
 
     This function combines standard print functionality with logging,
