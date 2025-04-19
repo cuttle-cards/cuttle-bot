@@ -271,3 +271,4 @@ class Purpose(Enum):
     ONE_OFF = "One Off"
     COUNTER = "Counter"
     JACK = "Jack"
+    SCUTTLE = "Scuttle"

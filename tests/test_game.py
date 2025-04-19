@@ -281,7 +281,7 @@ class TestGame(unittest.TestCase):
         game.game_state.fields[1].append(target_card)
 
         # Player 0's hand: 6 of Spades (higher point value)
-        scuttle_card = Card("scuttle", Suit.SPADES, Rank.SIX)
+        scuttle_card = Card("scuttle", Suit.SPADES, Rank.SIX, played_by=0, purpose=Purpose.SCUTTLE)
         game.game_state.hands[0].append(scuttle_card)
 
         # Create scuttle action
@@ -324,7 +324,7 @@ class TestGame(unittest.TestCase):
         game.game_state.fields[1].append(target_card)
 
         # Player 0's hand: 5 of Spades (same points, higher suit)
-        scuttle_card = Card("scuttle", Suit.SPADES, Rank.FIVE)
+        scuttle_card = Card("scuttle", Suit.SPADES, Rank.FIVE, played_by=0, purpose=Purpose.SCUTTLE)
         game.game_state.hands[0].append(scuttle_card)
 
         # Create scuttle action

@@ -1,7 +1,8 @@
 import unittest
-from game.game_state import GameState
-from game.card import Card, Suit, Rank, Purpose
+
 from game.action import ActionType
+from game.card import Card, Purpose, Rank, Suit
+from game.game_state import GameState
 
 
 class TestGameStateScuttle(unittest.TestCase):
