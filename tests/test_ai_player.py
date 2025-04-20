@@ -19,7 +19,7 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
     game_state: GameState
 
     def setUp(self) -> None:
-        self.ai_player = AIPlayer()
+        self.ai_player = AIPlayer(retry_delay=0.1, max_retries=1)
         # Create a simple game state for testing
         self.p0_cards = [
             Card("1", Suit.HEARTS, Rank.KING),
@@ -62,17 +62,22 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
 
     @pytest.mark.timeout(10)
     @patch("ollama.chat")
-    async def test_get_action_success(self, mock_chat: Mock) -> None:
+    @patch("game.ai_player.AIPlayer._format_game_state")
+    async def test_get_action_success(self, mock_format_game_state: Mock, mock_chat: Mock) -> None:
         """Test successful action selection by AI."""
         legal_actions: List[Action] = [
             Action(action_type=ActionType.DRAW, card=None, target=None, played_by=1),
             Action(action_type=ActionType.POINTS, card=self.p1_cards[1], target=None, played_by=1),
         ]
 
-        # Mock Ollama response
-        mock_response = MagicMock()
-        mock_response.message.content = "I choose to play Five of Clubs as points to start building my score. Action number: 1"
-        mock_chat.return_value = mock_response
+        mock_chat.return_value = {
+            'message': {
+                'content': "I choose to play Five of Clubs as points to start building my score. Action number: 1",
+                'role': 'assistant'
+            }
+        }
+
+        mock_format_game_state.return_value = "mock game state"
 
         # Get AI action
         action = await self.ai_player.get_action(self.game_state, legal_actions)
@@ -84,17 +89,22 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
 
     @pytest.mark.timeout(10)
     @patch("ollama.chat")
-    async def test_get_action_invalid_response(self, mock_chat: Mock) -> None:
+    @patch("game.ai_player.AIPlayer._format_game_state")
+    async def test_get_action_invalid_response(self, mock_format_game_state: Mock, mock_chat: Mock) -> None:
         """Test handling of invalid LLM response."""
         legal_actions: List[Action] = [
             Action(action_type=ActionType.DRAW, card=None, target=None, played_by=1),
             Action(action_type=ActionType.POINTS, card=self.p1_cards[1], target=None, played_by=1),
         ]
 
-        # Mock invalid Ollama response
-        mock_response = MagicMock()
-        mock_response.message.content = "I am not sure what to do."
-        mock_chat.return_value = mock_response
+        mock_chat.return_value = {
+            'message': {
+                'content': "I am not sure what to do.",
+                'role': 'assistant'
+            }
+        }
+
+        mock_format_game_state.return_value = "mock game state"
 
         # Get AI action - should default to first legal action
         action = await self.ai_player.get_action(self.game_state, legal_actions)

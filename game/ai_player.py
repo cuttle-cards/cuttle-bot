@@ -84,7 +84,7 @@ Mistakes to avoid:
 The Strategy is key to winning the game.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, retry_delay: int = 1, max_retries: int = 3) -> None:
         """Initialize the AI player.
 
         Sets up:
@@ -93,8 +93,8 @@ The Strategy is key to winning the game.
         - Verifies AI's understanding of game rules
         """
         self.model = "gemma3:4b"  # Default to mistral model
-        self.max_retries = 3
-        self.retry_delay = 1  # seconds
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay  # seconds
 
         # Initialize system context and verify AI understanding
         self._verify_ai_understanding()
@@ -241,9 +241,20 @@ Make your choice now:
                 )
 
                 # Extract the action number from the response
-                log_print(response)
-                response_text = response.message.content
-                log_print(response_text)
+                response_text = "" # Default to empty string
+                if isinstance(response, dict):
+                    # Handle real response (dictionary)
+                    if 'message' in response and 'content' in response['message']:
+                        response_text = response['message']['content']
+                elif hasattr(response, 'message') and hasattr(response.message, 'content'):
+                    # Handle MagicMock response (attribute access)
+                    response_text = response.message.content
+                else:
+                    print(f"Warning: Unexpected response structure: {type(response)}")
+                    # Fallback or raise error if needed, for now rely on parsing logic below to handle empty/bad string
+
+                # log_print(f"AI Response Content: {response_text}") # Use standard print for debugging
+                print(f"AI Response Content: {response_text}")
                 # Look for "Choice: [number]" pattern first
                 import re
 
@@ -275,7 +286,7 @@ Make your choice now:
                 retries += 1
                 time.sleep(self.retry_delay)
 
-        log_print(f"AI failed to choose an action after {self.max_retries} retries. Error: {last_error}")
+        print(f"AI failed to choose an action after {self.max_retries} retries. Error: {last_error}")
         return legal_actions[0]
 
     def set_model(self, model: str) -> None:
@@ -338,7 +349,6 @@ Make your choice now:
                         card_index = int(all_numbers[-1])
                         if 0 <= card_index < len(discard_pile):
                             return discard_pile[card_index]
-
                 log_print(
                     f"Error: Could not extract card choice from response: {response_text}"
                 )
@@ -427,8 +437,6 @@ Make your choice now:
                     f"Error: Could not extract two card choices from response: {response_text}"
                 )
                 last_error = f"Failed to extract two card choices from response: {response_text}"
-                retries += 1
-                time.sleep(self.retry_delay)
 
             except Exception as e:
                 log_print(f"Error during AI card choice (hand): {e}")
