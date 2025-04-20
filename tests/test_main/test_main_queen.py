@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from typing import Any, List
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -12,8 +13,8 @@ class TestMainQueen(MainTestBase):
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
     async def test_play_queen_through_main(
-        self, mock_generate_cards, mock_print, mock_input
-    ):
+        self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
+    ) -> None:
         """Test playing a Queen through main.py, demonstrating its counter-prevention ability."""
         # Set up print mock to both capture and display
         mock_print.side_effect = print_and_capture
@@ -71,7 +72,7 @@ class TestMainQueen(MainTestBase):
         await main()
 
         # Get all logged output
-        log_output = self.get_log_output()
+        log_output: str = self.get_logger_output(mock_print)
         self.print_game_output(log_output)
 
         self.assertIn(

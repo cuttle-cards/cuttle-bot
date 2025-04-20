@@ -1,6 +1,7 @@
 import asyncio
 import unittest
-from unittest.mock import MagicMock, patch
+from typing import List
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -11,7 +12,13 @@ from game.game_state import GameState
 
 
 class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
+    ai_player: AIPlayer
+    p0_cards: List[Card]
+    p1_cards: List[Card]
+    deck: List[Card]
+    game_state: GameState
+
+    def setUp(self) -> None:
         self.ai_player = AIPlayer()
         # Create a simple game state for testing
         self.p0_cards = [
@@ -34,9 +41,9 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
         )
 
     @pytest.mark.timeout(15)
-    def test_format_game_state(self):
+    def test_format_game_state(self) -> None:
         """Test that game state is formatted correctly for the LLM."""
-        legal_actions = [
+        legal_actions: List[Action] = [
             Action(action_type=ActionType.DRAW, card=None, target=None, played_by=1),
             Action(action_type=ActionType.POINTS, card=self.p1_cards[1], target=None, played_by=1),
         ]
@@ -55,9 +62,9 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
 
     @pytest.mark.timeout(10)
     @patch("ollama.chat")
-    async def test_get_action_success(self, mock_chat):
+    async def test_get_action_success(self, mock_chat: Mock) -> None:
         """Test successful action selection by AI."""
-        legal_actions = [
+        legal_actions: List[Action] = [
             Action(action_type=ActionType.DRAW, card=None, target=None, played_by=1),
             Action(action_type=ActionType.POINTS, card=self.p1_cards[1], target=None, played_by=1),
         ]
@@ -77,9 +84,9 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
 
     @pytest.mark.timeout(10)
     @patch("ollama.chat")
-    async def test_get_action_invalid_response(self, mock_chat):
+    async def test_get_action_invalid_response(self, mock_chat: Mock) -> None:
         """Test handling of invalid LLM response."""
-        legal_actions = [
+        legal_actions: List[Action] = [
             Action(action_type=ActionType.DRAW, card=None, target=None, played_by=1),
             Action(action_type=ActionType.POINTS, card=self.p1_cards[1], target=None, played_by=1),
         ]
@@ -98,9 +105,9 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
 
     @pytest.mark.timeout(10)
     @patch("ollama.chat")
-    async def test_get_action_api_error(self, mock_chat):
+    async def test_get_action_api_error(self, mock_chat: Mock) -> None:
         """Test handling of API errors."""
-        legal_actions = [
+        legal_actions: List[Action] = [
             Action(action_type=ActionType.DRAW, card=None, target=None, played_by=1),
             Action(action_type=ActionType.POINTS, card=self.p1_cards[1], target=None, played_by=1),
         ]
@@ -116,17 +123,13 @@ class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(action.action_type, ActionType.DRAW)
 
     @pytest.mark.timeout(10)
-    async def test_get_action_no_legal_actions(self):
+    async def test_get_action_no_legal_actions(self) -> None:
         """Test handling of empty legal actions list."""
         with self.assertRaises(ValueError):
             await self.ai_player.get_action(self.game_state, [])
 
-    def test_set_model(self):
+    def test_set_model(self) -> None:
         """Test model setting functionality."""
-        test_model = "llama2"
+        test_model: str = "llama2"
         self.ai_player.set_model(test_model)
         self.assertEqual(self.ai_player.model, test_model)
-
-
-if __name__ == "__main__":
-    asyncio.run(unittest.main())

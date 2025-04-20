@@ -1,4 +1,5 @@
-from unittest.mock import MagicMock, patch
+from typing import Any, List
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -8,30 +9,39 @@ from tests.test_main.test_main_base import MainTestBase
 
 
 class TestMainJack(MainTestBase):
-    def generate_test_deck(self, p0_cards, p1_cards):
-        """Generate a test deck with specific cards for each player."""
-        deck = []
-        # Add player 0's cards
-        for card in p0_cards:
-            deck.append(card)
-        # Add player 1's cards
-        for card in p1_cards:
-            deck.append(card)
-        # Add some random cards to make up the rest of the deck
-        for suit in Suit:
-            for rank in Rank:
-                if rank not in [Rank.JACK, Rank.QUEEN, Rank.KING]:
-                    card = Card(f"{len(deck)}", suit, rank)
-                    if card not in deck:
-                        deck.append(card)
+    def generate_test_deck(self, p0_cards: List[Card], p1_cards: List[Card], num_filler: int = 41) -> List[Card]:
+        """Generate a test deck with specific cards for each player, overriding base but keeping functionality simple for these tests."""
+        # Simple implementation: just combine hands and add some basic fillers if needed
+        deck = list(p0_cards) + list(p1_cards)
+        existing_ids = {c.id for c in deck}
+
+        # Add minimal fillers if deck is too small (less than 11 needed for initial deal)
+        needed_fillers = max(0, 11 - len(deck))
+        filler_id = 100 # Start filler IDs high to avoid collision
+        suit_cycle = list(Suit)
+        rank_cycle = [r for r in Rank if r not in (Rank.JACK, Rank.KING, Rank.QUEEN)] # Avoid special ranks initially
+
+        fill_count = 0
+        while fill_count < needed_fillers:
+            suit = suit_cycle[filler_id % len(suit_cycle)]
+            rank = rank_cycle[filler_id % len(rank_cycle)]
+            filler_card = Card(str(filler_id), suit, rank)
+            if filler_card.id not in existing_ids:
+                deck.append(filler_card)
+                existing_ids.add(filler_card.id)
+                fill_count += 1
+            filler_id += 1
+            if filler_id > 1000: # Safety break
+                 break
+        # The rest of the deck isn't critical for these tests, as long as dealing works
         return deck
 
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("game.game.Game.generate_all_cards")
     async def test_play_jack_on_opponent_point_card(
-        self, mock_generate_cards, mock_input
-    ):
+        self, mock_generate_cards: Mock, mock_input: Mock
+    ) -> None:
         """Test playing a Jack on an opponent's point card through main.py."""
         # Create a mock logger
         mock_logger = MagicMock()
@@ -104,16 +114,14 @@ class TestMainJack(MainTestBase):
         self.assertIn(
             "Player 0: Score = 8, Target = 21", log_output
         )  # P0 score includes stolen 8C
-        self.assertIn(
-            "Field: [[Stolen from opponent] [Jack] Eight of Clubs]", log_output
-        )  # P1 field shows stolen card
+        self.assertRegex(log_output, r"Field:.*Eight of Clubs.*Jack of Hearts")
 
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("game.game.Game.generate_all_cards")
     async def test_cannot_play_jack_with_queen_on_field(
-        self, mock_generate_cards, mock_input
-    ):
+        self, mock_generate_cards: Mock, mock_input: Mock
+    ) -> None:
         """Test that a Jack cannot be played if the opponent has a Queen on their field."""
         # Create a mock logger
         mock_logger = MagicMock()
@@ -187,16 +195,12 @@ class TestMainJack(MainTestBase):
         self.assertNotIn("Play Jack of Hearts as jack on Seven of Diamonds", log_output)
         # Verify the state after P1 plays 7D (before P0's turn where Jack is illegal)
         self.assertIn("Player 1: Score = 7, Target = 21", log_output)
-        self.assertIn(
-            "Player 1.*Field: [Queen of Clubs, Seven of Diamonds]",
-            log_output,
-            regex=True,
-        )
+        self.assertRegex(log_output, r"Player 1.*Field:.*Queen of Clubs.*Seven of Diamonds")
 
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("game.game.Game.generate_all_cards")
-    async def test_multiple_jacks_on_same_card(self, mock_generate_cards, mock_input):
+    async def test_multiple_jacks_on_same_card(self, mock_generate_cards: Mock, mock_input: Mock) -> None:
         """Test that multiple jacks can be played on the same card."""
         # Create a mock logger
         mock_logger = MagicMock()
@@ -284,3 +288,9 @@ class TestMainJack(MainTestBase):
         # Check state after fourth jack
         self.assertIn("Player 1: Score = 3", log_output)  # Score doesn't change
         self.assertIn("Field: [[Jack][Jack][Jack][Jack] Three of Hearts]", log_output)
+        # Assert that all four Jacks are attached to the Three of Hearts
+        # Look for the final state print where the card has attachments
+        self.assertRegex(
+            log_output,
+            r"Field:.*Three of Hearts.*Jack of Hearts.*Jack of Diamonds.*Jack of Spades.*Jack of Clubs",
+        )

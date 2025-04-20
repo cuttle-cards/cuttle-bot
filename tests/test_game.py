@@ -1,5 +1,6 @@
 import unittest
-from unittest.mock import patch
+from typing import Any, Dict, List
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -11,7 +12,7 @@ from game.game_state import GameState
 
 class TestGame(unittest.TestCase):
     @pytest.mark.timeout(5)
-    def test_initialize_with_random_hands(self):
+    def test_initialize_with_random_hands(self) -> None:
         """Test that random initialization creates valid hands."""
         game = Game(manual_selection=False)
 
@@ -37,10 +38,10 @@ class TestGame(unittest.TestCase):
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("builtins.print")
-    def test_manual_selection_full_hands(self, mock_print, mock_input):
+    def test_manual_selection_full_hands(self, mock_print: Mock, mock_input: Mock) -> None:
         """Test manual selection when players select full hands."""
         # Mock inputs: Player 0 selects 5 cards, Player 1 selects 6 cards
-        mock_inputs = [
+        mock_inputs: List[str] = [
             "0",
             "1",
             "2",
@@ -79,10 +80,10 @@ class TestGame(unittest.TestCase):
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("builtins.print")
-    def test_manual_selection_early_done(self, mock_print, mock_input):
+    def test_manual_selection_early_done(self, mock_print: Mock, mock_input: Mock) -> None:
         """Test manual selection when players finish early with 'done'."""
         # Mock inputs: Player 0 selects 3 cards and done, Player 1 selects 4 cards and done
-        mock_inputs = [
+        mock_inputs: List[str] = [
             "0",
             "1",
             "2",
@@ -113,10 +114,10 @@ class TestGame(unittest.TestCase):
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("builtins.print")
-    def test_manual_selection_invalid_inputs(self, mock_print, mock_input):
+    def test_manual_selection_invalid_inputs(self, mock_print: Mock, mock_input: Mock) -> None:
         """Test manual selection with invalid inputs before valid ones."""
         # Mock inputs: Include invalid inputs that should be handled
-        mock_inputs = [
+        mock_inputs: List[str] = [
             "invalid",
             "-1",
             "999",
@@ -146,10 +147,10 @@ class TestGame(unittest.TestCase):
         self.assertEqual(len(all_cards), 52)
 
     @pytest.mark.timeout(5)
-    def test_generate_all_cards(self):
+    def test_generate_all_cards(self) -> None:
         """Test that generate_all_cards creates a complete deck."""
         game = Game()
-        cards = game.generate_all_cards()
+        cards: List[Card] = game.generate_all_cards()
 
         # Check total number of cards
         self.assertEqual(len(cards), 52)
@@ -165,12 +166,12 @@ class TestGame(unittest.TestCase):
         self.assertEqual(len(cards), len(unique_cards))
 
     @pytest.mark.timeout(5)
-    def test_fill_remaining_slots(self):
+    def test_fill_remaining_slots(self) -> None:
         """Test that fill_remaining_slots correctly fills partial hands."""
         game = Game()
 
         # Create partial hands
-        hands = [
+        hands: List[List[Card]] = [
             [
                 Card("1", Suit.HEARTS, Rank.ACE),
                 Card("2", Suit.HEARTS, Rank.TWO),
@@ -180,7 +181,7 @@ class TestGame(unittest.TestCase):
 
         # Create available cards (excluding the ones in hands)
         all_cards = game.generate_all_cards()
-        available_cards = {
+        available_cards: Dict[str, Card] = {
             str(card): card
             for card in all_cards
             if str(card) not in [str(c) for h in hands for c in h]
@@ -199,18 +200,18 @@ class TestGame(unittest.TestCase):
         self.assertEqual(len(all_hand_cards), len(unique_cards))
 
     @pytest.mark.timeout(5)
-    def test_save_load_game(self):
+    def test_save_load_game(self) -> None:
         """Test saving and loading game state."""
         # Create a game with known state
         game = Game()
-        initial_hands = [
+        initial_hands: List[List[Card]] = [
             [card for card in game.game_state.hands[0]],
             [card for card in game.game_state.hands[1]],
         ]
-        initial_deck = [card for card in game.game_state.deck]
+        initial_deck: List[Card] = [card for card in game.game_state.deck]
 
         # Save the game
-        test_file = "test_save.json"
+        test_file: str = "test_save.json"
         game.save_game(test_file)
 
         # Create a new game by loading the saved state
@@ -238,10 +239,10 @@ class TestGame(unittest.TestCase):
             os.remove(save_path)
 
     @pytest.mark.timeout(5)
-    def test_list_saved_games(self):
+    def test_list_saved_games(self) -> None:
         """Test listing saved games."""
         # Create some test save files
-        test_files = ["test1.json", "test2.json", "test3.json"]
+        test_files: List[str] = ["test1.json", "test2.json", "test3.json"]
         game = Game()
 
         for filename in test_files:
@@ -263,13 +264,13 @@ class TestGame(unittest.TestCase):
                 os.remove(save_path)
 
     @pytest.mark.timeout(5)
-    def test_load_nonexistent_game(self):
+    def test_load_nonexistent_game(self) -> None:
         """Test loading a non-existent save file."""
         with self.assertRaises(FileNotFoundError):
             Game(load_game="nonexistent_save.json")
 
     @pytest.mark.timeout(5)
-    def test_scuttle_update_state(self):
+    def test_scuttle_update_state(self) -> None:
         """Test the return values of update_state for scuttle actions."""
         game = Game()
 
@@ -313,7 +314,7 @@ class TestGame(unittest.TestCase):
         self.assertIn(target_card, game.game_state.discard_pile)  # discard pile
 
     @pytest.mark.timeout(5)
-    def test_scuttle_with_equal_points(self):
+    def test_scuttle_with_equal_points(self) -> None:
         """Test scuttle with equal point values but higher suit."""
         game = Game()
 
@@ -352,7 +353,7 @@ class TestGame(unittest.TestCase):
         self.assertIn(target_card, game.game_state.discard_pile)
 
     @pytest.mark.timeout(5)
-    def test_scuttle_with_lower_suit_fails(self):
+    def test_scuttle_with_lower_suit_fails(self) -> None:
         """Test that scuttle fails when using a lower suit on same rank."""
         game = Game()
 
@@ -388,7 +389,7 @@ class TestGame(unittest.TestCase):
         self.assertNotIn(target_card, game.game_state.discard_pile)  # discard pile
 
     @pytest.mark.timeout(5)
-    def test_play_king_reduces_target(self):
+    def test_play_king_reduces_target(self) -> None:
         """Test that playing a King reduces the target score."""
         game = Game()
 
@@ -414,7 +415,7 @@ class TestGame(unittest.TestCase):
         self.assertIsNone(winner)
 
     @pytest.mark.timeout(5)
-    def test_play_king_instant_win(self):
+    def test_play_king_instant_win(self) -> None:
         """Test that playing a King can lead to instant win."""
         game = Game()
 
@@ -453,7 +454,7 @@ class TestGame(unittest.TestCase):
         self.assertEqual(winner, 0)
 
     @pytest.mark.timeout(5)
-    def test_play_king_on_opponents_turn(self):
+    def test_play_king_on_opponents_turn(self) -> None:
         """Test that Kings can only be played on your own turn."""
         game = Game()
 
@@ -484,7 +485,7 @@ class TestGame(unittest.TestCase):
         self.assertEqual(game.game_state.get_player_target(0), 21)
 
     @pytest.mark.timeout(5)
-    def test_play_multiple_kings(self):
+    def test_play_multiple_kings(self) -> None:
         """Test playing multiple Kings reduces target score correctly."""
         game = Game()
 
@@ -518,7 +519,7 @@ class TestGame(unittest.TestCase):
 
     @patch("builtins.input")
     @patch("builtins.print")
-    def test_complete_game_with_kings(self, mock_print, mock_input):
+    def test_complete_game_with_kings(self, mock_print: Mock, mock_input: Mock) -> None:
         """Test a complete game scenario ending with King win condition."""
         # Mock inputs: P0 gets Kings, P1 gets points, P0 wins
         mock_inputs = [
@@ -570,7 +571,7 @@ class TestGame(unittest.TestCase):
         game.game_state.print_state()
         mock_print.assert_called()
 
-    def test_play_jack_action(self):
+    def test_play_jack_action(self) -> None:
         """Test playing a Jack action to steal a point card from opponent."""
         # Set up initial state with point cards on opponent's field
         hands = [
@@ -584,10 +585,10 @@ class TestGame(unittest.TestCase):
                 Card("4", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
             ],
         ]
-        deck = []
-        discard = []
+        deck: List[Card] = []
+        discard: List[Card] = []
 
-        game_state = GameState(hands, fields, deck, discard)
+        game_state: GameState = GameState(hands, fields, deck, discard)
 
         # Verify initial scores
         self.assertEqual(game_state.get_player_score(0), 0)
@@ -629,7 +630,7 @@ class TestGame(unittest.TestCase):
             game_state.get_player_score(1), 9
         )  # Only the second card counts for player 1
 
-    def test_play_jack_action_with_queen_on_field(self):
+    def test_play_jack_action_with_queen_on_field(self) -> None:
         """Test that Jack action cannot be played if opponent has a Queen on their field."""
         # Set up initial state with a Queen on opponent's field
         hands = [
@@ -645,10 +646,10 @@ class TestGame(unittest.TestCase):
                 Card("4", Suit.HEARTS, Rank.NINE, played_by=1, purpose=Purpose.POINTS),
             ],
         ]
-        deck = []
-        discard = []
+        deck: List[Card] = []
+        discard: List[Card] = []
 
-        game_state = GameState(hands, fields, deck, discard)
+        game_state: GameState = GameState(hands, fields, deck, discard)
 
         # Create Jack action
         jack_card = hands[0][0]

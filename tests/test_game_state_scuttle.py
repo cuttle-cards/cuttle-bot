@@ -1,12 +1,19 @@
 import unittest
+from typing import List, Optional
 
-from game.action import ActionType
+from game.action import Action, ActionType
 from game.card import Card, Purpose, Rank, Suit
 from game.game_state import GameState
 
 
 class TestGameStateScuttle(unittest.TestCase):
-    def setUp(self):
+    p0_hand: List[Card]
+    p1_hand: List[Card]
+    p0_field: List[Card]
+    p1_field: List[Card]
+    game_state: GameState
+
+    def setUp(self) -> None:
         """Set up a game state for testing scuttling."""
         # Create hands for both players
         self.p0_hand = [
@@ -49,16 +56,17 @@ class TestGameStateScuttle(unittest.TestCase):
         )
         self.game_state.turn = 0  # P0's turn
 
-    def test_scuttle_with_point_card(self):
+    def test_scuttle_with_point_card(self) -> None:
         """Test that point cards (2-10) can scuttle."""
-        actions = self.game_state.get_legal_actions()
+        actions: List[Action] = self.game_state.get_legal_actions()
         print(actions)
-        scuttle_actions = [a for a in actions if a.action_type == ActionType.SCUTTLE]
+        scuttle_actions: List[Action] = [a for a in actions if a.action_type == ActionType.SCUTTLE]
         print(scuttle_actions)
 
         # Ten of Hearts should be able to scuttle Seven of Hearts
         self.assertTrue(
             any(
+                a.card is not None and a.target is not None and
                 a.card.rank == Rank.TEN and a.target.rank == Rank.SEVEN
                 for a in scuttle_actions
             ),
@@ -68,38 +76,41 @@ class TestGameStateScuttle(unittest.TestCase):
         # Nine of Spades should be able to scuttle Seven of Hearts
         self.assertTrue(
             any(
+                a.card is not None and a.target is not None and
                 a.card.rank == Rank.NINE and a.target.rank == Rank.SEVEN
                 for a in scuttle_actions
             ),
             "Nine of Spades should be able to scuttle Seven of Hearts",
         )
 
-    def test_scuttle_with_face_cards_not_allowed(self):
+    def test_scuttle_with_face_cards_not_allowed(self) -> None:
         """Test that face cards (Jack, Queen, King) cannot scuttle."""
-        actions = self.game_state.get_legal_actions()
-        scuttle_actions = [a for a in actions if a.action_type == ActionType.SCUTTLE]
+        actions: List[Action] = self.game_state.get_legal_actions()
+        scuttle_actions: List[Action] = [a for a in actions if a.action_type == ActionType.SCUTTLE]
 
         # No face cards should be in scuttle actions
         self.assertFalse(
             any(
+                a.card is not None and
                 a.card.rank in [Rank.JACK, Rank.QUEEN, Rank.KING]
                 for a in scuttle_actions
             ),
             "Face cards should not be allowed to scuttle",
         )
 
-    def test_scuttle_with_equal_value_higher_suit(self):
+    def test_scuttle_with_equal_value_higher_suit(self) -> None:
         """Test scuttling with equal value but higher suit."""
         # Add a Seven of Spades to P0's hand (Spades > Hearts)
         seven_spades = Card("10", Suit.SPADES, Rank.SEVEN)
         self.game_state.hands[0].append(seven_spades)
 
-        actions = self.game_state.get_legal_actions()
-        scuttle_actions = [a for a in actions if a.action_type == ActionType.SCUTTLE]
+        actions: List[Action] = self.game_state.get_legal_actions()
+        scuttle_actions: List[Action] = [a for a in actions if a.action_type == ActionType.SCUTTLE]
 
         # Seven of Diamonds should be able to scuttle Seven of Hearts
         self.assertTrue(
             any(
+                a.target is not None and
                 a.card == seven_spades
                 and a.target.rank == Rank.SEVEN
                 and a.target.suit == Suit.HEARTS
@@ -108,18 +119,19 @@ class TestGameStateScuttle(unittest.TestCase):
             "Seven of Spades should be able to scuttle Seven of Hearts (higher suit)",
         )
 
-    def test_scuttle_with_equal_value_lower_suit_not_allowed(self):
+    def test_scuttle_with_equal_value_lower_suit_not_allowed(self) -> None:
         """Test that equal value with lower suit cannot scuttle."""
         # Add a Seven of Clubs to P0's hand (Clubs < Hearts)
         seven_clubs = Card("11", Suit.CLUBS, Rank.SEVEN)
         self.game_state.hands[0].append(seven_clubs)
 
-        actions = self.game_state.get_legal_actions()
-        scuttle_actions = [a for a in actions if a.action_type == ActionType.SCUTTLE]
+        actions: List[Action] = self.game_state.get_legal_actions()
+        scuttle_actions: List[Action] = [a for a in actions if a.action_type == ActionType.SCUTTLE]
 
         # Seven of Clubs should not be able to scuttle Seven of Hearts
         self.assertFalse(
             any(
+                a.target is not None and
                 a.card == seven_clubs
                 and a.target.rank == Rank.SEVEN
                 and a.target.suit == Suit.HEARTS
@@ -128,14 +140,14 @@ class TestGameStateScuttle(unittest.TestCase):
             "Seven of Clubs should not be able to scuttle Seven of Hearts (lower suit)",
         )
 
-    def test_scuttle_with_lower_value_not_allowed(self):
+    def test_scuttle_with_lower_value_not_allowed(self) -> None:
         """Test that lower value cards cannot scuttle."""
         # Add a Four of Hearts to P0's hand
         four_hearts = Card("12", Suit.HEARTS, Rank.FOUR)
         self.game_state.hands[0].append(four_hearts)
 
-        actions = self.game_state.get_legal_actions()
-        scuttle_actions = [a for a in actions if a.action_type == ActionType.SCUTTLE]
+        actions: List[Action] = self.game_state.get_legal_actions()
+        scuttle_actions: List[Action] = [a for a in actions if a.action_type == ActionType.SCUTTLE]
 
         # Four should not be able to scuttle Five or Seven
         self.assertFalse(
@@ -143,7 +155,7 @@ class TestGameStateScuttle(unittest.TestCase):
             "Lower value cards should not be able to scuttle higher value cards",
         )
 
-    def test_scuttle_only_point_cards(self):
+    def test_scuttle_only_point_cards(self) -> None:
         """Test that only point cards on the field can be scuttled."""
         # Add a face card to opponent's field
         queen_hearts = Card(
@@ -155,8 +167,8 @@ class TestGameStateScuttle(unittest.TestCase):
         )
         self.game_state.fields[1].append(queen_hearts)
 
-        actions = self.game_state.get_legal_actions()
-        scuttle_actions = [a for a in actions if a.action_type == ActionType.SCUTTLE]
+        actions: List[Action] = self.game_state.get_legal_actions()
+        scuttle_actions: List[Action] = [a for a in actions if a.action_type == ActionType.SCUTTLE]
 
         # No actions should target the Queen
         self.assertFalse(
@@ -166,6 +178,6 @@ class TestGameStateScuttle(unittest.TestCase):
 
         # Should still be able to scuttle point cards
         self.assertTrue(
-            any(a.target.rank == Rank.SEVEN for a in scuttle_actions),
+            any(a.target is not None and a.target.rank == Rank.SEVEN for a in scuttle_actions),
             "Point cards should still be scuttleable when face cards are present",
         )

@@ -2,6 +2,8 @@ import io
 import logging
 import sys
 import unittest
+from typing import Any, List, Optional, Tuple
+from unittest.mock import Mock
 
 from game.card import Card, Rank, Suit
 
@@ -13,7 +15,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def print_and_capture(*args, **kwargs):
+def print_and_capture(*args: Any, **kwargs: Any) -> str:
     """Helper function to both print to stdout and log the output"""
     # Convert args to string
     output = " ".join(str(arg) for arg in args)
@@ -21,7 +23,8 @@ def print_and_capture(*args, **kwargs):
     if not output.endswith("\n"):
         output += "\n"
     # Write to stdout
-    sys.__stdout__.write(output)
+    if sys.__stdout__ is not None:
+        sys.__stdout__.write(output)
     # Log the output (strip to avoid double newlines)
     logger.info(output.rstrip())
     # Return the output for the mock to capture
@@ -29,7 +32,14 @@ def print_and_capture(*args, **kwargs):
 
 
 class MainTestBase(unittest.TestCase):
-    def setUp(self):
+    original_stdout: Any
+    original_stderr: Any
+    stdout_capture: io.StringIO
+    stderr_capture: io.StringIO
+    mock_input: Optional[Mock] = None
+    mock_logger: Optional[Mock] = None
+
+    def setUp(self) -> None:
         # Save original stdout and stderr
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
@@ -38,31 +48,29 @@ class MainTestBase(unittest.TestCase):
         self.stderr_capture = io.StringIO()
         sys.stdout = self.stdout_capture
         sys.stderr = self.stderr_capture
-        # Store mocks passed to tests
-        self.mock_input = None
         self.mock_logger = None  # Use this for Game logger
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         # Restore original stdout and stderr
         sys.stdout = self.original_stdout
         sys.stderr = self.original_stderr
         self.stdout_capture.close()
         self.stderr_capture.close()
 
-    def setup_mock_input(self, mock_input_target, inputs):
+    def setup_mock_input(self, mock_input_target: Mock, inputs: List[str]) -> None:
         """Helper to set up the mock input sequence."""
         self.mock_input = mock_input_target
         self.mock_input.side_effect = inputs
 
-    def get_captured_stdout(self):
+    def get_captured_stdout(self) -> str:
         """Returns captured standard output."""
         return self.stdout_capture.getvalue()
 
-    def get_captured_stderr(self):
+    def get_captured_stderr(self) -> str:
         """Returns captured standard error."""
         return self.stderr_capture.getvalue()
 
-    def get_logger_output(self, mock_logger):
+    def get_logger_output(self, mock_logger: Optional[Mock]) -> str:
         """Helper to get logged output from the mock logger as a single string."""
         if not mock_logger:
             return ""
@@ -75,16 +83,16 @@ class MainTestBase(unittest.TestCase):
             # Could potentially handle kwargs too if needed
         return "\n".join(log_lines)
 
-    def print_game_output(self, output):
+    def print_game_output(self, output: str) -> None:
         """Helper to print captured output for debugging tests."""
         print("\n--- Game Output ---")
         print(output)
         print("--- End Game Output ---\n")
 
-    def generate_test_deck(self, p0_cards, p1_cards, num_filler=41):
+    def generate_test_deck(self, p0_cards: List[Card], p1_cards: List[Card], num_filler: int = 41) -> List[Card]:
         """Generate a test deck ensuring specific player hands first."""
         deck = list(p0_cards) + list(p1_cards)
-        existing_cards = set(str(c) for c in deck)
+        existing_cards: set[str] = set(str(c) for c in deck)
 
         # Add filler cards, avoiding duplicates
         filler_count = 0

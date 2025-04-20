@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from typing import Any, List
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -12,8 +13,8 @@ class TestMainThree(MainTestBase):
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
     async def test_play_three_through_main(
-        self, mock_generate_cards, mock_print, mock_input
-    ):
+        self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
+    ) -> None:
         """Test playing a Three as a one-off through main.py to take a card from discard pile."""
         # Set up print mock to both capture and display
         mock_print.side_effect = print_and_capture
@@ -75,7 +76,7 @@ class TestMainThree(MainTestBase):
         await main()
 
         # Get all logged output
-        log_output = self.get_log_output()
+        log_output: str = self.get_logger_output(mock_print)
         self.print_game_output(log_output)
 
         # Check for key game events in output
@@ -118,8 +119,8 @@ class TestMainThree(MainTestBase):
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
     async def test_play_three_empty_discard_through_main(
-        self, mock_generate_cards, mock_print, mock_input
-    ):
+        self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
+    ) -> None:
         """Test playing a Three as a one-off through main.py with empty discard pile."""
         # Set up print mock to both capture and display
         mock_print.side_effect = print_and_capture
@@ -175,7 +176,7 @@ class TestMainThree(MainTestBase):
         await main()
 
         # Get all logged output
-        log_output = self.get_log_output()
+        log_output: str = self.get_logger_output(mock_print)
         self.print_game_output(log_output)
 
         # Verify empty discard pile message
@@ -198,8 +199,8 @@ class TestMainThree(MainTestBase):
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
     async def test_play_three_with_counter_through_main(
-        self, mock_generate_cards, mock_print, mock_input
-    ):
+        self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
+    ) -> None:
         """Test playing a Three as a one-off through main.py and getting countered by Two."""
         # Set up print mock to both capture and display
         mock_print.side_effect = print_and_capture
@@ -258,7 +259,7 @@ class TestMainThree(MainTestBase):
         await main()
 
         # Get all logged output
-        log_output = self.get_log_output()
+        log_output: str = self.get_logger_output(mock_print)
         self.print_game_output(log_output)
 
         # Verify point cards were played
