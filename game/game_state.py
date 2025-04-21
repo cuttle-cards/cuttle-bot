@@ -299,6 +299,7 @@ class GameState:
                 return True, True, None # Stop game on error
         elif action.action_type == ActionType.SCUTTLE:
             if action.card is not None and action.target is not None:
+                action.card.played_by = self.turn
                 self.scuttle(action.card, action.target)
                 turn_finished = True
                 should_stop = False  # scuttle doesn't end the game
@@ -427,20 +428,29 @@ class GameState:
             )
 
         # scuttle a points card
+        card.played_by = self.turn
         card_player = card.played_by
         if card_player is not None:
             if card in self.hands[card_player]:
+                log_print(f"Removing card {card} from card player's hand")
                 self.hands[card_player].remove(card)
+            else:
+                log_print(f"Card {card} not found on card player's hand")
+                raise Exception(f"Card {card} not found on card player's hand")
         card.clear_player_info()
         self.discard_pile.append(card)
         for attached_card in card.attachments:
             attached_card.clear_player_info()
             self.discard_pile.append(attached_card)
-        
+
         target_player = target.played_by
         if target_player is not None:
             if target in self.fields[target_player]:
+                log_print(f"Removing target card {target} from target player's field")
                 self.fields[target_player].remove(target)
+            else:
+                log_print(f"Target card {target} not found on target player's field")
+                raise Exception(f"Target card {target} not found on target player's field")
         target.clear_player_info()
         self.discard_pile.append(target)
         for attached_card in target.attachments:
