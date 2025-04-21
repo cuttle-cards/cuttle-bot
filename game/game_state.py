@@ -299,7 +299,6 @@ class GameState:
                 return True, True, None # Stop game on error
         elif action.action_type == ActionType.SCUTTLE:
             if action.card is not None and action.target is not None:
-                action.card.played_by = self.turn
                 self.scuttle(action.card, action.target)
                 turn_finished = True
                 should_stop = False  # scuttle doesn't end the game

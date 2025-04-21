@@ -104,6 +104,7 @@ class TestGameState(unittest.TestCase):
         self.game_state.scuttle(card, target)
         self.assertIn(card, self.game_state.discard_pile)
         self.assertIn(target, self.game_state.discard_pile)
+        self.assertNotIn(card, self.game_state.hands[0])
         self.assertNotIn(target, self.game_state.fields[1])
 
     def test_play_one_off(self) -> None:
