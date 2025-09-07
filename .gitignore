@@ -181,3 +181,5 @@ test_outputs/
 
 # linters
 .ruff_cache/
+
+eng_plans/
