@@ -274,7 +274,7 @@ class TestMainJack(MainTestBase):
         # Check state after first jack
         self.assertIn("Player 0: Score = 3", log_output)
         self.assertIn(
-            "Field: [[Stolen from opponent] [Jack] Three of Hearts]", log_output
+            "Field: [[Stolen from opponent][Jack] Three of Hearts]", log_output
         )
         # Check state after second jack
         self.assertIn("Player 1: Score = 3", log_output)
@@ -282,7 +282,7 @@ class TestMainJack(MainTestBase):
         # Check state after third jack
         self.assertIn("Player 0: Score = 3", log_output)  # Score doesn't change
         self.assertIn(
-            "Field: [[Stolen from opponent] [Jack][Jack][Jack] Three of Hearts]",
+            "Field: [[Stolen from opponent][Jack][Jack][Jack] Three of Hearts]",
             log_output,
         )
         # Check state after fourth jack

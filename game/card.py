@@ -69,7 +69,7 @@ class Card:
         jack_prefix = (
             "[Jack]" * len(self.attachments) + " " if len(self.attachments) > 0 else ""
         )
-        stolen_prefix = "[Stolen from opponent] " if self.is_stolen() else ""
+        stolen_prefix = "[Stolen from opponent]" if self.is_stolen() else ""
         return (
             f"{stolen_prefix}{jack_prefix}{self.rank.value[0]} of {self.suit.value[0]}"
         )
