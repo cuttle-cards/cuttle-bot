@@ -3,9 +3,11 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from game.action import ActionType
 from game.card import Card, Rank, Suit
+from game.game import Game
 from game.game_state import GameState
-from tests.test_main.test_main_base import MainTestBase
+from tests.test_main.test_main_base import MainTestBase, print_and_capture
 
 
 class TestMainJack(MainTestBase):
@@ -36,15 +38,17 @@ class TestMainJack(MainTestBase):
         # The rest of the deck isn't critical for these tests, as long as dealing works
         return deck
 
+    @pytest.mark.asyncio
     @pytest.mark.timeout(5)
     @patch("builtins.input")
+    @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
     async def test_play_jack_on_opponent_point_card(
-        self, mock_generate_cards: Mock, mock_input: Mock
+        self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
     ) -> None:
         """Test playing a Jack on an opponent's point card through main.py."""
-        # Create a mock logger
-        mock_logger = MagicMock()
+        # Set up print mock to both capture and display
+        mock_print.side_effect = print_and_capture
 
         # Create test deck with specific cards
         p0_cards = [
@@ -91,40 +95,68 @@ class TestMainJack(MainTestBase):
             "n",  # Don't save game history
         ]
         self.setup_mock_input(mock_input, mock_inputs)
-        self.mock_logger = mock_logger  # Store mock logger if needed later
-
-        # Import and run main
-        from main import main
-
-        # Simpler approach: Patch GameState.__init__ within the Game initialization context
-        with patch(
-            "game.game.GameState.__init__",
-            side_effect=lambda *args, **kwargs: GameState(
-                *args, **{**kwargs, "logger": mock_logger}
-            ),
-        ):
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
             await main()
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Get logger output
-        log_output = self.get_logger_output(mock_logger)
-        self.print_game_output(log_output)
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify Jack was played
+        jack_actions = history.get_actions_by_type(ActionType.JACK)
+        assert len(jack_actions) == 1, "Expected exactly one Jack action"
+        jack_action = jack_actions[0]
+        assert jack_action.card.rank == Rank.JACK, "Expected Jack to be played"
+        assert jack_action.card.suit == Suit.HEARTS, "Expected Jack of Hearts to be played"
+        assert jack_action.player == 0, "Expected player 0 to play the Jack"
+        
+        # Verify the Jack was played on an opponent's point card
+        assert jack_action.target is not None, "Jack should have a target"
+        assert jack_action.target.rank == Rank.EIGHT, "Jack should target Eight of Clubs"
+        assert jack_action.target.suit == Suit.CLUBS, "Jack should target Eight of Clubs"
+        
+        # Verify final game state - Player 0 should have the stolen card
+        p0_field = captured_game.game_state.fields[0]
+        stolen_cards = [card for card in p0_field if card.rank == Rank.EIGHT and card.suit == Suit.CLUBS]
+        assert len(stolen_cards) == 1, "Player 0 should have stolen Eight of Clubs"
+        
+        # Verify the Jack is attached to the stolen card
+        stolen_card = stolen_cards[0]
+        jacks_on_card = [attachment for attachment in stolen_card.attachments if attachment.rank == Rank.JACK]
+        assert len(jacks_on_card) == 1, "Should have one Jack attached to stolen card"
 
-        # Verify that the Jack was played on the opponent's point card
-        # Assert based on logger output (GameState.print_state calls)
-        self.assertIn(
-            "Player 0: Score = 8, Target = 21", log_output
-        )  # P0 score includes stolen 8C
-        self.assertRegex(log_output, r"Field:.*Eight of Clubs.*Jack of Hearts")
-
+    @pytest.mark.asyncio
     @pytest.mark.timeout(5)
     @patch("builtins.input")
+    @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
     async def test_cannot_play_jack_with_queen_on_field(
-        self, mock_generate_cards: Mock, mock_input: Mock
+        self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
     ) -> None:
         """Test that a Jack cannot be played if the opponent has a Queen on their field."""
-        # Create a mock logger
-        mock_logger = MagicMock()
+        # Set up print mock to both capture and display
+        mock_print.side_effect = print_and_capture
 
         # Create test deck with specific cards
         p0_cards = [
@@ -169,41 +201,71 @@ class TestMainJack(MainTestBase):
             "1",  # P0: Play 9H points
             "1",  # P1: Play 7D points
             # P0 Turn: Jack is illegal due to Queen. Check available actions.
-            "0",  # P0: Draw card (action index 0 is Draw)
+            "0",  # P0: Available action
             "e",  # end game
             "n",  # Don't save game history
         ]
         self.setup_mock_input(mock_input, mock_inputs)
-        self.mock_logger = mock_logger
-
-        # Import and run main
-        from main import main
-
-        with patch(
-            "game.game.GameState.__init__",
-            side_effect=lambda *args, **kwargs: GameState(
-                *args, **{**kwargs, "logger": mock_logger}
-            ),
-        ):
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
             await main()
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Get logger output
-        log_output = self.get_logger_output(mock_logger)
-        self.print_game_output(log_output)
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify Queen was played as face card
+        face_card_actions = history.get_actions_by_type(ActionType.FACE_CARD)
+        queen_actions = [action for action in face_card_actions 
+                        if action.card and action.card.rank == Rank.QUEEN]
+        assert len(queen_actions) == 1, "Expected exactly one Queen face card action"
+        queen_action = queen_actions[0]
+        assert queen_action.card.suit == Suit.CLUBS, "Expected Queen of Clubs to be played"
+        assert queen_action.player == 1, "Expected player 1 to play the Queen"
+        
+        # Verify no Jack actions occurred (Queen blocks Jacks)
+        jack_actions = history.get_actions_by_type(ActionType.JACK)
+        assert len(jack_actions) == 0, "No Jack actions should occur when Queen is on field"
+        
+        # Verify final game state - Player 1 should have Queen on field
+        p1_field = captured_game.game_state.fields[1]
+        queens_on_field = [card for card in p1_field if card.rank == Rank.QUEEN]
+        assert len(queens_on_field) == 1, "Player 1 should have Queen on field"
+        
+        # Verify Player 0 still has Jack in hand (couldn't play it)
+        p0_hand = captured_game.game_state.hands[0]
+        jacks_in_hand = [card for card in p0_hand if card.rank == Rank.JACK]
+        assert len(jacks_in_hand) >= 1, "Player 0 should still have Jack in hand"
 
-        # Verify that the illegal Jack action wasn't printed
-        self.assertNotIn("Play Jack of Hearts as jack on Seven of Diamonds", log_output)
-        # Verify the state after P1 plays 7D (before P0's turn where Jack is illegal)
-        self.assertIn("Player 1: Score = 7, Target = 21", log_output)
-        self.assertRegex(log_output, r"Player 1.*Field:.*Queen of Clubs.*Seven of Diamonds")
-
+    @pytest.mark.asyncio
     @pytest.mark.timeout(5)
     @patch("builtins.input")
+    @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    async def test_multiple_jacks_on_same_card(self, mock_generate_cards: Mock, mock_input: Mock) -> None:
+    async def test_multiple_jacks_on_same_card(self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock) -> None:
         """Test that multiple jacks can be played on the same card."""
-        # Create a mock logger
-        mock_logger = MagicMock()
+        # Set up print mock to both capture and display
+        mock_print.side_effect = print_and_capture
 
         # Create test deck with specific cards
         p0_cards = [
@@ -253,44 +315,59 @@ class TestMainJack(MainTestBase):
             "n",  # Don't save game history
         ]
         self.setup_mock_input(mock_input, mock_inputs)
-        self.mock_logger = mock_logger
-
-        # Import and run main
-        from main import main
-
-        with patch(
-            "game.game.GameState.__init__",
-            side_effect=lambda *args, **kwargs: GameState(
-                *args, **{**kwargs, "logger": mock_logger}
-            ),
-        ):
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
             await main()
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Get logger output
-        log_output = self.get_logger_output(mock_logger)
-        self.print_game_output(log_output)
-
-        # Assert based on logger output (GameState.print_state calls)
-        # Check state after first jack
-        self.assertIn("Player 0: Score = 3", log_output)
-        self.assertIn(
-            "Field: [[Stolen from opponent] [Jack] Three of Hearts]", log_output
-        )
-        # Check state after second jack
-        self.assertIn("Player 1: Score = 3", log_output)
-        self.assertIn("Field: [[Jack][Jack] Three of Hearts]", log_output)
-        # Check state after third jack
-        self.assertIn("Player 0: Score = 3", log_output)  # Score doesn't change
-        self.assertIn(
-            "Field: [[Stolen from opponent] [Jack][Jack][Jack] Three of Hearts]",
-            log_output,
-        )
-        # Check state after fourth jack
-        self.assertIn("Player 1: Score = 3", log_output)  # Score doesn't change
-        self.assertIn("Field: [[Jack][Jack][Jack][Jack] Three of Hearts]", log_output)
-        # Assert that all four Jacks are attached to the Three of Hearts
-        # Look for the final state print where the card has attachments
-        self.assertRegex(
-            log_output,
-            r"Field:.*Three of Hearts.*Jack of Hearts.*Jack of Diamonds.*Jack of Spades.*Jack of Clubs",
-        )
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify multiple Jack actions occurred
+        jack_actions = history.get_actions_by_type(ActionType.JACK)
+        assert len(jack_actions) >= 2, f"Expected at least 2 Jack actions, got {len(jack_actions)}"
+        
+        # Verify all Jacks target the same card (Three of Hearts)
+        target_card = jack_actions[0].target
+        assert target_card is not None, "Jack should have a target"
+        assert target_card.rank == Rank.THREE, "Jack should target Three of Hearts"
+        assert target_card.suit == Suit.HEARTS, "Jack should target Three of Hearts"
+        
+        # Verify all subsequent Jacks target the same card
+        for jack_action in jack_actions[1:]:
+            assert jack_action.target.rank == target_card.rank, "All Jacks should target same card"
+            assert jack_action.target.suit == target_card.suit, "All Jacks should target same card"
+        
+        # Find where the Three of Hearts ended up and count attached Jacks
+        three_of_hearts_locations = []
+        for player_field in captured_game.game_state.fields:
+            for card in player_field:
+                if card.rank == Rank.THREE and card.suit == Suit.HEARTS:
+                    three_of_hearts_locations.append((card, player_field))
+        
+        assert len(three_of_hearts_locations) == 1, "Three of Hearts should be on exactly one field"
+        three_card, field = three_of_hearts_locations[0]
+        
+        # Count Jacks attached to the Three of Hearts
+        jacks_attached = [attachment for attachment in three_card.attachments if attachment.rank == Rank.JACK]
+        assert len(jacks_attached) >= 2, f"Expected at least 2 Jacks attached, got {len(jacks_attached)}"

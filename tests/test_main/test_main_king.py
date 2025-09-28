@@ -3,11 +3,14 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from game.action import ActionType
 from game.card import Card, Rank, Suit
+from game.game import Game
 from tests.test_main.test_main_base import MainTestBase, print_and_capture
 
 
 class TestMainKing(MainTestBase):
+    @pytest.mark.asyncio
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("builtins.print")
@@ -65,38 +68,59 @@ class TestMainKing(MainTestBase):
             "n",  # Don't save game history
         ]
         self.setup_mock_input(mock_input, mock_inputs)
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
+            await main()
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Import and run main
-        from main import main
-
-        await main()
-
-        # Get all logged output
-        log_output: str = self.get_logger_output(mock_print)
-        self.print_game_output(log_output)
-
-        # Check for key game events in output
-        target_reductions = [
-            text
-            for text in log_output
-            if "Player 0's field: [King of Spades]" in text
-            or "Player 1's field: [Eight of Diamonds]" in text
-            or "Player 0's field: [King of Spades, King of Hearts]" in text
-            or "Player 0's field: [King of Hearts, King of Spades]" in text
-            or "Player 0 wins! Score: 10 points (target: 10 with 2 Kings)" in text
-        ]
-        self.assertTrue(
-            any(target_reductions)
-        )  # At least one of these messages should appear
-
-        # Check for point accumulation
-        point_messages = [text for text in log_output if "10 points" in text]
-        self.assertTrue(any(point_messages))
-
-        # Check for win message with points and Kings
-        win_messages = [text for text in log_output if "wins!" in text]
-        self.assertTrue(len(win_messages) >= 1)  # At least one win message
-        final_win = win_messages[-1]  # Get the last win message
-        self.assertIn("Player 0", final_win)
-        self.assertIn("10 points", final_win)
-        self.assertIn("2 Kings", final_win)
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify Kings were played as face cards
+        face_card_actions = history.get_actions_by_type(ActionType.FACE_CARD)
+        king_actions = [action for action in face_card_actions 
+                       if action.card and action.card.rank == Rank.KING]
+        assert len(king_actions) == 2, f"Expected 2 King face card actions, got {len(king_actions)}"
+        
+        # Verify both Kings were played by Player 0
+        for king_action in king_actions:
+            assert king_action.player == 0, "Expected player 0 to play Kings"
+            assert king_action.card.suit in [Suit.HEARTS, Suit.SPADES], "Expected King of Hearts or Spades"
+        
+        # Verify points were played
+        points_actions = history.get_actions_by_type(ActionType.POINTS)
+        ten_points = [action for action in points_actions 
+                     if action.card and action.card.rank == Rank.TEN]
+        assert len(ten_points) == 1, "Expected Ten of Hearts to be played for points"
+        assert ten_points[0].player == 0, "Expected player 0 to play Ten of Hearts"
+        
+        # Verify final game state - Player 0 should have 2 Kings on field reducing target
+        p0_field = captured_game.game_state.fields[0]
+        kings_on_field = [card for card in p0_field if card.rank == Rank.KING]
+        assert len(kings_on_field) == 2, f"Player 0 should have 2 Kings on field, got {len(kings_on_field)}"
+        
+        # Verify Player 0 has enough points to win with reduced target
+        p0_score = sum(card.point_value() for card in p0_field if card.rank != Rank.KING)
+        target_reduction = len(kings_on_field) * 5  # Each King reduces target by 5
+        effective_target = 21 - target_reduction
+        assert p0_score >= effective_target, f"Player 0 should have won with score {p0_score} vs target {effective_target}"

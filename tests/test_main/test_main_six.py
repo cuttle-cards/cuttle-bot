@@ -3,11 +3,14 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from game.action import ActionType
 from game.card import Card, Rank, Suit
+from game.game import Game
 from tests.test_main.test_main_base import MainTestBase, print_and_capture
 
 
 class TestMainSix(MainTestBase):
+    @pytest.mark.asyncio
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("builtins.print")

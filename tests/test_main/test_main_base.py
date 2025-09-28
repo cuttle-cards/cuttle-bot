@@ -33,7 +33,7 @@ def print_and_capture(*args: Any, **kwargs: Any) -> str:
     return output.rstrip()
 
 
-class MainTestBase:
+class MainTestBase(unittest.TestCase):
     original_stdout: Any
     original_stderr: Any
     stdout_capture: io.StringIO
@@ -41,7 +41,7 @@ class MainTestBase:
     mock_input: Optional[Mock] = None
     mock_logger: Optional[Mock] = None
 
-    def setup_method(self) -> None:
+    def setup_method(self, method) -> None:
         # Save original stdout and stderr
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
@@ -52,7 +52,7 @@ class MainTestBase:
         sys.stderr = self.stderr_capture
         self.mock_logger = None  # Use this for Game logger
 
-    def teardown_method(self) -> None:
+    def teardown_method(self, method) -> None:
         # Restore original stdout and stderr
         sys.stdout = self.original_stdout
         sys.stderr = self.original_stderr
