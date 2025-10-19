@@ -12,6 +12,8 @@ test:
 run:
 	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python main.py
 
+run-with-rl:
+	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python main_with_rl_ai.py
 # Generate documentation using pdoc
 docs:
 	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python docs.py
@@ -36,3 +38,23 @@ all: test
 typecheck:
 	@echo "Running mypy type checks..."
 	source $(VENV_NAME)/bin/activate && mypy .
+
+# RL Training commands (with action masking)
+train-rl:
+	@echo "Training RL agent with MaskablePPO..."
+	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python rl/train.py
+
+eval-rl:
+	@echo "Evaluating RL agent..."
+	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python rl/evaluate.py
+
+tensorboard:
+	@echo "Starting TensorBoard on http://localhost:6006"
+	@echo "Press Ctrl+C to stop"
+	source $(VENV_NAME)/bin/activate && tensorboard --logdir=rl/logs --port=6006
+
+test-rl:
+	@echo "Quick RL training test with action masking (10K timesteps, ~2-3 minutes)..."
+	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python -c \
+		"from rl import config; config.TRAINING_CONFIG['total_timesteps'] = 10000; \
+		exec(open('rl/train.py').read())"

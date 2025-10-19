@@ -260,8 +260,20 @@ class GameState:
         Returns:
             bool: True if the game is in stalemate, False otherwise.
         """
-        print(f"deck size: {len(self.deck)}, winner: {self.winner()}")
+        # Remove debug print statement that was causing infinite loop
         return self.deck == [] and not self.winner()
+
+    def _move_card_to_discard(self, card: Card) -> None:
+        """Move a card to the discard pile along with all its attachments.
+        
+        Args:
+            card (Card): The card to move to the discard pile.
+        """
+        card.clear_player_info()
+        self.discard_pile.append(card)
+        for attached_card in card.attachments:
+            attached_card.clear_player_info()
+            self.discard_pile.append(attached_card)
 
     def _record_action_to_history(self, action: Action) -> None:
         """Convert an Action to a GameHistoryEntry and record it in game history.
@@ -493,11 +505,7 @@ class GameState:
             else:
                 log_print(f"Card {card} not found on card player's hand")
                 raise Exception(f"Card {card} not found on card player's hand")
-        card.clear_player_info()
-        self.discard_pile.append(card)
-        for attached_card in card.attachments:
-            attached_card.clear_player_info()
-            self.discard_pile.append(attached_card)
+        self._move_card_to_discard(card)
 
         target_player = target.played_by
         if target_player is not None:
@@ -507,11 +515,7 @@ class GameState:
             else:
                 log_print(f"Target card {target} not found on target player's field")
                 raise Exception(f"Target card {target} not found on target player's field")
-        target.clear_player_info()
-        self.discard_pile.append(target)
-        for attached_card in target.attachments:
-            attached_card.clear_player_info()
-            self.discard_pile.append(attached_card)
+        self._move_card_to_discard(target)
 
     def play_one_off(
         self,
@@ -568,16 +572,14 @@ class GameState:
             played_by = countered_with.played_by
             if played_by is not None and countered_with in self.hands[played_by]:
                 self.hands[played_by].remove(countered_with)
-                self.discard_pile.append(countered_with)
-                countered_with.clear_player_info()
+                self._move_card_to_discard(countered_with)
                 log_print(f"Counter card {countered_with} moved to discard pile")
 
             # Move the countered card to discard pile if it's still in hand
             if card in self.hands[self.turn]:
                 self.hands[self.turn].remove(card)
             if card not in self.discard_pile:
-                self.discard_pile.append(card)
-                card.clear_player_info()
+                self._move_card_to_discard(card)
 
             # Update last action for counter chain
             self.last_action_played_by = played_by
@@ -593,17 +595,15 @@ class GameState:
                     self.hands[self.turn].remove(card)
                 card.purpose = Purpose.ONE_OFF
                 self.apply_one_off_effect(card)
-                card.clear_player_info()
                 if card not in self.discard_pile:
-                    self.discard_pile.append(card)
+                    self._move_card_to_discard(card)
             else:
                 # Original player accepts counter
                 # One-off is countered, move to discard
                 if card in self.hands[self.turn]:
                     self.hands[self.turn].remove(card)
                 if card not in self.discard_pile:
-                    self.discard_pile.append(card)
-                card.clear_player_info()
+                    self._move_card_to_discard(card)
 
             # Turn is finished after resolution
             return True, None
@@ -623,11 +623,7 @@ class GameState:
                 ]
                 for point_card in point_cards:
                     player_field.remove(point_card)
-                    point_card.clear_player_info()
-                    self.discard_pile.append(point_card)
-                    for attachment in point_card.attachments:
-                        attachment.clear_player_info()
-                        self.discard_pile.append(attachment)
+                    self._move_card_to_discard(point_card)
         elif card.rank == Rank.THREE:
             # Allow player to take a card from the discard pile
             if not self.discard_pile:
@@ -757,8 +753,7 @@ class GameState:
                 ]
                 for face_card in face_cards:
                     player_field.remove(face_card)
-                    face_card.clear_player_info()
-                    self.discard_pile.append(face_card)
+                    self._move_card_to_discard(face_card)
 
     def play_face_card(self, card: Card, target: Optional[Card] = None) -> bool:
         """Play a face card (King, Queen, Jack) from hand to field.
@@ -882,8 +877,9 @@ class GameState:
             )
             return actions
 
-        # Always allow drawing a card
-        actions.append(Action(ActionType.DRAW, self.turn))
+        # Allow drawing a card only if hand is not full (max 8 cards)
+        if len(self.hands[self.turn]) < 8:
+            actions.append(Action(ActionType.DRAW, self.turn))
 
         # Get cards in current player's hand
         hand = self.hands[self.turn]

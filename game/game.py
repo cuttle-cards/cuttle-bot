@@ -75,7 +75,7 @@ class Game:
             self.load_game(load_game)
         elif test_deck is not None:
             # Use the provided test deck
-            self.initialize_with_test_deck(test_deck)
+            self.initialize_with_test_deck(test_deck, ai_player)
         elif manual_selection:
             self.initialize_with_manual_selection()
         else:
@@ -304,11 +304,12 @@ class Game:
         hands = [deck[0:5], deck[5:11]]
         return hands
 
-    def initialize_with_test_deck(self, test_deck: List[Card]) -> None:
+    def initialize_with_test_deck(self, test_deck: List[Card], ai_player: Optional["AIPlayer"] = None) -> None:
         """Initialize the game with a predefined deck for testing.
 
         Args:
             test_deck (List[Card]): The predefined deck to use.
+            ai_player (Optional["AIPlayer"]): AI player instance.
 
         Note:
             Deals cards in the same pattern as normal initialization:
@@ -324,5 +325,5 @@ class Game:
             test_deck[11:],
             [],
             logger=self.logger,
-            ai_player=self.ai_player,
+            ai_player=ai_player,
         )
