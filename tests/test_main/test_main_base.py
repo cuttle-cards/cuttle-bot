@@ -5,6 +5,8 @@ import unittest
 from typing import Any, List, Optional, Tuple
 from unittest.mock import Mock
 
+import pytest
+
 from game.card import Card, Rank, Suit
 
 # Set up logging
@@ -39,7 +41,7 @@ class MainTestBase(unittest.TestCase):
     mock_input: Optional[Mock] = None
     mock_logger: Optional[Mock] = None
 
-    def setUp(self) -> None:
+    def setup_method(self, method) -> None:
         # Save original stdout and stderr
         self.original_stdout = sys.stdout
         self.original_stderr = sys.stderr
@@ -50,7 +52,7 @@ class MainTestBase(unittest.TestCase):
         sys.stderr = self.stderr_capture
         self.mock_logger = None  # Use this for Game logger
 
-    def tearDown(self) -> None:
+    def teardown_method(self, method) -> None:
         # Restore original stdout and stderr
         sys.stdout = self.original_stdout
         sys.stderr = self.original_stderr

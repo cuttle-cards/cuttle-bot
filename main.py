@@ -86,12 +86,13 @@ def get_yes_no_input(prompt: str) -> bool:
     """
     while True:
         response = input(prompt + " (y/n): ").lower()
+        print(f"{prompt} response: {response}")
         if response in ["y", "yes"]:
             return True
         elif response in ["n", "no"]:
             return False
-        print("Please enter 'y' or 'n'")
-        time.sleep(0.1)  # Add small delay to prevent log spam
+        print(f"{prompt} Please enter 'y' or 'n'")
+        time.sleep(0.05)  # Add small delay to prevent log spam
 
 
 def get_action_from_text_input(

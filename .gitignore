@@ -181,3 +181,13 @@ test_outputs/
 
 # linters
 .ruff_cache/
+
+eng_plans/
+
+# RL training artifacts
+rl/models/*.zip
+rl/logs/
+
+.DS_Store
+
+.cursor/

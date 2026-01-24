@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Arc Snap</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg-1: #f2e9da;
+    --bg-2: #e0d0b7;
+    --ink: #201a16;
+    --muted: #6e645a;
+    --track: #3b342e;
+    --accent: #f26a4f;
+    --accent-soft: #f4c95c;
+    --panel: rgba(255, 255, 255, 0.7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(700px 450px at 15% 10%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0)),
+      radial-gradient(620px 380px at 85% 15%, rgba(255, 226, 196, 0.7), rgba(255, 226, 196, 0)),
+      linear-gradient(150deg, var(--bg-1), var(--bg-2));
+    color: var(--ink);
+    font-family: "Space Grotesk", "Avenir Next", "Trebuchet MS", sans-serif;
+  }
+
+  .shell {
+    width: min(92vw, 540px);
+    display: grid;
+    gap: 12px;
+    justify-items: center;
+    text-align: center;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    letter-spacing: 0.04em;
+  }
+
+  .hud {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: var(--panel);
+    padding: 10px 16px;
+    border-radius: 999px;
+    color: var(--muted);
+  }
+
+  #game {
+    width: min(80vw, 460px);
+    height: min(80vw, 460px);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.5);
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.18);
+    outline: none;
+  }
+
+  #game:focus-visible {
+    box-shadow: 0 0 0 4px rgba(242, 106, 79, 0.35), 0 22px 60px rgba(0, 0, 0, 0.18);
+  }
+
+  .message {
+    min-height: 1.5rem;
+    color: var(--muted);
+    white-space: pre-line;
+  }
+
+  .restart {
+    border: none;
+    padding: 10px 22px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+  }
+
+  .restart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(242, 106, 79, 0.35);
+  }
+
+  @media (max-width: 520px) {
+    .hud { font-size: 0.65rem; }
+  }
+</style>
+</head>
+<body>
+  <main class="shell">
+    <h1>Arc Snap</h1>
+    <div class="hud">
+      <div>Score <span id="score">0</span></div>
+      <div>Best <span id="best">0</span></div>
+      <div>Lives <span id="lives">1</span></div>
+    </div>
+    <canvas id="game" tabindex="0" aria-label="Arc Snap timing game"></canvas>
+    <div id="message" class="message">Click or tap to start</div>
+    <button id="restart" class="restart" hidden>Restart</button>
+  </main>
+
+<script>
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const scoreEl = document.getElementById("score");
+  const bestEl = document.getElementById("best");
+  const livesEl = document.getElementById("lives");
+  const messageEl = document.getElementById("message");
+  const restartBtn = document.getElementById("restart");
+
+  const TAU = Math.PI * 2;
+  const bestKey = "arc-snap-best";
+
+  let viewSize = 420;
+  let pixelRatio = window.devicePixelRatio || 1;
+
+  const state = {
+    running: false,
+    gameOver: false,
+    score: 0,
+    best: Number.parseInt(localStorage.getItem(bestKey) || "0", 10),
+    speed: 2.2,
+    angle: 0,
+    sliceStart: 0,
+    sliceSize: 1.1,
+    minSlice: 0.35,
+    flash: 0,
+    flashMax: 0,
+    flashColor: "242, 201, 92",
+    pause: 0,
+    lives: 1,
+    messageTimer: 0
+  };
+
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  const normalizeAngle = (angle) => {
+    let a = angle % TAU;
+    if (a < 0) a += TAU;
+    return a;
+  };
+
+  const isAngleInSlice = (angle, start, size) => {
+    if (size >= TAU) return true;
+    const a = normalizeAngle(angle);
+    const s = normalizeAngle(start);
+    const e = normalizeAngle(start + size);
+    if (s <= e) return a >= s && a <= e;
+    return a >= s || a <= e;
+  };
+
+  const updateHud = () => {
+    scoreEl.textContent = state.score;
+    bestEl.textContent = state.best;
+    livesEl.textContent = state.lives > 0 ? "x".repeat(state.lives) : "0";
+  };
+
+  const setMessage = (text, duration) => {
+    messageEl.textContent = text;
+    state.messageTimer = duration || 0;
+  };
+
+  const flash = (color, duration) => {
+    state.flashColor = color;
+    state.flash = duration;
+    state.flashMax = duration;
+  };
+
+  const randomSlice = () => {
+    state.sliceStart = Math.random() * TAU;
+  };
+
+  const resetRun = () => {
+    state.score = 0;
+    state.speed = 2.2;
+    state.angle = 0;
+    state.sliceSize = 1.1;
+    state.pause = 0;
+    state.lives = 1;
+    state.gameOver = false;
+    state.running = false;
+    randomSlice();
+    updateHud();
+    setMessage("Click or tap to start", 0);
+    restartBtn.hidden = true;
+  };
+
+  const startRun = () => {
+    state.running = true;
+    state.gameOver = false;
+    setMessage("", 0);
+    restartBtn.hidden = true;
+  };
+
+  const endRun = () => {
+    state.running = false;
+    state.gameOver = true;
+    setMessage(`Game Over\nScore ${state.score}\nClick or tap to restart`, 0);
+    restartBtn.hidden = false;
+  };
+
+  const handleHit = () => {
+    state.score += 1;
+    if (state.score > state.best) {
+      state.best = state.score;
+      localStorage.setItem(bestKey, String(state.best));
+    }
+    state.speed *= 1.06;
+    state.sliceSize = Math.max(state.minSlice, state.sliceSize * 0.92);
+    state.pause = 0.12;
+    randomSlice();
+    flash("244, 201, 92", 0.22);
+    setMessage("Snap!", 0.4);
+    updateHud();
+  };
+
+  const handleMiss = () => {
+    state.pause = 0.16;
+    if (state.lives > 0) {
+      state.lives -= 1;
+      flash("242, 106, 79", 0.25);
+      setMessage("Close! One life used.", 0.6);
+      randomSlice();
+      updateHud();
+      return;
+    }
+    endRun();
+  };
+
+  const attemptSnap = () => {
+    if (!state.running || state.gameOver) return;
+    const hit = isAngleInSlice(state.angle, state.sliceStart, state.sliceSize);
+    if (hit) handleHit();
+    else handleMiss();
+  };
+
+  const handleAction = () => {
+    if (state.gameOver) {
+      resetRun();
+      startRun();
+      return;
+    }
+    if (!state.running) {
+      startRun();
+      return;
+    }
+    attemptSnap();
+  };
+
+  const resizeCanvas = () => {
+    pixelRatio = window.devicePixelRatio || 1;
+    viewSize = clamp(Math.min(window.innerWidth, window.innerHeight) * 0.72, 260, 520);
+    canvas.style.width = `${viewSize}px`;
+    canvas.style.height = `${viewSize}px`;
+    canvas.width = Math.round(viewSize * pixelRatio);
+    canvas.height = Math.round(viewSize * pixelRatio);
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+  };
+
+  const draw = () => {
+    const w = viewSize;
+    const h = viewSize;
+    ctx.clearRect(0, 0, w, h);
+
+    const centerX = w / 2;
+    const centerY = h / 2;
+    const radius = w * 0.32;
+    const ringWidth = radius * 0.22;
+
+    const glow = ctx.createRadialGradient(centerX, centerY, radius * 0.1, centerX, centerY, radius * 1.4);
+    glow.addColorStop(0, "rgba(255, 255, 255, 0.9)");
+    glow.addColorStop(1, "rgba(255, 255, 255, 0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius + ringWidth, 0, TAU);
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+
+    ctx.lineWidth = ringWidth;
+    ctx.strokeStyle = "#3b342e";
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, TAU);
+    ctx.stroke();
+
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#f26a4f";
+    ctx.lineWidth = ringWidth * 0.9;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, state.sliceStart - Math.PI / 2, state.sliceStart + state.sliceSize - Math.PI / 2);
+    ctx.stroke();
+
+    ctx.rotate(state.angle - Math.PI / 2);
+    ctx.strokeStyle = "#201a16";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-radius * 0.08, 0);
+    ctx.lineTo(radius, 0);
+    ctx.stroke();
+
+    ctx.fillStyle = "#201a16";
+    ctx.beginPath();
+    ctx.moveTo(radius, 0);
+    ctx.lineTo(radius - 14, -6);
+    ctx.lineTo(radius - 14, 6);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+
+    ctx.fillStyle = "#201a16";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, ringWidth * 0.22, 0, TAU);
+    ctx.fill();
+
+    if (state.flash > 0) {
+      const intensity = state.flashMax > 0 ? state.flash / state.flashMax : 0;
+      ctx.strokeStyle = `rgba(${state.flashColor}, ${intensity})`;
+      ctx.lineWidth = ringWidth * 1.15;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, TAU);
+      ctx.stroke();
+    }
+  };
+
+  let lastTime = performance.now();
+  const tick = (time) => {
+    const delta = Math.min((time - lastTime) / 1000, 0.05);
+    lastTime = time;
+
+    if (state.messageTimer > 0) {
+      state.messageTimer = Math.max(0, state.messageTimer - delta);
+      if (state.messageTimer === 0 && state.running) messageEl.textContent = "";
+    }
+
+    if (state.running) {
+      if (state.pause > 0) {
+        state.pause = Math.max(0, state.pause - delta);
+      } else {
+        state.angle = normalizeAngle(state.angle + state.speed * delta);
+      }
+    }
+
+    if (state.flash > 0) state.flash = Math.max(0, state.flash - delta);
+
+    draw();
+    requestAnimationFrame(tick);
+  };
+
+  canvas.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    handleAction();
+  });
+
+  window.addEventListener("keydown", (event) => {
+    if (event.code !== "Space" && event.key !== "Enter") return;
+    event.preventDefault();
+    handleAction();
+  });
+
+  restartBtn.addEventListener("click", () => {
+    resetRun();
+    startRun();
+  });
+
+  window.addEventListener("resize", resizeCanvas);
+
+  resizeCanvas();
+  updateHud();
+  draw();
+  requestAnimationFrame(tick);
+</script>
+</body>
+</html>

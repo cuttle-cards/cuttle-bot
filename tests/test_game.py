@@ -181,10 +181,11 @@ class TestGame(unittest.TestCase):
 
         # Create available cards (excluding the ones in hands)
         all_cards = game.generate_all_cards()
+        hand_card_strs = [str(c) for h in hands for c in h]
         available_cards: Dict[str, Card] = {
-            str(card): card
+            card.id: card
             for card in all_cards
-            if str(card) not in [str(c) for h in hands for c in h]
+            if str(card) not in hand_card_strs
         }
 
         # Fill remaining slots

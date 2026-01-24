@@ -1,6 +1,7 @@
 import unittest
 from typing import List, Optional, Tuple
 
+from game.action import Action, ActionType
 from game.card import Card, Purpose, Rank, Suit
 from game.game_state import GameState
 
@@ -99,13 +100,68 @@ class TestGameState(unittest.TestCase):
 
     def test_scuttle(self) -> None:
         card: Card = self.hands[0][0]
-        target: Card = Card("target", Suit.CLUBS, Rank.TWO, played_by=1)
+        target: Card = Card(
+            "target", Suit.CLUBS, Rank.TWO, played_by=1, purpose=Purpose.POINTS
+        )
         self.game_state.fields[1].append(target)
         self.game_state.scuttle(card, target)
         self.assertIn(card, self.game_state.discard_pile)
         self.assertIn(target, self.game_state.discard_pile)
         self.assertNotIn(card, self.game_state.hands[0])
         self.assertNotIn(target, self.game_state.fields[1])
+
+    def test_cannot_scuttle_stolen_point_card(self) -> None:
+        hands: List[List[Card]] = [
+            [Card("1", Suit.SPADES, Rank.TEN)],
+            [Card("2", Suit.CLUBS, Rank.TWO)],
+        ]
+        stolen_target = Card(
+            "target", Suit.CLUBS, Rank.SEVEN, played_by=1, purpose=Purpose.POINTS
+        )
+        stolen_target.attachments.append(
+            Card("jack", Suit.HEARTS, Rank.JACK, played_by=0, purpose=Purpose.JACK)
+        )
+        fields: List[List[Card]] = [[], [stolen_target]]
+        game_state = GameState(hands, fields, [], [])
+
+        legal_actions = game_state.get_legal_actions()
+        scuttle_actions = [
+            action
+            for action in legal_actions
+            if action.action_type == ActionType.SCUTTLE
+        ]
+        self.assertEqual(len(scuttle_actions), 0)
+
+        with self.assertRaises(Exception) as context:
+            game_state.scuttle(hands[0][0], stolen_target)
+        self.assertIn("Cannot scuttle a point card you control", str(context.exception))
+
+    def test_scuttle_stolen_point_card_on_own_field(self) -> None:
+        hands: List[List[Card]] = [
+            [Card("1", Suit.SPADES, Rank.TEN)],
+            [Card("2", Suit.CLUBS, Rank.TWO)],
+        ]
+        stolen_target = Card(
+            "target", Suit.CLUBS, Rank.SEVEN, played_by=0, purpose=Purpose.POINTS
+        )
+        stolen_target.attachments.append(
+            Card("jack", Suit.HEARTS, Rank.JACK, played_by=1, purpose=Purpose.JACK)
+        )
+        fields: List[List[Card]] = [[stolen_target], []]
+        game_state = GameState(hands, fields, [], [])
+
+        legal_actions = game_state.get_legal_actions()
+        scuttle_actions = [
+            action
+            for action in legal_actions
+            if action.action_type == ActionType.SCUTTLE
+        ]
+        self.assertEqual(len(scuttle_actions), 1)
+
+        scuttle_card = hands[0][0]
+        game_state.scuttle(scuttle_card, stolen_target)
+        self.assertIn(stolen_target, game_state.discard_pile)
+        self.assertIn(scuttle_card, game_state.discard_pile)
 
     def test_play_one_off(self) -> None:
         counter_card: Card = Card(
@@ -142,6 +198,44 @@ class TestGameState(unittest.TestCase):
         self.assertIsNone(played_by)
         self.assertIn(card, self.game_state.discard_pile)
         self.assertNotIn(card, self.game_state.hands[0])
+
+    def test_four_requires_discard_selection_in_api_mode(self) -> None:
+        hands: List[List[Card]] = [
+            [Card("1", Suit.HEARTS, Rank.FOUR)],
+            [
+                Card("2", Suit.CLUBS, Rank.TEN),
+                Card("3", Suit.SPADES, Rank.NINE),
+            ],
+        ]
+        fields: List[List[Card]] = [[], []]
+        game_state = GameState(hands, fields, [], [], use_ai=False, input_mode="api")
+        game_state.turn = 0
+        game_state.current_action_player = 0
+
+        game_state.apply_one_off_effect(hands[0][0])
+
+        self.assertTrue(game_state.resolving_four)
+        self.assertEqual(game_state.pending_four_player, 1)
+        self.assertEqual(game_state.pending_four_count, 2)
+
+        actions = game_state.get_legal_actions()
+        self.assertTrue(
+            all(action.action_type == ActionType.DISCARD_FROM_HAND for action in actions)
+        )
+
+        first_action = actions[0]
+        turn_finished, should_stop, _winner = game_state.update_state(first_action)
+        self.assertFalse(turn_finished)
+        self.assertFalse(should_stop)
+        self.assertTrue(game_state.resolving_four)
+
+        actions = game_state.get_legal_actions()
+        second_action = actions[0]
+        turn_finished, should_stop, _winner = game_state.update_state(second_action)
+        self.assertTrue(turn_finished)
+        self.assertFalse(should_stop)
+        self.assertFalse(game_state.resolving_four)
+        self.assertEqual(game_state.pending_four_count, 0)
 
     def test_play_five_one_off(self) -> None:
         self.deck = [
@@ -224,6 +318,37 @@ class TestGameState(unittest.TestCase):
         self.assertIsNone(played_by)
 
         self.assertEqual(len(self.game_state.hands[0]), 8)
+
+    def test_one_off_turn_order_with_counter(self) -> None:
+        """Ensure counter chain alternates current_action_player."""
+        self.deck = []
+        self.hands = [
+            [Card("1", Suit.HEARTS, Rank.FIVE)],
+            [Card("2", Suit.SPADES, Rank.TWO)],
+        ]
+        self.fields = [[], []]
+        self.discard_pile = []
+
+        self.game_state = GameState(
+            self.hands, self.fields, self.deck, self.discard_pile
+        )
+
+        one_off_action = Action(ActionType.ONE_OFF, 0, card=self.hands[0][0])
+        turn_finished, _, _ = self.game_state.update_state(one_off_action)
+        self.assertFalse(turn_finished)
+        self.assertTrue(self.game_state.resolving_one_off)
+        self.game_state.next_player()
+        self.assertEqual(self.game_state.current_action_player, 1)
+
+        legal_actions = self.game_state.get_legal_actions()
+        counter_action = next(
+            action for action in legal_actions if action.action_type == ActionType.COUNTER
+        )
+        turn_finished, _, _ = self.game_state.update_state(counter_action)
+        self.assertFalse(turn_finished)
+        self.assertTrue(self.game_state.resolving_one_off)
+        self.game_state.next_player()
+        self.assertEqual(self.game_state.current_action_player, 0)
 
         self.deck = [
             Card("001", Suit.CLUBS, Rank.ACE),
@@ -970,6 +1095,7 @@ class TestGameState(unittest.TestCase):
         self.assertEqual(game_state.get_player_score(0), 17)
         self.assertEqual(game_state.get_player_score(1), 9)
         self.assertEqual(game_state.winner(), 0)
+        self.assertEqual(game_state.status, "win")
 
     def test_jack_scuttle(self) -> None:
         """If a point card is stolen by a jack, and the point card is being scuttled, the jack should be discarded together with the point cards."""

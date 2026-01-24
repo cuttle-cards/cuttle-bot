@@ -98,6 +98,7 @@ class Action:
         - COUNTER: "Counter {target} with {card}"
         - JACK: "Play {card} as jack on {target}"
         - RESOLVE: "Resolve one-off {target}"
+        - TAKE_FROM_DISCARD: "Take {card} from discard"
 
         Returns:
             str: Human-readable description of the action.
@@ -123,6 +124,15 @@ class Action:
             target_str = str(self.target) if self.target else "None"
             card_str = str(self.card) if self.card else "None"
             return f"Play {card_str} as jack on {target_str}"
+        elif self.action_type == ActionType.TAKE_FROM_DISCARD:
+            card_str = str(self.card) if self.card else "None"
+            return f"Take {card_str} from discard"
+        elif self.action_type == ActionType.DISCARD_REVEALED:
+            card_str = str(self.card) if self.card else "None"
+            return f"Discard revealed {card_str}"
+        elif self.action_type == ActionType.DISCARD_FROM_HAND:
+            card_str = str(self.card) if self.card else "None"
+            return f"Discard {card_str} from hand"
         elif self.action_type == ActionType.RESOLVE:
             target_str = str(self.target) if self.target else "None"
             return f"Resolve one-off {target_str}"
@@ -156,6 +166,9 @@ class ActionType(Enum):
     Special Actions:
     - COUNTER: Counter another player's action
     - RESOLVE: Resolve a one-off effect
+    - TAKE_FROM_DISCARD: Take a card from the discard pile (Three one-off)
+    - DISCARD_REVEALED: Discard a revealed card (Seven one-off)
+    - DISCARD_FROM_HAND: Discard a card from hand (Four one-off)
 
     Game State Actions:
     - REQUEST_STALEMATE: Ask for a stalemate
@@ -172,6 +185,9 @@ class ActionType(Enum):
     RESOLVE = "Resolve"
     SCUTTLE = "Scuttle"
     JACK = "Jack"
+    TAKE_FROM_DISCARD = "Take From Discard"
+    DISCARD_REVEALED = "Discard Revealed"
+    DISCARD_FROM_HAND = "Discard From Hand"
     REQUEST_STALEMATE = "Request Stalemate"
     ACCEPT_STALEMATE = "Accept Stalemate"
     REJECT_STALEMATE = "Reject Stalemate"

@@ -1,9 +1,11 @@
-from typing import Any, List
+import asyncio
 from unittest.mock import Mock, patch
 
 import pytest
 
+from game.action import ActionType
 from game.card import Card, Rank, Suit
+from game.game import Game
 from tests.test_main.test_main_base import MainTestBase, print_and_capture
 
 
@@ -12,7 +14,7 @@ class TestMainSix(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    async def test_play_six_through_main(
+    def test_play_six_through_main(
         self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
     ) -> None:
         """Test playing a Six as a one-off through main.py to destroy face cards."""
@@ -40,6 +42,7 @@ class TestMainSix(MainTestBase):
 
         # Mock sequence of inputs for the entire game
         mock_inputs = [
+            "n",  # Don't use AI
             "n",  # Don't load saved game
             "y",  # Use manual selection
             # Player 0 selects cards
@@ -65,30 +68,61 @@ class TestMainSix(MainTestBase):
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
+            asyncio.run(main())
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Import and run main
-        from main import main
-
-        await main()
-
-        # Get all logged output
-        log_output: str = self.get_logger_output(mock_print)
-        self.print_game_output(log_output)
-
-        # Check for key game events in output
-        face_card_plays = [
-            text
-            for text in log_output
-            if "Player 0's field: [King of Spades]" in text
-            or "Player 1's field: [King of Diamonds]" in text
-            or "Player 1's field: [King of Diamonds, Queen of Clubs]" in text
-        ]
-        self.assertTrue(any(face_card_plays))
-
-        # After Six is played, fields should be empty
-        empty_fields = [
-            text
-            for text in log_output
-            if "Player 0's field: []" in text or "Player 1's field: []" in text
-        ]
-        self.assertTrue(any(empty_fields))
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify face cards were played
+        face_card_actions = history.get_actions_by_type(ActionType.FACE_CARD)
+        king_actions = [action for action in face_card_actions 
+                       if action.card and action.card.rank == Rank.KING]
+        queen_actions = [action for action in face_card_actions 
+                        if action.card and action.card.rank == Rank.QUEEN]
+        assert len(king_actions) == 2, "Expected exactly two King face card actions"
+        # Verify Six was played as one-off
+        one_off_actions = history.get_actions_by_type(ActionType.ONE_OFF)
+        six_one_offs = [action for action in one_off_actions 
+                       if action.card and action.card.rank == Rank.SIX]
+        assert len(six_one_offs) == 1, "Expected exactly one Six one-off action"
+        six_action = six_one_offs[0]
+        assert six_action.card.suit == Suit.HEARTS, "Expected Six of Hearts to be played"
+        assert six_action.player == 0, "Expected player 0 to play Six"
+        
+        # Verify final game state - face cards should be destroyed by Six
+        p0_field = captured_game.game_state.fields[0]
+        p1_field = captured_game.game_state.fields[1]
+        total_face_cards = 0
+        for card in p0_field + p1_field:
+            if card.rank in [Rank.KING, Rank.QUEEN, Rank.JACK]:
+                total_face_cards += 1
+        assert total_face_cards == 0, "All face cards should be destroyed by Six"
+        
+        # Verify face cards are in discard pile
+        discard_pile = captured_game.game_state.discard_pile
+        face_cards_in_discard = [card for card in discard_pile 
+                               if card.rank in [Rank.KING, Rank.QUEEN, Rank.JACK]]
+        assert len(face_cards_in_discard) >= 2, "Face cards should be in discard pile after Six effect"

@@ -1,9 +1,11 @@
-from typing import Any, List
+import asyncio
 from unittest.mock import Mock, patch
 
 import pytest
 
+from game.action import ActionType
 from game.card import Card, Rank, Suit
+from game.game import Game
 from tests.test_main.test_main_base import MainTestBase, print_and_capture
 
 
@@ -12,7 +14,7 @@ class TestMainThree(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    async def test_play_three_through_main(
+    def test_play_three_through_main(
         self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
     ) -> None:
         """Test playing a Three as a one-off through main.py to take a card from discard pile."""
@@ -40,6 +42,7 @@ class TestMainThree(MainTestBase):
 
         # Mock sequence of inputs for the entire game
         mock_inputs = [
+            "n",  # Don't use AI
             "n",  # Don't load saved game
             "y",  # Use manual selection
             # Player 0 selects cards
@@ -57,68 +60,82 @@ class TestMainThree(MainTestBase):
             "0",  # Select 3 of Clubs
             "n",  # Don't save initial state
             # Game actions
-            "2",  # p0 Play 10 of Hearts (points)
-            "1",  # p1 Play 9 of Diamonds (points)
-            "6",  # p0 Play Ace of Clubs (one-off)
+            "Ten of Hearts as points",  # p0 Play 10 of Hearts (points)
+            "Nine of Diamonds as points",  # p1 Play 9 of Diamonds (points)
+            "Ace of Diamonds as one-off",  # p0 Play Ace of Diamonds (one-off)
             "0",  # p1 resolves
-            "1",  # p1 plays Eight of Clubs
-            "4",  # p0 Play Three of Hearts (one-off)
+            "Eight of Clubs as points",  # p1 plays Eight of Clubs
+            "Three of Hearts as one-off",  # p0 Play Three of Hearts (one-off)
             "0",  # p1 resolves
-            "0",  # p0 Select Ace of Diamonds from discard pile
+            "Ace of Diamonds",  # p0 Select Ace of Diamonds from discard pile
             "end game",  # p1 End game
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
+            asyncio.run(main())
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Import and run main
-        from main import main
-
-        await main()
-
-        # Get all logged output
-        log_output: str = self.get_logger_output(mock_print)
-        self.print_game_output(log_output)
-
-        # Check for key game events in output
-        # Verify cards were played to points
-        point_card_plays = [
-            text
-            for text in log_output
-            if "Player 0's field: [Ten of Hearts]" in text
-            or "Player 1's field: [Nine of Diamonds]" in text
-        ]
-        self.assertTrue(any(point_card_plays))
-
-        # Verify Three one-off effect message
-        three_effect = [
-            text
-            for text in log_output
-            if "Applying one off effect for Three of Hearts" in text
-            or "Available cards in discard pile:" in text
-        ]
-        self.assertTrue(any(three_effect))
-
-        # Verify card selection from discard pile
-        card_selection = [
-            text
-            for text in log_output
-            if "Took Ten of Hearts from discard pile" in text
-        ]
-        self.assertTrue(any(card_selection))
-
-        # The Nine of Diamonds should now be in Player 0's hand
-        final_state = [
-            text
-            for text in log_output
-            if "Three of Hearts" in text and "Player 0's hand" in text
-        ]
-        self.assertTrue(any(final_state))
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify points were played
+        points_actions = history.get_actions_by_type(ActionType.POINTS)
+        ten_points = [action for action in points_actions 
+                     if action.card and action.card.rank == Rank.TEN]
+        nine_points = [action for action in points_actions 
+                      if action.card and action.card.rank == Rank.NINE]
+        assert len(ten_points) == 1, "Expected Ten of Hearts to be played for points"
+        assert len(nine_points) == 1, "Expected Nine of Diamonds to be played for points"
+        assert ten_points[0].player == 0, "Expected player 0 to play Ten"
+        assert nine_points[0].player == 1, "Expected player 1 to play Nine"
+        
+        # Verify Ace was played as one-off (destroying all point cards)
+        one_off_actions = history.get_actions_by_type(ActionType.ONE_OFF)
+        ace_one_offs = [action for action in one_off_actions 
+                       if action.card and action.card.rank == Rank.ACE]
+        assert len(ace_one_offs) == 1, "Expected exactly one Ace one-off action"
+        assert ace_one_offs[0].player == 0, "Expected player 0 to play Ace"
+        
+        # Verify Three was played as one-off 
+        three_one_offs = [action for action in one_off_actions 
+                         if action.card and action.card.rank == Rank.THREE]
+        assert len(three_one_offs) == 1, "Expected exactly one Three one-off action"
+        three_action = three_one_offs[0]
+        assert three_action.card.suit == Suit.HEARTS, "Expected Three of Hearts to be played"
+        assert three_action.player == 0, "Expected player 0 to play Three"
+        
+        # Verify final game state - Player 0 should have retrieved card from discard
+        p0_hand = captured_game.game_state.hands[0]
+        ace_in_hand = [card for card in p0_hand if card.rank == Rank.ACE]
+        assert len(ace_in_hand) == 1, "Player 0 should have retrieved Ace from discard pile"
 
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    async def test_play_three_empty_discard_through_main(
+    def test_play_three_empty_discard_through_main(
         self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
     ) -> None:
         """Test playing a Three as a one-off through main.py with empty discard pile."""
@@ -146,6 +163,7 @@ class TestMainThree(MainTestBase):
 
         # Mock sequence of inputs for the entire game
         mock_inputs = [
+            "n",  # Don't use AI
             "n",  # Don't load saved game
             "y",  # Use manual selection
             # Player 0 selects cards
@@ -169,36 +187,60 @@ class TestMainThree(MainTestBase):
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
+            asyncio.run(main())
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Import and run main
-        from main import main
-
-        await main()
-
-        # Get all logged output
-        log_output: str = self.get_logger_output(mock_print)
-        self.print_game_output(log_output)
-
-        # Verify empty discard pile message
-        empty_discard = [
-            text for text in log_output if "No cards in discard pile to take" in text
-        ]
-        self.assertTrue(any(empty_discard))
-
-        # Verify game state remains unchanged
-        # The Three should still be in Player 0's hand
-        final_state = [
-            text
-            for text in log_output
-            if "Three of Hearts" in text and "Player 0's hand" in text
-        ]
-        self.assertTrue(any(final_state))
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify Three was played as one-off
+        one_off_actions = history.get_actions_by_type(ActionType.ONE_OFF)
+        three_one_offs = [action for action in one_off_actions 
+                         if action.card and action.card.rank == Rank.THREE]
+        assert len(three_one_offs) == 1, "Expected exactly one Three one-off action"
+        three_action = three_one_offs[0]
+        assert three_action.card.suit == Suit.HEARTS, "Expected Three of Hearts to be played"
+        assert three_action.player == 0, "Expected player 0 to play Three"
+        
+        # Verify discard pile is empty (no cards to retrieve)
+        discard_pile = captured_game.game_state.discard_pile
+        assert len(discard_pile) == 1, "Only the Three should be in discard pile after playing"
+        
+        # Verify Player 0's hand doesn't have any new cards (Three effect failed)
+        p0_hand = captured_game.game_state.hands[0]
+        assert len(p0_hand) == 4, "Player 0 should have 4 cards (originally 5, played 1)"
+        
+        # Verify Three is in discard pile
+        three_in_discard = [card for card in discard_pile if card.rank == Rank.THREE and card.suit == Suit.HEARTS]
+        assert len(three_in_discard) == 1, "Three of Hearts should be in discard pile"
 
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    async def test_play_three_with_counter_through_main(
+    def test_play_three_with_counter_through_main(
         self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
     ) -> None:
         """Test playing a Three as a one-off through main.py and getting countered by Two."""
@@ -226,6 +268,7 @@ class TestMainThree(MainTestBase):
 
         # Mock sequence of inputs for the entire game
         mock_inputs = [
+            "n",  # Don't use AI
             "n",  # Don't load saved game
             "y",  # Use manual selection
             # Player 0 selects cards
@@ -252,44 +295,72 @@ class TestMainThree(MainTestBase):
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
+            asyncio.run(main())
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Import and run main
-        from main import main
-
-        await main()
-
-        # Get all logged output
-        log_output: str = self.get_logger_output(mock_print)
-        self.print_game_output(log_output)
-
-        # Verify point cards were played
-        point_card_plays = [
-            text
-            for text in log_output
-            if "Player 0's field: [Ten of Hearts]" in text
-            or "Player 1's field: [Nine of Diamonds]" in text
-        ]
-        self.assertTrue(any(point_card_plays))
-
-        # Verify counter action was available
-        counter_action = [
-            text
-            for text in log_output
-            if "Counter" in text and "Two of Diamonds" in text
-        ]
-        self.assertTrue(any(counter_action))
-
-        # Verify both cards went to discard pile
-        discard_state = [text for text in log_output if "Discard Pile: 2" in text]
-        self.assertTrue(any(discard_state))
-
-        # Verify final game state - cards should be in discard pile, not in hands
-        final_state = [
-            text
-            for text in log_output
-            if "Three of Hearts" not in text
-            and "Two of Diamonds" not in text
-            and "Player" in text
-            and "hand" in text
-        ]
-        self.assertTrue(any(final_state))
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify points were played
+        points_actions = history.get_actions_by_type(ActionType.POINTS)
+        ten_points = [action for action in points_actions 
+                     if action.card and action.card.rank == Rank.TEN]
+        nine_points = [action for action in points_actions 
+                      if action.card and action.card.rank == Rank.NINE]
+        assert len(ten_points) == 1, "Expected Ten of Hearts to be played for points"
+        assert len(nine_points) == 1, "Expected Nine of Diamonds to be played for points"
+        
+        # Verify Three was played as one-off
+        one_off_actions = history.get_actions_by_type(ActionType.ONE_OFF)
+        three_one_offs = [action for action in one_off_actions 
+                         if action.card and action.card.rank == Rank.THREE]
+        assert len(three_one_offs) == 1, "Expected exactly one Three one-off action"
+        three_action = three_one_offs[0]
+        assert three_action.card.suit == Suit.HEARTS, "Expected Three of Hearts to be played"
+        assert three_action.player == 0, "Expected player 0 to play Three"
+        
+        # Verify counter action
+        counter_actions = history.get_actions_by_type(ActionType.COUNTER)
+        assert len(counter_actions) == 1, "Expected exactly one counter action"
+        counter_action = counter_actions[0]
+        assert counter_action.card.rank == Rank.TWO, "Expected Two to be used for countering"
+        assert counter_action.card.suit == Suit.DIAMONDS, "Expected Two of Diamonds to be used"
+        assert counter_action.player == 1, "Expected player 1 to counter"
+        assert counter_action.target == three_action.card, "Counter should target the Three"
+        
+        # Verify both cards are in discard pile (countered one-offs go to discard)
+        discard_pile = captured_game.game_state.discard_pile
+        three_in_discard = [card for card in discard_pile if card.rank == Rank.THREE and card.suit == Suit.HEARTS]
+        two_in_discard = [card for card in discard_pile if card.rank == Rank.TWO and card.suit == Suit.DIAMONDS]
+        assert len(three_in_discard) == 1, "Three of Hearts should be in discard pile"
+        assert len(two_in_discard) == 1, "Two of Diamonds should be in discard pile"
+        
+        # Verify point cards are still on the field (Three was countered)
+        p0_field = captured_game.game_state.fields[0]
+        p1_field = captured_game.game_state.fields[1]
+        ten_on_field = [card for card in p0_field if card.rank == Rank.TEN]
+        nine_on_field = [card for card in p1_field if card.rank == Rank.NINE]
+        assert len(ten_on_field) == 1, "Ten of Hearts should still be on Player 0's field"
+        assert len(nine_on_field) == 1, "Nine of Diamonds should still be on Player 1's field"

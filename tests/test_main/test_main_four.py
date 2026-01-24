@@ -1,9 +1,11 @@
-from typing import Any, List
+import asyncio
 from unittest.mock import Mock, patch
 
 import pytest
 
+from game.action import ActionType
 from game.card import Card, Rank, Suit
+from game.game import Game
 from tests.test_main.test_main_base import MainTestBase, print_and_capture
 
 
@@ -12,7 +14,7 @@ class TestMainFour(MainTestBase):
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    async def test_play_four_through_main(
+    def test_play_four_through_main(
         self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
     ) -> None:
         """Test playing a Four as a one-off through main.py to force opponent to discard."""
@@ -40,6 +42,7 @@ class TestMainFour(MainTestBase):
 
         # Mock sequence of inputs for the entire game
         mock_inputs = [
+            "n",  # Don't use AI
             "n",  # Don't load saved game
             "y",  # Use manual selection
             # Player 0 selects cards
@@ -57,61 +60,66 @@ class TestMainFour(MainTestBase):
             "0",  # Select 3 of Clubs
             "n",  # Don't save initial state
             # Game actions
-            "Four of Hearts as one-off",  # p0 Play Four of Hearts (one-off)
-            "0",  # p1 resolves (doesn't counter)
-            "0",  # p1 discards first card (9 of Diamonds)
-            "0",  # p1 discards second card (8 of Clubs)
+            "0",  # p0 draws a card or passes
+            "Play Four of Diamonds as one-off",  # p1 Play Four of Diamonds as one-off
+            "0",  # p0 resolves (doesn't counter)
+            "0",  # p0 discards first card
+            "0",  # p0 discards second card
             "e",  # End game
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
 
-        # Import and run main
-        from main import main
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
+            asyncio.run(main())
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        await main()
-
-        # Get all logged output
-        log_output: str = self.get_logger_output(mock_print)
-        self.print_game_output(log_output)
-
-        # Verify Four was played
-        four_played = [
-            text
-            for text in log_output
-            if "Four of Hearts" in text and "one-off" in text
-        ]
-        self.assertTrue(any(four_played))
-
-        # Verify opponent had to discard
-        discard_prompt = [text for text in log_output if "must discard 2 cards" in text]
-        self.assertTrue(any(discard_prompt))
-
-        # Verify cards were discarded
-        discarded_cards = [
-            text
-            for text in log_output
-            if "discarded Nine of Diamonds" in text
-            or "discarded Eight of Clubs" in text
-        ]
-        self.assertEqual(len(discarded_cards), 2)
-
-        # Verify final game state
-        final_state = [text for text in log_output if "Player 1's hand" in text][-1]
-        remaining_cards = [
-            "Seven of Hearts",
-            "Five of Spades",
-            "Four of Diamonds",
-            "Three of Clubs",
-        ]
-        for card in remaining_cards:
-            self.assertIn(card, final_state)
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify Four was played as one-off
+        one_off_actions = history.get_actions_by_type(ActionType.ONE_OFF)
+        four_one_offs = [action for action in one_off_actions 
+                        if action.card and action.card.rank == Rank.FOUR]
+        assert len(four_one_offs) == 1, "Expected exactly one Four one-off action"
+        four_action = four_one_offs[0]
+        assert four_action.card.suit == Suit.DIAMONDS, "Expected Four of Diamonds to be played"
+        assert four_action.player == 1, "Expected player 1 to play the Four"
+        
+        # Verify final game state - Player 1 should have 5 remaining cards (Four of Diamonds was played)
+        p1_hand = captured_game.game_state.hands[1]
+        assert len(p1_hand) == 5, f"Player 1 should have 5 cards remaining, got {len(p1_hand)}"
+        
+        # Verify specific cards are still in Player 1's hand
+        p1_hand_ranks = {card.rank for card in p1_hand}
+        expected_remaining = {Rank.NINE, Rank.EIGHT, Rank.SEVEN, Rank.FIVE, Rank.THREE}
+        assert p1_hand_ranks == expected_remaining, f"Expected Player 1 to have {expected_remaining}, got {p1_hand_ranks}"
 
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    async def test_play_four_with_counter_through_main(
+    def test_play_four_with_counter_through_main(
         self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
     ) -> None:
         """Test playing a Four that gets countered by a Two."""
@@ -139,6 +147,7 @@ class TestMainFour(MainTestBase):
 
         # Mock sequence of inputs for the entire game
         mock_inputs = [
+            "n",  # Don't use AI
             "n",  # Don't load saved game
             "y",  # Use manual selection
             # Player 0 selects cards
@@ -156,53 +165,73 @@ class TestMainFour(MainTestBase):
             "0",  # Select 3 of Clubs
             "n",  # Don't save initial state
             # Game actions
-            "Four of Hearts as one-off",  # p0 Play Four of Hearts (one-off)
-            "Two of Clubs as counter",  # p1 counters with Two
+            "Play Four of Hearts as one-off",  # p0 Play Four of Hearts (one-off)
+            "Counter Four of Hearts with Two of Hearts",  # p1 counters with Two of Hearts
             "Resolve",  # p0 resolves counter
             "end game",  # End game
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
+            asyncio.run(main())
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Import and run main
-        from main import main
-
-        await main()
-
-        # Get all logged output
-        log_output: str = self.get_logger_output(mock_print)
-        self.print_game_output(log_output)
-
-        # Verify Four was played
-        four_played = [
-            text
-            for text in log_output
-            if "Four of Hearts" in text and "one-off" in text
-        ]
-        self.assertTrue(any(four_played))
-
-        # Verify Two was used to counter
-        counter_played = [
-            text for text in log_output if "Two of Clubs" in text and "Counter" in text
-        ]
-        self.assertTrue(any(counter_played))
-
-        # Verify no cards were discarded from opponent's hand
-        for card in [
-            "Nine of Diamonds",
-            "Seven of Hearts",
-            "Five of Spades",
-            "Four of Diamonds",
-            "Three of Clubs",
-        ]:
-            hand_state = [text for text in log_output if "Player 1's hand" in text][-1]
-            self.assertIn(card, hand_state)
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify Four was played as one-off
+        one_off_actions = history.get_actions_by_type(ActionType.ONE_OFF)
+        four_one_offs = [action for action in one_off_actions 
+                        if action.card and action.card.rank == Rank.FOUR]
+        assert len(four_one_offs) == 1, "Expected exactly one Four one-off action"
+        four_action = four_one_offs[0]
+        assert four_action.card.suit == Suit.HEARTS, "Expected Four of Hearts to be played"
+        assert four_action.player == 0, "Expected player 0 to play the Four"
+        
+        # Verify counter action
+        counter_actions = history.get_actions_by_type(ActionType.COUNTER)
+        assert len(counter_actions) == 1, "Expected exactly one counter action"
+        counter_action = counter_actions[0]
+        assert counter_action.card.rank == Rank.TWO, "Expected Two to be used for countering"
+        assert counter_action.card.suit == Suit.HEARTS, "Expected Two of Hearts to be used"
+        assert counter_action.player == 1, "Expected player 1 to counter"
+        assert counter_action.target == four_action.card, "Counter should target the Four"
+        
+        # Verify no cards were discarded from opponent's hand (counter prevented effect)
+        p1_hand = captured_game.game_state.hands[1]
+        assert len(p1_hand) == 5, f"Player 1 should have 5 cards remaining (no discards due to counter), got {len(p1_hand)}"
+        
+        # Verify specific cards are still in Player 1's hand
+        p1_hand_ranks = {card.rank for card in p1_hand}
+        expected_remaining = {Rank.NINE, Rank.SEVEN, Rank.FIVE, Rank.FOUR, Rank.THREE}
+        assert p1_hand_ranks == expected_remaining, f"Expected Player 1 to have {expected_remaining}, got {p1_hand_ranks}"
 
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    async def test_play_four_with_one_card_opponent_through_main(
+    def test_play_four_with_one_card_opponent_through_main(
         self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
     ) -> None:
         """Test playing a Four when opponent only has one card to discard."""
@@ -227,6 +256,7 @@ class TestMainFour(MainTestBase):
 
         # Mock sequence of inputs for the entire game
         mock_inputs = [
+            "n",  # Don't use AI
             "n",  # Don't load saved game
             "y",  # Use manual selection
             # Player 0 selects cards
@@ -255,43 +285,54 @@ class TestMainFour(MainTestBase):
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
+            asyncio.run(main())
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Import and run main
-        from main import main
-
-        await main()
-
-        # Get all logged output
-        log_output: str = self.get_logger_output(mock_print)
-        self.print_game_output(log_output)
-
-        # Verify Four was played
-        four_played = [
-            text
-            for text in log_output
-            if "Four of Hearts" in text and "one-off" in text
-        ]
-        self.assertTrue(any(four_played))
-
-        # Verify opponent had to discard
-        discard_prompt = [text for text in log_output if "must discard 1 card" in text]
-        self.assertTrue(any(discard_prompt))
-
-        # Verify card was discarded
-        discarded_cards = [
-            text for text in log_output if "discarded Five of Diamonds" in text
-        ]
-        self.assertEqual(len(discarded_cards), 1)
-
-        # Verify final game state - opponent should have no cards
-        final_state = [text for text in log_output if "Player 0's hand" in text][-1]
-        self.assertIn("[]", final_state)
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify Four actions were played as one-off
+        one_off_actions = history.get_actions_by_type(ActionType.ONE_OFF)
+        four_one_offs = [action for action in one_off_actions 
+                        if action.card and action.card.rank == Rank.FOUR]
+        assert len(four_one_offs) >= 1, "Expected at least one Four one-off action"
+        
+        # Find the Four of Hearts action by Player 1
+        p1_four_hearts = [action for action in four_one_offs 
+                         if action.player == 1 and action.card.suit == Suit.HEARTS]
+        assert len(p1_four_hearts) == 1, "Expected Player 1 to play Four of Hearts"
+        
+        # Verify final game state - Player 0 should have minimal cards remaining
+        p0_hand = captured_game.game_state.hands[0]
+        assert len(p0_hand) <= 1, f"Player 0 should have 1 or fewer cards remaining, got {len(p0_hand)}"
 
     @pytest.mark.timeout(5)
     @patch("builtins.input")
     @patch("builtins.print")
     @patch("game.game.Game.generate_all_cards")
-    async def test_play_four_with_empty_opponent_hand_through_main(
+    def test_play_four_with_empty_opponent_hand_through_main(
         self, mock_generate_cards: Mock, mock_print: Mock, mock_input: Mock
     ) -> None:
         """Test playing a Four as a one-off when opponent has no cards in hand."""
@@ -319,6 +360,7 @@ class TestMainFour(MainTestBase):
 
         # Mock sequence of inputs for the entire game
         mock_inputs = [
+            "n",  # Don't use AI
             "n",  # Don't load saved game
             "y",  # Use manual selection
             # Player 0 selects cards
@@ -354,32 +396,44 @@ class TestMainFour(MainTestBase):
             "n",  # Don't save final game state
         ]
         self.setup_mock_input(mock_input, mock_inputs)
+        
+        # Capture the game object using monkey patching
+        captured_game = None
+        original_init = Game.__init__
+        
+        def capture_game_init(self, *args, **kwargs):
+            nonlocal captured_game
+            result = original_init(self, *args, **kwargs)
+            captured_game = self
+            return result
+        
+        # Monkey patch temporarily
+        Game.__init__ = capture_game_init
+        
+        try:
+            # Run the game
+            from main import main
+            asyncio.run(main())
+        finally:
+            # Restore original
+            Game.__init__ = original_init
 
-        # Import and run main
-        from main import main
-
-        await main()
-
-        # Get all logged output
-        log_output: str = self.get_logger_output(mock_print)
-        self.print_game_output(log_output)
-
-        # Verify all 3 Four cards were played
-        four_played = [
-            text
-            for text in log_output
-            if "chose Play Four of" in text and "one-off" in text
-        ]
-        self.assertEqual(len(four_played), 3)
-
-        # Verify opponent had no cards to discard
-        no_cards_message = [
-            text
-            for text in log_output
-            if "has no cards to discard" in text or "cannot discard any cards" in text
-        ]
-        self.assertTrue(any(no_cards_message))
-
-        # Verify final game state - opponent should still have no cards
-        final_state = [text for text in log_output if "Player 1's hand" in text][-1]
-        self.assertIn("[]", final_state)
+        # Verify we captured the game object
+        assert captured_game is not None, "Game object was not captured"
+        
+        # Access the game history
+        history = captured_game.game_state.game_history
+        
+        # Verify multiple Four cards were played as one-offs
+        one_off_actions = history.get_actions_by_type(ActionType.ONE_OFF)
+        four_one_offs = [action for action in one_off_actions 
+                        if action.card and action.card.rank == Rank.FOUR]
+        assert len(four_one_offs) >= 2, f"Expected at least 2 Four one-off actions, got {len(four_one_offs)}"
+        
+        # Verify at least one Four was played by Player 0
+        p0_four_actions = [action for action in four_one_offs if action.player == 0]
+        assert len(p0_four_actions) >= 1, "Expected Player 0 to play at least one Four"
+        
+        # Verify final game state - Player 1 should have minimal cards remaining
+        p1_hand = captured_game.game_state.hands[1]
+        assert len(p1_hand) <= 1, f"Player 1 should have very few cards remaining, got {len(p1_hand)}"

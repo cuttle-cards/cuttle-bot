@@ -8,10 +8,10 @@ The module supports both interactive terminal environments and non-interactive e
 (such as testing or automated environments), automatically adapting its behavior accordingly.
 """
 
-import sys
-import os
-from typing import List, Tuple
 import errno
+import os
+import sys
+from typing import List, Tuple
 
 
 def is_interactive_terminal() -> bool:
@@ -318,15 +318,18 @@ def get_non_interactive_input(prompt: str, options: List[str]) -> int:
     # Get input (this will use the mocked input in tests)
     response = input().strip()
     response_lower = response.lower()
+    print(f"Response: {response}, Response lower: {response_lower}")
 
     # Handle 'e' or 'end game' for end game
     if response_lower in ["e", "end game"]:
         return -1
 
-    # 1. Try to match by index first
+    print("not end game")
+    # 1. Try to match by index first (most reliable)
     try:
         index = int(response)
         if 0 <= index < len(options):
+            print(f"found Index: {index}")
             return index  # Return the index
     except ValueError:
         pass  # Not a valid number, proceed to text matching
@@ -334,12 +337,24 @@ def get_non_interactive_input(prompt: str, options: List[str]) -> int:
     # 2. Try exact text match (case-insensitive)
     for i, option in enumerate(options):
         if response_lower == option.lower():
+            print(f"found text match: {i}")
             return i
 
     # 3. Try substring match (case-insensitive, return first match index)
     for i, option in enumerate(options):
         if response_lower in option.lower():
+            print(f"found substring match: {i}")
             return i  # Return the index of the first substring match
+
+    # # 4. Try fuzzy text match (partial word matching)
+    # for i, option in enumerate(options):
+    #     option_words = option.lower().split()
+    #     response_words = response_lower.split()
+    #     # Check if any response word matches any option word
+    #     for response_word in response_words:
+    #         for option_word in option_words:
+    #             if response_word in option_word or option_word in response_word:
+    #                 return i
 
     # If no match found by any method
     print(f"Invalid input: '{response}'. Please enter a valid index or text.")

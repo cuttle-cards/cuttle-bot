@@ -159,7 +159,14 @@ class Card:
         Returns:
             bool: True if the card can be played as a one-off.
         """
-        return self.rank in [Rank.ACE, Rank.THREE, Rank.FOUR, Rank.FIVE, Rank.SIX]
+        return self.rank in [
+            Rank.ACE,
+            Rank.THREE,
+            Rank.FOUR,
+            Rank.FIVE,
+            Rank.SIX,
+            Rank.SEVEN,
+        ]
 
     def is_stolen(self) -> bool:
         """Check if the card is currently stolen by the opponent.

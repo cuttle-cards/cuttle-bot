@@ -52,6 +52,7 @@ class Game:
         test_deck: Optional[List[Card]] = None,
         logger: Callable[..., Any] = print,
         ai_player: Optional["AIPlayer"] = None,
+        input_mode: str = "terminal",
     ):
         """Initialize a new game of Cuttle.
 
@@ -67,6 +68,7 @@ class Game:
         """
         self.players = [0, 1]
         self.logger = logger
+        self.input_mode = input_mode
 
         # Create save directory if it doesn't exist
         os.makedirs(self.SAVE_DIR, exist_ok=True)
@@ -75,7 +77,7 @@ class Game:
             self.load_game(load_game)
         elif test_deck is not None:
             # Use the provided test deck
-            self.initialize_with_test_deck(test_deck)
+            self.initialize_with_test_deck(test_deck, ai_player)
         elif manual_selection:
             self.initialize_with_manual_selection()
         else:
@@ -140,7 +142,14 @@ class Game:
         deck = self.generate_shuffled_deck()
         hands = self.deal_cards(deck)
         fields: List[List[Card]] = [[], []]
-        self.game_state = GameState(hands, fields, deck[11:], [], logger=self.logger)
+        self.game_state = GameState(
+            hands,
+            fields,
+            deck[11:],
+            [],
+            logger=self.logger,
+            input_mode=self.input_mode,
+        )
 
     def initialize_with_manual_selection(self) -> None:
         """Initialize the game with manual card selection.
@@ -156,7 +165,9 @@ class Game:
             In test environment (pytest), card display is suppressed.
         """
         all_cards = self.generate_all_cards()
-        available_cards = {str(card): card for card in all_cards}
+        print(f"len all cards: {len(all_cards)}")
+        available_cards = {card.id: card for card in all_cards}
+        print(f"len available cards: {len(available_cards)}")
         hands: List[List[Card]] = [[], []]
 
         # Manual selection for both players
@@ -167,7 +178,7 @@ class Game:
             )
 
             while len(hands[player]) < max_cards:
-                time.sleep(0.1)  # Add small delay to prevent log spam
+                time.sleep(0.05)  # Add small delay to prevent log spam
                 self.display_available_cards(available_cards)
                 choice = input(
                     f"Enter card number to select (or 'done' to finish Player {player}'s selection): "
@@ -182,7 +193,7 @@ class Game:
                     if 0 <= card_num < len(cards):
                         selected_card = cards[card_num]
                         hands[player].append(selected_card)
-                        del available_cards[str(selected_card)]
+                        del available_cards[selected_card.id]
                         self.logger(f"Selected: {selected_card}")
                     else:
                         self.logger("Invalid card number")
@@ -195,10 +206,13 @@ class Game:
         # Create deck from remaining cards
         deck = list(available_cards.values())
         random.shuffle(deck)
+        print(f"len deck: {len(deck)}")
 
         # Initialize game state with empty fields for both players
         fields: List[List[Card]] = [[], []]
-        self.game_state = GameState(hands, fields, deck, [], logger=self.logger)
+        self.game_state = GameState(
+            hands, fields, deck, [], logger=self.logger, input_mode=self.input_mode
+        )
 
     def display_available_cards(self, available_cards: Dict[str, Card]) -> None:
         """Display available cards for selection.
@@ -224,7 +238,7 @@ class Game:
 
         Args:
             hands (List[List[Card]]): List of player hands to fill.
-            available_cards (Dict[str, Card]): Dictionary of available cards.
+            available_cards (Dict[str, Card]): Dictionary of available cards keyed by card ID.
 
         Raises:
             ValueError: If there aren't enough cards left to fill the hands.
@@ -237,23 +251,23 @@ class Game:
 
         # Fill player 0's hand to 5 cards
         while len(hands[0]) < 5:
-            time.sleep(0.1)  # Add small delay to prevent log spam
+            time.sleep(0.05)  # Add small delay to prevent log spam
             if not cards:  # Check if we have any cards left
                 raise ValueError("No cards left to fill hands")
             card = random.choice(cards)
             hands[0].append(card)
-            del available_cards[str(card)]
+            del available_cards[card.id]
             cards.remove(card)
             self.logger(f"Randomly added to Player 0's hand: {card}")
 
         # Fill player 1's hand to 6 cards
         while len(hands[1]) < 6:
-            time.sleep(0.1)  # Add small delay to prevent log spam
+            time.sleep(0.05)  # Add small delay to prevent log spam
             if not cards:  # Check if we have any cards left
                 raise ValueError("No cards left to fill hands")
             card = random.choice(cards)
             hands[1].append(card)
-            del available_cards[str(card)]
+            del available_cards[card.id]
             cards.remove(card)
             self.logger(f"Randomly added to Player 1's hand: {card}")
 
@@ -274,6 +288,7 @@ class Game:
                         rank=rank,
                     )
                 )
+        print(f"len generate all cards: {len(cards)}")
         return cards
 
     def generate_shuffled_deck(self) -> List[Card]:
@@ -300,11 +315,14 @@ class Game:
         hands = [deck[0:5], deck[5:11]]
         return hands
 
-    def initialize_with_test_deck(self, test_deck: List[Card]) -> None:
+    def initialize_with_test_deck(
+        self, test_deck: List[Card], ai_player: Optional["AIPlayer"] = None
+    ) -> None:
         """Initialize the game with a predefined deck for testing.
 
         Args:
             test_deck (List[Card]): The predefined deck to use.
+            ai_player (Optional["AIPlayer"]): AI player instance.
 
         Note:
             Deals cards in the same pattern as normal initialization:
@@ -320,5 +338,6 @@ class Game:
             test_deck[11:],
             [],
             logger=self.logger,
-            ai_player=self.ai_player,
+            ai_player=ai_player,
+            input_mode=self.input_mode,
         )

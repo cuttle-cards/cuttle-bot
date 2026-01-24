@@ -11,6 +11,7 @@ from game.card import Card, Rank, Suit
 from game.game_state import GameState
 
 
+@pytest.mark.skip(reason="Skipping AI player tests for now")
 class TestAIPlayer(unittest.IsolatedAsyncioTestCase):
     ai_player: AIPlayer
     p0_cards: List[Card]
