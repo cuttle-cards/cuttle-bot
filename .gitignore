@@ -189,3 +189,5 @@ rl/models/*.zip
 rl/logs/
 
 .DS_Store
+
+.cursor/

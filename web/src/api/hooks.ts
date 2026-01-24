@@ -7,7 +7,12 @@ import {
   fetchSession,
   submitAction,
 } from './client'
-import type { ActionResponse, AiType, SessionResponse } from './types'
+import type {
+  ActionResponse,
+  AiType,
+  HistoryResponse,
+  SessionResponse,
+} from './types'
 
 type ActionArgs = { actionId: number; stateVersion: number }
 
@@ -18,7 +23,7 @@ export function useGameSession(options: Options = {}) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const hasStartedRef = useRef(false)
 
-  const createSessionMutation = useMutation({
+  const createSessionMutation = useMutation<SessionResponse, Error, AiType>({
     mutationFn: (aiType: AiType) => createSession(aiType),
     onSuccess: (data) => {
       setSessionId(data.session_id)
@@ -26,21 +31,21 @@ export function useGameSession(options: Options = {}) {
     },
   })
 
-  const sessionQuery = useQuery({
+  const sessionQuery = useQuery<SessionResponse, Error>({
     queryKey: ['session', sessionId],
     queryFn: () => fetchSession(sessionId as string),
     enabled: Boolean(sessionId),
-    refetchInterval: (data: SessionResponse | undefined) =>
-      data?.ai_thinking ? 1500 : false,
+    refetchInterval: (query) =>
+      query.state.data?.ai_thinking ? 1500 : false,
   })
 
-  const historyQuery = useQuery({
+  const historyQuery = useQuery<HistoryResponse, Error>({
     queryKey: ['history', sessionId],
     queryFn: () => fetchHistory(sessionId as string),
     enabled: Boolean(sessionId),
   })
 
-  const actionMutation = useMutation({
+  const actionMutation = useMutation<ActionResponse, Error, ActionArgs>({
     mutationFn: ({ actionId, stateVersion }: ActionArgs) =>
       submitAction(sessionId as string, stateVersion, actionId),
     onSuccess: (data: ActionResponse) => {

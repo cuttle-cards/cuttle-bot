@@ -58,6 +58,10 @@ class GameStateView(BaseModel):
     resolving_two: bool
     resolving_one_off: bool
     resolving_three: bool
+    resolving_seven: bool
+    pending_seven_player: Optional[int]
+    pending_seven_cards: List[CardView]
+    pending_seven_requires_discard: bool
     resolving_four: bool
     overall_turn: int
     use_ai: bool

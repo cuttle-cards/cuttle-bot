@@ -37,6 +37,10 @@ export type GameStateView = {
   resolving_two: boolean
   resolving_one_off: boolean
   resolving_three: boolean
+  resolving_seven: boolean
+  pending_seven_player: number | null
+  pending_seven_cards: CardView[]
+  pending_seven_requires_discard: boolean
   resolving_four: boolean
   overall_turn: number
   use_ai: boolean

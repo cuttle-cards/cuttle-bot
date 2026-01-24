@@ -722,6 +722,588 @@ test('discard selection flow for three', async ({ page }) => {
   await responsePromise
 })
 
+test('seven reveal modal flow', async ({ page }) => {
+  await page.route('**/api/sessions', async (route) => {
+    const payload = {
+      session_id: 'seven-session',
+      state: {
+        hands: [[], []],
+        hand_counts: [0, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 22,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 0,
+        current_action_player: 0,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        resolving_seven: true,
+        pending_seven_player: 0,
+        pending_seven_cards: [
+          {
+            id: 'seven-top',
+            suit: 'HEARTS',
+            rank: 'NINE',
+            display: 'Nine of Hearts',
+            played_by: null,
+            purpose: null,
+            point_value: 9,
+            is_stolen: false,
+            attachments: [],
+          },
+          {
+            id: 'seven-second',
+            suit: 'CLUBS',
+            rank: 'THREE',
+            display: 'Three of Clubs',
+            played_by: null,
+            purpose: null,
+            point_value: 3,
+            is_stolen: false,
+            attachments: [],
+          },
+        ],
+        pending_seven_requires_discard: false,
+        resolving_four: false,
+        pending_four_count: 0,
+        overall_turn: 1,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [
+        {
+          id: 0,
+          label: 'Play Nine of Hearts as points',
+          type: 'Points',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: {
+            id: 'seven-top',
+            suit: 'HEARTS',
+            rank: 'NINE',
+            display: 'Nine of Hearts',
+            played_by: null,
+            purpose: null,
+            point_value: 9,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+        {
+          id: 1,
+          label: 'Play Three of Clubs as one-off',
+          type: 'One-Off',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: {
+            id: 'seven-second',
+            suit: 'CLUBS',
+            rank: 'THREE',
+            display: 'Three of Clubs',
+            played_by: null,
+            purpose: null,
+            point_value: 3,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+      ],
+      state_version: 0,
+      ai_thinking: false,
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.route('**/api/sessions/seven-session/history', async (route) => {
+    await route.fulfill({ json: { entries: [], turn_counter: 1 } })
+  })
+
+  await page.route('**/api/sessions/seven-session', async (route) => {
+    const payload = {
+      session_id: 'seven-session',
+      state: {
+        hands: [[], []],
+        hand_counts: [0, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 22,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 0,
+        current_action_player: 0,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        resolving_seven: true,
+        pending_seven_player: 0,
+        pending_seven_cards: [
+          {
+            id: 'seven-top',
+            suit: 'HEARTS',
+            rank: 'NINE',
+            display: 'Nine of Hearts',
+            played_by: null,
+            purpose: null,
+            point_value: 9,
+            is_stolen: false,
+            attachments: [],
+          },
+          {
+            id: 'seven-second',
+            suit: 'CLUBS',
+            rank: 'THREE',
+            display: 'Three of Clubs',
+            played_by: null,
+            purpose: null,
+            point_value: 3,
+            is_stolen: false,
+            attachments: [],
+          },
+        ],
+        pending_seven_requires_discard: false,
+        resolving_four: false,
+        pending_four_count: 0,
+        overall_turn: 1,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [
+        {
+          id: 0,
+          label: 'Play Nine of Hearts as points',
+          type: 'Points',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: {
+            id: 'seven-top',
+            suit: 'HEARTS',
+            rank: 'NINE',
+            display: 'Nine of Hearts',
+            played_by: null,
+            purpose: null,
+            point_value: 9,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+        {
+          id: 1,
+          label: 'Play Three of Clubs as one-off',
+          type: 'One-Off',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: {
+            id: 'seven-second',
+            suit: 'CLUBS',
+            rank: 'THREE',
+            display: 'Three of Clubs',
+            played_by: null,
+            purpose: null,
+            point_value: 3,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+      ],
+      state_version: 0,
+      ai_thinking: false,
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.route('**/api/sessions/seven-session/actions', async (route) => {
+    const payload = {
+      state: {
+        hands: [[], []],
+        hand_counts: [0, 0],
+        fields: [
+          [
+            {
+              id: 'seven-top',
+              suit: 'HEARTS',
+              rank: 'NINE',
+              display: 'Nine of Hearts',
+              played_by: 0,
+              purpose: 'POINTS',
+              point_value: 9,
+              is_stolen: false,
+              attachments: [],
+            },
+          ],
+          [],
+        ],
+        effective_fields: [
+          [
+            {
+              id: 'seven-top',
+              suit: 'HEARTS',
+              rank: 'NINE',
+              display: 'Nine of Hearts',
+              played_by: 0,
+              purpose: 'POINTS',
+              point_value: 9,
+              is_stolen: false,
+              attachments: [],
+            },
+          ],
+          [],
+        ],
+        deck_count: 21,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [9, 0],
+        targets: [21, 21],
+        turn: 1,
+        current_action_player: 1,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        resolving_seven: false,
+        pending_seven_player: null,
+        pending_seven_cards: [],
+        pending_seven_requires_discard: false,
+        resolving_four: false,
+        pending_four_count: 0,
+        overall_turn: 1,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [],
+      state_version: 1,
+      last_actions: [
+        {
+          id: -1,
+          label: 'Play Nine of Hearts as points',
+          type: 'Points',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: null,
+          target: null,
+        },
+      ],
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.goto('/')
+
+  await expect(page.locator('.modal-title')).toHaveText('Seven Reveal')
+  await expect(
+    page.getByRole('button', { name: 'Play Nine of Hearts as points' }),
+  ).toBeVisible()
+
+  const responsePromise = page.waitForResponse(
+    '**/api/sessions/seven-session/actions',
+  )
+  await page.getByRole('button', { name: 'Play Nine of Hearts as points' }).click()
+  await page.locator('.modal').getByRole('button', { name: 'Confirm' }).click()
+  await responsePromise
+})
+
+test('seven discard-only modal flow', async ({ page }) => {
+  await page.route('**/api/sessions', async (route) => {
+    const payload = {
+      session_id: 'seven-discard-session',
+      state: {
+        hands: [[], []],
+        hand_counts: [0, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 10,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 0,
+        current_action_player: 0,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        resolving_seven: true,
+        pending_seven_player: 0,
+        pending_seven_cards: [
+          {
+            id: 'seven-jack-1',
+            suit: 'HEARTS',
+            rank: 'JACK',
+            display: 'Jack of Hearts',
+            played_by: null,
+            purpose: null,
+            point_value: 11,
+            is_stolen: false,
+            attachments: [],
+          },
+          {
+            id: 'seven-jack-2',
+            suit: 'SPADES',
+            rank: 'JACK',
+            display: 'Jack of Spades',
+            played_by: null,
+            purpose: null,
+            point_value: 11,
+            is_stolen: false,
+            attachments: [],
+          },
+        ],
+        pending_seven_requires_discard: true,
+        resolving_four: false,
+        pending_four_count: 0,
+        overall_turn: 1,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [
+        {
+          id: 0,
+          label: 'Discard revealed Jack of Hearts',
+          type: 'Discard Revealed',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: {
+            id: 'seven-jack-1',
+            suit: 'HEARTS',
+            rank: 'JACK',
+            display: 'Jack of Hearts',
+            played_by: null,
+            purpose: null,
+            point_value: 11,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+        {
+          id: 1,
+          label: 'Discard revealed Jack of Spades',
+          type: 'Discard Revealed',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: {
+            id: 'seven-jack-2',
+            suit: 'SPADES',
+            rank: 'JACK',
+            display: 'Jack of Spades',
+            played_by: null,
+            purpose: null,
+            point_value: 11,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+      ],
+      state_version: 0,
+      ai_thinking: false,
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.route('**/api/sessions/seven-discard-session/history', async (route) => {
+    await route.fulfill({ json: { entries: [], turn_counter: 1 } })
+  })
+
+  await page.route('**/api/sessions/seven-discard-session', async (route) => {
+    const payload = {
+      session_id: 'seven-discard-session',
+      state: {
+        hands: [[], []],
+        hand_counts: [0, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 10,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 0,
+        current_action_player: 0,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        resolving_seven: true,
+        pending_seven_player: 0,
+        pending_seven_cards: [
+          {
+            id: 'seven-jack-1',
+            suit: 'HEARTS',
+            rank: 'JACK',
+            display: 'Jack of Hearts',
+            played_by: null,
+            purpose: null,
+            point_value: 11,
+            is_stolen: false,
+            attachments: [],
+          },
+          {
+            id: 'seven-jack-2',
+            suit: 'SPADES',
+            rank: 'JACK',
+            display: 'Jack of Spades',
+            played_by: null,
+            purpose: null,
+            point_value: 11,
+            is_stolen: false,
+            attachments: [],
+          },
+        ],
+        pending_seven_requires_discard: true,
+        resolving_four: false,
+        pending_four_count: 0,
+        overall_turn: 1,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [
+        {
+          id: 0,
+          label: 'Discard revealed Jack of Hearts',
+          type: 'Discard Revealed',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: {
+            id: 'seven-jack-1',
+            suit: 'HEARTS',
+            rank: 'JACK',
+            display: 'Jack of Hearts',
+            played_by: null,
+            purpose: null,
+            point_value: 11,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+        {
+          id: 1,
+          label: 'Discard revealed Jack of Spades',
+          type: 'Discard Revealed',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: {
+            id: 'seven-jack-2',
+            suit: 'SPADES',
+            rank: 'JACK',
+            display: 'Jack of Spades',
+            played_by: null,
+            purpose: null,
+            point_value: 11,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+      ],
+      state_version: 0,
+      ai_thinking: false,
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.route('**/api/sessions/seven-discard-session/actions', async (route) => {
+    const payload = {
+      state: {
+        hands: [[], []],
+        hand_counts: [0, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 9,
+        discard_pile: [
+          {
+            id: 'seven-jack-1',
+            suit: 'HEARTS',
+            rank: 'JACK',
+            display: 'Jack of Hearts',
+            played_by: null,
+            purpose: null,
+            point_value: 11,
+            is_stolen: false,
+            attachments: [],
+          },
+        ],
+        discard_count: 1,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 1,
+        current_action_player: 1,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        resolving_seven: false,
+        pending_seven_player: null,
+        pending_seven_cards: [],
+        pending_seven_requires_discard: false,
+        resolving_four: false,
+        pending_four_count: 0,
+        overall_turn: 1,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [],
+      state_version: 1,
+      last_actions: [
+        {
+          id: -1,
+          label: 'Discard revealed Jack of Hearts',
+          type: 'Discard Revealed',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: null,
+          target: null,
+        },
+      ],
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.goto('/')
+
+  await expect(page.locator('.modal-title')).toHaveText('Seven Reveal')
+  await expect(
+    page.getByRole('button', { name: 'Discard revealed Jack of Hearts' }),
+  ).toBeVisible()
+
+  const responsePromise = page.waitForResponse(
+    '**/api/sessions/seven-discard-session/actions',
+  )
+  await page
+    .getByRole('button', { name: 'Discard revealed Jack of Hearts' })
+    .click()
+  await page.locator('.modal').getByRole('button', { name: 'Confirm' }).click()
+  await responsePromise
+})
+
 test('game over banner restarts session', async ({ page }) => {
   let callCount = 0
   await page.route('**/api/sessions', async (route) => {

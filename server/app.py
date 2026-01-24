@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from typing import Callable, List, Optional
 
 from fastapi import FastAPI, HTTPException, status
+from fastapi.staticfiles import StaticFiles
 
 from game.action import Action
 from game.game import Game
@@ -20,7 +22,11 @@ def _update_game_state(game: Game, turn_finished: bool) -> None:
     if turn_finished:
         game.game_state.resolving_one_off = False
 
-    if game.game_state.resolving_three or game.game_state.resolving_four:
+    if (
+        game.game_state.resolving_three
+        or game.game_state.resolving_four
+        or game.game_state.resolving_seven
+    ):
         return
 
     if game.game_state.resolving_one_off:
@@ -36,6 +42,7 @@ def _is_ai_turn(game: Game) -> bool:
         and (
             (state.resolving_one_off and state.current_action_player == 1)
             or (state.resolving_four and state.current_action_player == 1)
+            or (state.resolving_seven and state.current_action_player == 1)
             or (not state.resolving_one_off and state.turn == 1)
         )
     )
@@ -183,7 +190,20 @@ def create_app(
             raise HTTPException(status_code=404, detail="Session not found")
         return {"deleted": True}
 
+    dist_dir = Path(__file__).resolve().parents[1] / "web" / "dist"
+    if dist_dir.is_dir():
+        # Serve built frontend assets from the same FastAPI process.
+        app.mount("/", StaticFiles(directory=dist_dir, html=True), name="static")
+
     return app
 
 
 app = create_app()
+
+
+if __name__ == "__main__":
+    import os
+
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8000")))

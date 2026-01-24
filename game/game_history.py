@@ -199,6 +199,8 @@ class GameHistory:
             return f"Player {player} uses {card_str} to steal {target_str}"
         elif action_type == ActionType.TAKE_FROM_DISCARD:
             return f"Player {player} takes {card_str} from discard"
+        elif action_type == ActionType.DISCARD_REVEALED:
+            return f"Player {player} discards revealed {card_str}"
         elif action_type == ActionType.DISCARD_FROM_HAND:
             return f"Player {player} discards {card_str} from hand"
         else:

@@ -127,6 +127,9 @@ class Action:
         elif self.action_type == ActionType.TAKE_FROM_DISCARD:
             card_str = str(self.card) if self.card else "None"
             return f"Take {card_str} from discard"
+        elif self.action_type == ActionType.DISCARD_REVEALED:
+            card_str = str(self.card) if self.card else "None"
+            return f"Discard revealed {card_str}"
         elif self.action_type == ActionType.DISCARD_FROM_HAND:
             card_str = str(self.card) if self.card else "None"
             return f"Discard {card_str} from hand"
@@ -164,6 +167,7 @@ class ActionType(Enum):
     - COUNTER: Counter another player's action
     - RESOLVE: Resolve a one-off effect
     - TAKE_FROM_DISCARD: Take a card from the discard pile (Three one-off)
+    - DISCARD_REVEALED: Discard a revealed card (Seven one-off)
     - DISCARD_FROM_HAND: Discard a card from hand (Four one-off)
 
     Game State Actions:
@@ -182,6 +186,7 @@ class ActionType(Enum):
     SCUTTLE = "Scuttle"
     JACK = "Jack"
     TAKE_FROM_DISCARD = "Take From Discard"
+    DISCARD_REVEALED = "Discard Revealed"
     DISCARD_FROM_HAND = "Discard From Hand"
     REQUEST_STALEMATE = "Request Stalemate"
     ACCEPT_STALEMATE = "Accept Stalemate"

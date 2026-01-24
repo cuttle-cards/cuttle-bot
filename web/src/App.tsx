@@ -41,15 +41,44 @@ function App() {
     () => legalActions.filter((action) => action.type === 'Discard From Hand'),
     [legalActions],
   )
+  const sevenActions = useMemo(
+    () =>
+      legalActions.filter((action) =>
+        [
+          'Points',
+          'One-Off',
+          'Face Card',
+          'Jack',
+          'Scuttle',
+          'Discard Revealed',
+        ].includes(action.type),
+      ),
+    [legalActions],
+  )
   const modalActive =
     Boolean(state?.resolving_one_off) &&
     state?.current_action_player === 0 &&
     !state?.resolving_three &&
-    !state?.resolving_four
+    !state?.resolving_four &&
+    !state?.resolving_seven
   const discardModalActive =
     Boolean(state?.resolving_three) && state?.current_action_player === 0
   const fourDiscardModalActive =
     Boolean(state?.resolving_four) && state?.current_action_player === 0
+  const sevenModalActive =
+    Boolean(state?.resolving_seven) && state?.current_action_player === 0
+  const sevenCards = state?.pending_seven_cards ?? []
+  const sevenActionsByCard = useMemo(() => {
+    const grouped = new Map<string, ActionView[]>()
+    sevenActions.forEach((action) => {
+      const cardId = action.card?.id
+      if (!cardId) return
+      const list = grouped.get(cardId) ?? []
+      list.push(action)
+      grouped.set(cardId, list)
+    })
+    return grouped
+  }, [sevenActions])
   const modalCard = state?.one_off_card_to_counter ?? null
 
   const actionChoices = useMemo(() => {
@@ -107,6 +136,12 @@ function App() {
       }
       return
     }
+    if (sevenModalActive) {
+      if (selectedActionId === null && sevenActions.length > 0) {
+        setSelectedActionId(sevenActions[0].id)
+      }
+      return
+    }
     if (!modalActive) return
     if (selectedActionId !== null) return
     if (modalActions.length > 0) {
@@ -117,6 +152,8 @@ function App() {
     discardActions,
     fourDiscardModalActive,
     fourDiscardActions,
+    sevenModalActive,
+    sevenActions,
     modalActive,
     modalActions,
     selectedActionId,
@@ -456,6 +493,59 @@ function App() {
                 disabled={selectedActionId === null || isSubmitting || !session}
               >
                 {isSubmitting ? 'Sending...' : 'Discard'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {sevenModalActive && (
+        <div className="modal-scrim">
+          <div className="modal">
+            <div className="modal-header">
+              <div>
+                <div className="modal-title">Seven Reveal</div>
+                <div className="modal-sub">
+                  Choose how to play one revealed card.
+                </div>
+              </div>
+              <button
+                className="ghost small"
+                onClick={() => setSelectedActionId(null)}
+              >
+                Close
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="seven-card-grid">
+                {sevenCards.map((card) => (
+                  <div key={card.id} className="seven-card">
+                    <CardTile card={card} />
+                    <div className="modal-actions">
+                      {(sevenActionsByCard.get(card.id) ?? []).map((action) => (
+                        <button
+                          key={action.id}
+                          className={`ghost ${
+                            selectedActionId === action.id
+                              ? 'selected-action'
+                              : ''
+                          }`}
+                          onClick={() => handleActionSelect(action)}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="primary"
+                onClick={handleConfirm}
+                disabled={selectedActionId === null || isSubmitting || !session}
+              >
+                {isSubmitting ? 'Sending...' : 'Confirm'}
               </button>
             </div>
           </div>
