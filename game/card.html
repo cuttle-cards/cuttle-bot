@@ -364,119 +364,126 @@
 </span><span id="L-159"><a href="#L-159"><span class="linenos">159</span></a><span class="sd">        Returns:</span>
 </span><span id="L-160"><a href="#L-160"><span class="linenos">160</span></a><span class="sd">            bool: True if the card can be played as a one-off.</span>
 </span><span id="L-161"><a href="#L-161"><span class="linenos">161</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="L-162"><a href="#L-162"><span class="linenos">162</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Rank</span><span class="o">.</span><span class="n">ACE</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">THREE</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">FOUR</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">FIVE</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">SIX</span><span class="p">]</span>
-</span><span id="L-163"><a href="#L-163"><span class="linenos">163</span></a>
-</span><span id="L-164"><a href="#L-164"><span class="linenos">164</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_stolen</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="L-165"><a href="#L-165"><span class="linenos">165</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the card is currently stolen by the opponent.</span>
-</span><span id="L-166"><a href="#L-166"><span class="linenos">166</span></a>
-</span><span id="L-167"><a href="#L-167"><span class="linenos">167</span></a><span class="sd">        A card is considered stolen if it has an odd number of Jacks</span>
-</span><span id="L-168"><a href="#L-168"><span class="linenos">168</span></a><span class="sd">        attached to it, as each Jack switches control of the card.</span>
-</span><span id="L-169"><a href="#L-169"><span class="linenos">169</span></a>
-</span><span id="L-170"><a href="#L-170"><span class="linenos">170</span></a><span class="sd">        Returns:</span>
-</span><span id="L-171"><a href="#L-171"><span class="linenos">171</span></a><span class="sd">            bool: True if the card is stolen.</span>
-</span><span id="L-172"><a href="#L-172"><span class="linenos">172</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="L-173"><a href="#L-173"><span class="linenos">173</span></a>        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span>
-</span><span id="L-174"><a href="#L-174"><span class="linenos">174</span></a>
-</span><span id="L-175"><a href="#L-175"><span class="linenos">175</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span id="L-176"><a href="#L-176"><span class="linenos">176</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the Card object to a dictionary.&quot;&quot;&quot;</span>
-</span><span id="L-177"><a href="#L-177"><span class="linenos">177</span></a>        <span class="k">return</span> <span class="p">{</span>
-</span><span id="L-178"><a href="#L-178"><span class="linenos">178</span></a>            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-</span><span id="L-179"><a href="#L-179"><span class="linenos">179</span></a>            <span class="s2">&quot;suit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">suit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span id="L-180"><a href="#L-180"><span class="linenos">180</span></a>            <span class="s2">&quot;rank&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span id="L-181"><a href="#L-181"><span class="linenos">181</span></a>            <span class="s2">&quot;played_by&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">played_by</span><span class="p">,</span>
-</span><span id="L-182"><a href="#L-182"><span class="linenos">182</span></a>            <span class="s2">&quot;purpose&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="L-183"><a href="#L-183"><span class="linenos">183</span></a>            <span class="s2">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">att</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">],</span>
-</span><span id="L-184"><a href="#L-184"><span class="linenos">184</span></a>        <span class="p">}</span>
-</span><span id="L-185"><a href="#L-185"><span class="linenos">185</span></a>
-</span><span id="L-186"><a href="#L-186"><span class="linenos">186</span></a>    <span class="nd">@classmethod</span>
-</span><span id="L-187"><a href="#L-187"><span class="linenos">187</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Card</span><span class="p">:</span>
-</span><span id="L-188"><a href="#L-188"><span class="linenos">188</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Deserialize a Card object from a dictionary.&quot;&quot;&quot;</span>
-</span><span id="L-189"><a href="#L-189"><span class="linenos">189</span></a>        <span class="n">attachments_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attachments&quot;</span><span class="p">,</span> <span class="p">[])</span>
-</span><span id="L-190"><a href="#L-190"><span class="linenos">190</span></a>        <span class="n">attachments</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="L-191"><a href="#L-191"><span class="linenos">191</span></a>            <span class="bp">cls</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">att_data</span><span class="p">)</span> <span class="k">for</span> <span class="n">att_data</span> <span class="ow">in</span> <span class="n">attachments_data</span> <span class="k">if</span> <span class="n">att_data</span>
-</span><span id="L-192"><a href="#L-192"><span class="linenos">192</span></a>        <span class="p">]</span>
-</span><span id="L-193"><a href="#L-193"><span class="linenos">193</span></a>        <span class="n">purpose_name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;purpose&quot;</span><span class="p">)</span>
-</span><span id="L-194"><a href="#L-194"><span class="linenos">194</span></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-</span><span id="L-195"><a href="#L-195"><span class="linenos">195</span></a>            <span class="nb">id</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
-</span><span id="L-196"><a href="#L-196"><span class="linenos">196</span></a>            <span class="n">suit</span><span class="o">=</span><span class="n">Suit</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;suit&quot;</span><span class="p">]],</span>
-</span><span id="L-197"><a href="#L-197"><span class="linenos">197</span></a>            <span class="n">rank</span><span class="o">=</span><span class="n">Rank</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;rank&quot;</span><span class="p">]],</span>
-</span><span id="L-198"><a href="#L-198"><span class="linenos">198</span></a>            <span class="n">played_by</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;played_by&quot;</span><span class="p">),</span>
-</span><span id="L-199"><a href="#L-199"><span class="linenos">199</span></a>            <span class="n">purpose</span><span class="o">=</span><span class="n">Purpose</span><span class="p">[</span><span class="n">purpose_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">purpose_name</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="L-200"><a href="#L-200"><span class="linenos">200</span></a>            <span class="n">attachments</span><span class="o">=</span><span class="n">attachments</span><span class="p">,</span>
-</span><span id="L-201"><a href="#L-201"><span class="linenos">201</span></a>        <span class="p">)</span>
-</span><span id="L-202"><a href="#L-202"><span class="linenos">202</span></a>
-</span><span id="L-203"><a href="#L-203"><span class="linenos">203</span></a>
-</span><span id="L-204"><a href="#L-204"><span class="linenos">204</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Suit</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-</span><span id="L-205"><a href="#L-205"><span class="linenos">205</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of card suits in the game.</span>
-</span><span id="L-206"><a href="#L-206"><span class="linenos">206</span></a>
-</span><span id="L-207"><a href="#L-207"><span class="linenos">207</span></a><span class="sd">    Each suit has:</span>
-</span><span id="L-208"><a href="#L-208"><span class="linenos">208</span></a><span class="sd">    - A display name (e.g., &quot;Clubs&quot;)</span>
-</span><span id="L-209"><a href="#L-209"><span class="linenos">209</span></a><span class="sd">    - A numeric value for comparison (0-3)</span>
+</span><span id="L-162"><a href="#L-162"><span class="linenos">162</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="ow">in</span> <span class="p">[</span>
+</span><span id="L-163"><a href="#L-163"><span class="linenos">163</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">ACE</span><span class="p">,</span>
+</span><span id="L-164"><a href="#L-164"><span class="linenos">164</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">THREE</span><span class="p">,</span>
+</span><span id="L-165"><a href="#L-165"><span class="linenos">165</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">FOUR</span><span class="p">,</span>
+</span><span id="L-166"><a href="#L-166"><span class="linenos">166</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">FIVE</span><span class="p">,</span>
+</span><span id="L-167"><a href="#L-167"><span class="linenos">167</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">SIX</span><span class="p">,</span>
+</span><span id="L-168"><a href="#L-168"><span class="linenos">168</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">SEVEN</span><span class="p">,</span>
+</span><span id="L-169"><a href="#L-169"><span class="linenos">169</span></a>        <span class="p">]</span>
+</span><span id="L-170"><a href="#L-170"><span class="linenos">170</span></a>
+</span><span id="L-171"><a href="#L-171"><span class="linenos">171</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_stolen</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="L-172"><a href="#L-172"><span class="linenos">172</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the card is currently stolen by the opponent.</span>
+</span><span id="L-173"><a href="#L-173"><span class="linenos">173</span></a>
+</span><span id="L-174"><a href="#L-174"><span class="linenos">174</span></a><span class="sd">        A card is considered stolen if it has an odd number of Jacks</span>
+</span><span id="L-175"><a href="#L-175"><span class="linenos">175</span></a><span class="sd">        attached to it, as each Jack switches control of the card.</span>
+</span><span id="L-176"><a href="#L-176"><span class="linenos">176</span></a>
+</span><span id="L-177"><a href="#L-177"><span class="linenos">177</span></a><span class="sd">        Returns:</span>
+</span><span id="L-178"><a href="#L-178"><span class="linenos">178</span></a><span class="sd">            bool: True if the card is stolen.</span>
+</span><span id="L-179"><a href="#L-179"><span class="linenos">179</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="L-180"><a href="#L-180"><span class="linenos">180</span></a>        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span>
+</span><span id="L-181"><a href="#L-181"><span class="linenos">181</span></a>
+</span><span id="L-182"><a href="#L-182"><span class="linenos">182</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span id="L-183"><a href="#L-183"><span class="linenos">183</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the Card object to a dictionary.&quot;&quot;&quot;</span>
+</span><span id="L-184"><a href="#L-184"><span class="linenos">184</span></a>        <span class="k">return</span> <span class="p">{</span>
+</span><span id="L-185"><a href="#L-185"><span class="linenos">185</span></a>            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+</span><span id="L-186"><a href="#L-186"><span class="linenos">186</span></a>            <span class="s2">&quot;suit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">suit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span id="L-187"><a href="#L-187"><span class="linenos">187</span></a>            <span class="s2">&quot;rank&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span id="L-188"><a href="#L-188"><span class="linenos">188</span></a>            <span class="s2">&quot;played_by&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">played_by</span><span class="p">,</span>
+</span><span id="L-189"><a href="#L-189"><span class="linenos">189</span></a>            <span class="s2">&quot;purpose&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="L-190"><a href="#L-190"><span class="linenos">190</span></a>            <span class="s2">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">att</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">],</span>
+</span><span id="L-191"><a href="#L-191"><span class="linenos">191</span></a>        <span class="p">}</span>
+</span><span id="L-192"><a href="#L-192"><span class="linenos">192</span></a>
+</span><span id="L-193"><a href="#L-193"><span class="linenos">193</span></a>    <span class="nd">@classmethod</span>
+</span><span id="L-194"><a href="#L-194"><span class="linenos">194</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Card</span><span class="p">:</span>
+</span><span id="L-195"><a href="#L-195"><span class="linenos">195</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Deserialize a Card object from a dictionary.&quot;&quot;&quot;</span>
+</span><span id="L-196"><a href="#L-196"><span class="linenos">196</span></a>        <span class="n">attachments_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attachments&quot;</span><span class="p">,</span> <span class="p">[])</span>
+</span><span id="L-197"><a href="#L-197"><span class="linenos">197</span></a>        <span class="n">attachments</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="L-198"><a href="#L-198"><span class="linenos">198</span></a>            <span class="bp">cls</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">att_data</span><span class="p">)</span> <span class="k">for</span> <span class="n">att_data</span> <span class="ow">in</span> <span class="n">attachments_data</span> <span class="k">if</span> <span class="n">att_data</span>
+</span><span id="L-199"><a href="#L-199"><span class="linenos">199</span></a>        <span class="p">]</span>
+</span><span id="L-200"><a href="#L-200"><span class="linenos">200</span></a>        <span class="n">purpose_name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;purpose&quot;</span><span class="p">)</span>
+</span><span id="L-201"><a href="#L-201"><span class="linenos">201</span></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+</span><span id="L-202"><a href="#L-202"><span class="linenos">202</span></a>            <span class="nb">id</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+</span><span id="L-203"><a href="#L-203"><span class="linenos">203</span></a>            <span class="n">suit</span><span class="o">=</span><span class="n">Suit</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;suit&quot;</span><span class="p">]],</span>
+</span><span id="L-204"><a href="#L-204"><span class="linenos">204</span></a>            <span class="n">rank</span><span class="o">=</span><span class="n">Rank</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;rank&quot;</span><span class="p">]],</span>
+</span><span id="L-205"><a href="#L-205"><span class="linenos">205</span></a>            <span class="n">played_by</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;played_by&quot;</span><span class="p">),</span>
+</span><span id="L-206"><a href="#L-206"><span class="linenos">206</span></a>            <span class="n">purpose</span><span class="o">=</span><span class="n">Purpose</span><span class="p">[</span><span class="n">purpose_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">purpose_name</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="L-207"><a href="#L-207"><span class="linenos">207</span></a>            <span class="n">attachments</span><span class="o">=</span><span class="n">attachments</span><span class="p">,</span>
+</span><span id="L-208"><a href="#L-208"><span class="linenos">208</span></a>        <span class="p">)</span>
+</span><span id="L-209"><a href="#L-209"><span class="linenos">209</span></a>
 </span><span id="L-210"><a href="#L-210"><span class="linenos">210</span></a>
-</span><span id="L-211"><a href="#L-211"><span class="linenos">211</span></a><span class="sd">    The suit order (lowest to highest) is:</span>
-</span><span id="L-212"><a href="#L-212"><span class="linenos">212</span></a><span class="sd">    Clubs (0) &lt; Diamonds (1) &lt; Hearts (2) &lt; Spades (3)</span>
-</span><span id="L-213"><a href="#L-213"><span class="linenos">213</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-214"><a href="#L-214"><span class="linenos">214</span></a>
-</span><span id="L-215"><a href="#L-215"><span class="linenos">215</span></a>    <span class="n">CLUBS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Clubs&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-</span><span id="L-216"><a href="#L-216"><span class="linenos">216</span></a>    <span class="n">DIAMONDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Diamonds&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span><span id="L-217"><a href="#L-217"><span class="linenos">217</span></a>    <span class="n">HEARTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Hearts&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span><span id="L-218"><a href="#L-218"><span class="linenos">218</span></a>    <span class="n">SPADES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Spades&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-</span><span id="L-219"><a href="#L-219"><span class="linenos">219</span></a>
-</span><span id="L-220"><a href="#L-220"><span class="linenos">220</span></a>
-</span><span id="L-221"><a href="#L-221"><span class="linenos">221</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Rank</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-</span><span id="L-222"><a href="#L-222"><span class="linenos">222</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of card ranks in the game.</span>
-</span><span id="L-223"><a href="#L-223"><span class="linenos">223</span></a>
-</span><span id="L-224"><a href="#L-224"><span class="linenos">224</span></a><span class="sd">    Each rank has:</span>
-</span><span id="L-225"><a href="#L-225"><span class="linenos">225</span></a><span class="sd">    - A display name (e.g., &quot;Ace&quot;)</span>
-</span><span id="L-226"><a href="#L-226"><span class="linenos">226</span></a><span class="sd">    - A numeric value (1-13)</span>
+</span><span id="L-211"><a href="#L-211"><span class="linenos">211</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Suit</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+</span><span id="L-212"><a href="#L-212"><span class="linenos">212</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of card suits in the game.</span>
+</span><span id="L-213"><a href="#L-213"><span class="linenos">213</span></a>
+</span><span id="L-214"><a href="#L-214"><span class="linenos">214</span></a><span class="sd">    Each suit has:</span>
+</span><span id="L-215"><a href="#L-215"><span class="linenos">215</span></a><span class="sd">    - A display name (e.g., &quot;Clubs&quot;)</span>
+</span><span id="L-216"><a href="#L-216"><span class="linenos">216</span></a><span class="sd">    - A numeric value for comparison (0-3)</span>
+</span><span id="L-217"><a href="#L-217"><span class="linenos">217</span></a>
+</span><span id="L-218"><a href="#L-218"><span class="linenos">218</span></a><span class="sd">    The suit order (lowest to highest) is:</span>
+</span><span id="L-219"><a href="#L-219"><span class="linenos">219</span></a><span class="sd">    Clubs (0) &lt; Diamonds (1) &lt; Hearts (2) &lt; Spades (3)</span>
+</span><span id="L-220"><a href="#L-220"><span class="linenos">220</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-221"><a href="#L-221"><span class="linenos">221</span></a>
+</span><span id="L-222"><a href="#L-222"><span class="linenos">222</span></a>    <span class="n">CLUBS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Clubs&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="L-223"><a href="#L-223"><span class="linenos">223</span></a>    <span class="n">DIAMONDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Diamonds&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span id="L-224"><a href="#L-224"><span class="linenos">224</span></a>    <span class="n">HEARTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Hearts&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="L-225"><a href="#L-225"><span class="linenos">225</span></a>    <span class="n">SPADES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Spades&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</span><span id="L-226"><a href="#L-226"><span class="linenos">226</span></a>
 </span><span id="L-227"><a href="#L-227"><span class="linenos">227</span></a>
-</span><span id="L-228"><a href="#L-228"><span class="linenos">228</span></a><span class="sd">    Special ranks and their effects:</span>
-</span><span id="L-229"><a href="#L-229"><span class="linenos">229</span></a><span class="sd">    - Ace (1): Return target card to owner&#39;s hand</span>
-</span><span id="L-230"><a href="#L-230"><span class="linenos">230</span></a><span class="sd">    - Two (2): Scuttle point cards of equal or lesser value</span>
-</span><span id="L-231"><a href="#L-231"><span class="linenos">231</span></a><span class="sd">    - Three (3): Draw two cards</span>
-</span><span id="L-232"><a href="#L-232"><span class="linenos">232</span></a><span class="sd">    - Four (4): Protection from targeted effects</span>
-</span><span id="L-233"><a href="#L-233"><span class="linenos">233</span></a><span class="sd">    - Five (5): Draw a card from opponent&#39;s hand</span>
-</span><span id="L-234"><a href="#L-234"><span class="linenos">234</span></a><span class="sd">    - Six (6): Opponent discards two cards</span>
-</span><span id="L-235"><a href="#L-235"><span class="linenos">235</span></a><span class="sd">    - Seven (7): Point card</span>
-</span><span id="L-236"><a href="#L-236"><span class="linenos">236</span></a><span class="sd">    - Eight (8): Counts as a face card</span>
-</span><span id="L-237"><a href="#L-237"><span class="linenos">237</span></a><span class="sd">    - Nine-Ten (9-10): Point cards</span>
-</span><span id="L-238"><a href="#L-238"><span class="linenos">238</span></a><span class="sd">    - Jack (11): Steal opponent&#39;s card</span>
-</span><span id="L-239"><a href="#L-239"><span class="linenos">239</span></a><span class="sd">    - Queen (12): Destroy target face card</span>
-</span><span id="L-240"><a href="#L-240"><span class="linenos">240</span></a><span class="sd">    - King (13): Reduce points needed to win</span>
-</span><span id="L-241"><a href="#L-241"><span class="linenos">241</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-242"><a href="#L-242"><span class="linenos">242</span></a>
-</span><span id="L-243"><a href="#L-243"><span class="linenos">243</span></a>    <span class="n">ACE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Ace&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span><span id="L-244"><a href="#L-244"><span class="linenos">244</span></a>    <span class="n">TWO</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Two&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span><span id="L-245"><a href="#L-245"><span class="linenos">245</span></a>    <span class="n">THREE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Three&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-</span><span id="L-246"><a href="#L-246"><span class="linenos">246</span></a>    <span class="n">FOUR</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Four&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-</span><span id="L-247"><a href="#L-247"><span class="linenos">247</span></a>    <span class="n">FIVE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Five&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
-</span><span id="L-248"><a href="#L-248"><span class="linenos">248</span></a>    <span class="n">SIX</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Six&quot;</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
-</span><span id="L-249"><a href="#L-249"><span class="linenos">249</span></a>    <span class="n">SEVEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Seven&quot;</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
-</span><span id="L-250"><a href="#L-250"><span class="linenos">250</span></a>    <span class="n">EIGHT</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Eight&quot;</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
-</span><span id="L-251"><a href="#L-251"><span class="linenos">251</span></a>    <span class="n">NINE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Nine&quot;</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
-</span><span id="L-252"><a href="#L-252"><span class="linenos">252</span></a>    <span class="n">TEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Ten&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
-</span><span id="L-253"><a href="#L-253"><span class="linenos">253</span></a>    <span class="n">JACK</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Jack&quot;</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
-</span><span id="L-254"><a href="#L-254"><span class="linenos">254</span></a>    <span class="n">QUEEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Queen&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
-</span><span id="L-255"><a href="#L-255"><span class="linenos">255</span></a>    <span class="n">KING</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;King&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">)</span>
-</span><span id="L-256"><a href="#L-256"><span class="linenos">256</span></a>
-</span><span id="L-257"><a href="#L-257"><span class="linenos">257</span></a>
-</span><span id="L-258"><a href="#L-258"><span class="linenos">258</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Purpose</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-</span><span id="L-259"><a href="#L-259"><span class="linenos">259</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of possible card purposes in the game.</span>
-</span><span id="L-260"><a href="#L-260"><span class="linenos">260</span></a>
-</span><span id="L-261"><a href="#L-261"><span class="linenos">261</span></a><span class="sd">    A card&#39;s purpose indicates how it&#39;s currently being used:</span>
-</span><span id="L-262"><a href="#L-262"><span class="linenos">262</span></a><span class="sd">    - POINTS: Card played for its point value</span>
-</span><span id="L-263"><a href="#L-263"><span class="linenos">263</span></a><span class="sd">    - FACE_CARD: Card played for its face card effect</span>
-</span><span id="L-264"><a href="#L-264"><span class="linenos">264</span></a><span class="sd">    - ONE_OFF: Card played for its one-off effect</span>
-</span><span id="L-265"><a href="#L-265"><span class="linenos">265</span></a><span class="sd">    - COUNTER: Card used to counter another card</span>
-</span><span id="L-266"><a href="#L-266"><span class="linenos">266</span></a><span class="sd">    - JACK: Card used as a Jack (stealing another card)</span>
-</span><span id="L-267"><a href="#L-267"><span class="linenos">267</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="L-268"><a href="#L-268"><span class="linenos">268</span></a>
-</span><span id="L-269"><a href="#L-269"><span class="linenos">269</span></a>    <span class="n">POINTS</span> <span class="o">=</span> <span class="s2">&quot;Points&quot;</span>
-</span><span id="L-270"><a href="#L-270"><span class="linenos">270</span></a>    <span class="n">FACE_CARD</span> <span class="o">=</span> <span class="s2">&quot;Face Card&quot;</span>
-</span><span id="L-271"><a href="#L-271"><span class="linenos">271</span></a>    <span class="n">ONE_OFF</span> <span class="o">=</span> <span class="s2">&quot;One Off&quot;</span>
-</span><span id="L-272"><a href="#L-272"><span class="linenos">272</span></a>    <span class="n">COUNTER</span> <span class="o">=</span> <span class="s2">&quot;Counter&quot;</span>
-</span><span id="L-273"><a href="#L-273"><span class="linenos">273</span></a>    <span class="n">JACK</span> <span class="o">=</span> <span class="s2">&quot;Jack&quot;</span>
-</span><span id="L-274"><a href="#L-274"><span class="linenos">274</span></a>    <span class="n">SCUTTLE</span> <span class="o">=</span> <span class="s2">&quot;Scuttle&quot;</span>
+</span><span id="L-228"><a href="#L-228"><span class="linenos">228</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Rank</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+</span><span id="L-229"><a href="#L-229"><span class="linenos">229</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of card ranks in the game.</span>
+</span><span id="L-230"><a href="#L-230"><span class="linenos">230</span></a>
+</span><span id="L-231"><a href="#L-231"><span class="linenos">231</span></a><span class="sd">    Each rank has:</span>
+</span><span id="L-232"><a href="#L-232"><span class="linenos">232</span></a><span class="sd">    - A display name (e.g., &quot;Ace&quot;)</span>
+</span><span id="L-233"><a href="#L-233"><span class="linenos">233</span></a><span class="sd">    - A numeric value (1-13)</span>
+</span><span id="L-234"><a href="#L-234"><span class="linenos">234</span></a>
+</span><span id="L-235"><a href="#L-235"><span class="linenos">235</span></a><span class="sd">    Special ranks and their effects:</span>
+</span><span id="L-236"><a href="#L-236"><span class="linenos">236</span></a><span class="sd">    - Ace (1): Return target card to owner&#39;s hand</span>
+</span><span id="L-237"><a href="#L-237"><span class="linenos">237</span></a><span class="sd">    - Two (2): Scuttle point cards of equal or lesser value</span>
+</span><span id="L-238"><a href="#L-238"><span class="linenos">238</span></a><span class="sd">    - Three (3): Draw two cards</span>
+</span><span id="L-239"><a href="#L-239"><span class="linenos">239</span></a><span class="sd">    - Four (4): Protection from targeted effects</span>
+</span><span id="L-240"><a href="#L-240"><span class="linenos">240</span></a><span class="sd">    - Five (5): Draw a card from opponent&#39;s hand</span>
+</span><span id="L-241"><a href="#L-241"><span class="linenos">241</span></a><span class="sd">    - Six (6): Opponent discards two cards</span>
+</span><span id="L-242"><a href="#L-242"><span class="linenos">242</span></a><span class="sd">    - Seven (7): Point card</span>
+</span><span id="L-243"><a href="#L-243"><span class="linenos">243</span></a><span class="sd">    - Eight (8): Counts as a face card</span>
+</span><span id="L-244"><a href="#L-244"><span class="linenos">244</span></a><span class="sd">    - Nine-Ten (9-10): Point cards</span>
+</span><span id="L-245"><a href="#L-245"><span class="linenos">245</span></a><span class="sd">    - Jack (11): Steal opponent&#39;s card</span>
+</span><span id="L-246"><a href="#L-246"><span class="linenos">246</span></a><span class="sd">    - Queen (12): Destroy target face card</span>
+</span><span id="L-247"><a href="#L-247"><span class="linenos">247</span></a><span class="sd">    - King (13): Reduce points needed to win</span>
+</span><span id="L-248"><a href="#L-248"><span class="linenos">248</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-249"><a href="#L-249"><span class="linenos">249</span></a>
+</span><span id="L-250"><a href="#L-250"><span class="linenos">250</span></a>    <span class="n">ACE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Ace&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span id="L-251"><a href="#L-251"><span class="linenos">251</span></a>    <span class="n">TWO</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Two&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="L-252"><a href="#L-252"><span class="linenos">252</span></a>    <span class="n">THREE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Three&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</span><span id="L-253"><a href="#L-253"><span class="linenos">253</span></a>    <span class="n">FOUR</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Four&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+</span><span id="L-254"><a href="#L-254"><span class="linenos">254</span></a>    <span class="n">FIVE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Five&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+</span><span id="L-255"><a href="#L-255"><span class="linenos">255</span></a>    <span class="n">SIX</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Six&quot;</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+</span><span id="L-256"><a href="#L-256"><span class="linenos">256</span></a>    <span class="n">SEVEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Seven&quot;</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+</span><span id="L-257"><a href="#L-257"><span class="linenos">257</span></a>    <span class="n">EIGHT</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Eight&quot;</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+</span><span id="L-258"><a href="#L-258"><span class="linenos">258</span></a>    <span class="n">NINE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Nine&quot;</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+</span><span id="L-259"><a href="#L-259"><span class="linenos">259</span></a>    <span class="n">TEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Ten&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+</span><span id="L-260"><a href="#L-260"><span class="linenos">260</span></a>    <span class="n">JACK</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Jack&quot;</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+</span><span id="L-261"><a href="#L-261"><span class="linenos">261</span></a>    <span class="n">QUEEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Queen&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+</span><span id="L-262"><a href="#L-262"><span class="linenos">262</span></a>    <span class="n">KING</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;King&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">)</span>
+</span><span id="L-263"><a href="#L-263"><span class="linenos">263</span></a>
+</span><span id="L-264"><a href="#L-264"><span class="linenos">264</span></a>
+</span><span id="L-265"><a href="#L-265"><span class="linenos">265</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Purpose</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+</span><span id="L-266"><a href="#L-266"><span class="linenos">266</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of possible card purposes in the game.</span>
+</span><span id="L-267"><a href="#L-267"><span class="linenos">267</span></a>
+</span><span id="L-268"><a href="#L-268"><span class="linenos">268</span></a><span class="sd">    A card&#39;s purpose indicates how it&#39;s currently being used:</span>
+</span><span id="L-269"><a href="#L-269"><span class="linenos">269</span></a><span class="sd">    - POINTS: Card played for its point value</span>
+</span><span id="L-270"><a href="#L-270"><span class="linenos">270</span></a><span class="sd">    - FACE_CARD: Card played for its face card effect</span>
+</span><span id="L-271"><a href="#L-271"><span class="linenos">271</span></a><span class="sd">    - ONE_OFF: Card played for its one-off effect</span>
+</span><span id="L-272"><a href="#L-272"><span class="linenos">272</span></a><span class="sd">    - COUNTER: Card used to counter another card</span>
+</span><span id="L-273"><a href="#L-273"><span class="linenos">273</span></a><span class="sd">    - JACK: Card used as a Jack (stealing another card)</span>
+</span><span id="L-274"><a href="#L-274"><span class="linenos">274</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="L-275"><a href="#L-275"><span class="linenos">275</span></a>
+</span><span id="L-276"><a href="#L-276"><span class="linenos">276</span></a>    <span class="n">POINTS</span> <span class="o">=</span> <span class="s2">&quot;Points&quot;</span>
+</span><span id="L-277"><a href="#L-277"><span class="linenos">277</span></a>    <span class="n">FACE_CARD</span> <span class="o">=</span> <span class="s2">&quot;Face Card&quot;</span>
+</span><span id="L-278"><a href="#L-278"><span class="linenos">278</span></a>    <span class="n">ONE_OFF</span> <span class="o">=</span> <span class="s2">&quot;One Off&quot;</span>
+</span><span id="L-279"><a href="#L-279"><span class="linenos">279</span></a>    <span class="n">COUNTER</span> <span class="o">=</span> <span class="s2">&quot;Counter&quot;</span>
+</span><span id="L-280"><a href="#L-280"><span class="linenos">280</span></a>    <span class="n">JACK</span> <span class="o">=</span> <span class="s2">&quot;Jack&quot;</span>
+</span><span id="L-281"><a href="#L-281"><span class="linenos">281</span></a>    <span class="n">SCUTTLE</span> <span class="o">=</span> <span class="s2">&quot;Scuttle&quot;</span>
 </span></pre></div>
 
 
@@ -637,46 +644,53 @@
 </span><span id="Card-160"><a href="#Card-160"><span class="linenos">160</span></a><span class="sd">        Returns:</span>
 </span><span id="Card-161"><a href="#Card-161"><span class="linenos">161</span></a><span class="sd">            bool: True if the card can be played as a one-off.</span>
 </span><span id="Card-162"><a href="#Card-162"><span class="linenos">162</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="Card-163"><a href="#Card-163"><span class="linenos">163</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Rank</span><span class="o">.</span><span class="n">ACE</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">THREE</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">FOUR</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">FIVE</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">SIX</span><span class="p">]</span>
-</span><span id="Card-164"><a href="#Card-164"><span class="linenos">164</span></a>
-</span><span id="Card-165"><a href="#Card-165"><span class="linenos">165</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_stolen</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="Card-166"><a href="#Card-166"><span class="linenos">166</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the card is currently stolen by the opponent.</span>
-</span><span id="Card-167"><a href="#Card-167"><span class="linenos">167</span></a>
-</span><span id="Card-168"><a href="#Card-168"><span class="linenos">168</span></a><span class="sd">        A card is considered stolen if it has an odd number of Jacks</span>
-</span><span id="Card-169"><a href="#Card-169"><span class="linenos">169</span></a><span class="sd">        attached to it, as each Jack switches control of the card.</span>
-</span><span id="Card-170"><a href="#Card-170"><span class="linenos">170</span></a>
-</span><span id="Card-171"><a href="#Card-171"><span class="linenos">171</span></a><span class="sd">        Returns:</span>
-</span><span id="Card-172"><a href="#Card-172"><span class="linenos">172</span></a><span class="sd">            bool: True if the card is stolen.</span>
-</span><span id="Card-173"><a href="#Card-173"><span class="linenos">173</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="Card-174"><a href="#Card-174"><span class="linenos">174</span></a>        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span>
-</span><span id="Card-175"><a href="#Card-175"><span class="linenos">175</span></a>
-</span><span id="Card-176"><a href="#Card-176"><span class="linenos">176</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span id="Card-177"><a href="#Card-177"><span class="linenos">177</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the Card object to a dictionary.&quot;&quot;&quot;</span>
-</span><span id="Card-178"><a href="#Card-178"><span class="linenos">178</span></a>        <span class="k">return</span> <span class="p">{</span>
-</span><span id="Card-179"><a href="#Card-179"><span class="linenos">179</span></a>            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-</span><span id="Card-180"><a href="#Card-180"><span class="linenos">180</span></a>            <span class="s2">&quot;suit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">suit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span id="Card-181"><a href="#Card-181"><span class="linenos">181</span></a>            <span class="s2">&quot;rank&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span id="Card-182"><a href="#Card-182"><span class="linenos">182</span></a>            <span class="s2">&quot;played_by&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">played_by</span><span class="p">,</span>
-</span><span id="Card-183"><a href="#Card-183"><span class="linenos">183</span></a>            <span class="s2">&quot;purpose&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="Card-184"><a href="#Card-184"><span class="linenos">184</span></a>            <span class="s2">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">att</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">],</span>
-</span><span id="Card-185"><a href="#Card-185"><span class="linenos">185</span></a>        <span class="p">}</span>
-</span><span id="Card-186"><a href="#Card-186"><span class="linenos">186</span></a>
-</span><span id="Card-187"><a href="#Card-187"><span class="linenos">187</span></a>    <span class="nd">@classmethod</span>
-</span><span id="Card-188"><a href="#Card-188"><span class="linenos">188</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Card</span><span class="p">:</span>
-</span><span id="Card-189"><a href="#Card-189"><span class="linenos">189</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Deserialize a Card object from a dictionary.&quot;&quot;&quot;</span>
-</span><span id="Card-190"><a href="#Card-190"><span class="linenos">190</span></a>        <span class="n">attachments_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attachments&quot;</span><span class="p">,</span> <span class="p">[])</span>
-</span><span id="Card-191"><a href="#Card-191"><span class="linenos">191</span></a>        <span class="n">attachments</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="Card-192"><a href="#Card-192"><span class="linenos">192</span></a>            <span class="bp">cls</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">att_data</span><span class="p">)</span> <span class="k">for</span> <span class="n">att_data</span> <span class="ow">in</span> <span class="n">attachments_data</span> <span class="k">if</span> <span class="n">att_data</span>
-</span><span id="Card-193"><a href="#Card-193"><span class="linenos">193</span></a>        <span class="p">]</span>
-</span><span id="Card-194"><a href="#Card-194"><span class="linenos">194</span></a>        <span class="n">purpose_name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;purpose&quot;</span><span class="p">)</span>
-</span><span id="Card-195"><a href="#Card-195"><span class="linenos">195</span></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-</span><span id="Card-196"><a href="#Card-196"><span class="linenos">196</span></a>            <span class="nb">id</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
-</span><span id="Card-197"><a href="#Card-197"><span class="linenos">197</span></a>            <span class="n">suit</span><span class="o">=</span><span class="n">Suit</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;suit&quot;</span><span class="p">]],</span>
-</span><span id="Card-198"><a href="#Card-198"><span class="linenos">198</span></a>            <span class="n">rank</span><span class="o">=</span><span class="n">Rank</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;rank&quot;</span><span class="p">]],</span>
-</span><span id="Card-199"><a href="#Card-199"><span class="linenos">199</span></a>            <span class="n">played_by</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;played_by&quot;</span><span class="p">),</span>
-</span><span id="Card-200"><a href="#Card-200"><span class="linenos">200</span></a>            <span class="n">purpose</span><span class="o">=</span><span class="n">Purpose</span><span class="p">[</span><span class="n">purpose_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">purpose_name</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="Card-201"><a href="#Card-201"><span class="linenos">201</span></a>            <span class="n">attachments</span><span class="o">=</span><span class="n">attachments</span><span class="p">,</span>
-</span><span id="Card-202"><a href="#Card-202"><span class="linenos">202</span></a>        <span class="p">)</span>
+</span><span id="Card-163"><a href="#Card-163"><span class="linenos">163</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="ow">in</span> <span class="p">[</span>
+</span><span id="Card-164"><a href="#Card-164"><span class="linenos">164</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">ACE</span><span class="p">,</span>
+</span><span id="Card-165"><a href="#Card-165"><span class="linenos">165</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">THREE</span><span class="p">,</span>
+</span><span id="Card-166"><a href="#Card-166"><span class="linenos">166</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">FOUR</span><span class="p">,</span>
+</span><span id="Card-167"><a href="#Card-167"><span class="linenos">167</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">FIVE</span><span class="p">,</span>
+</span><span id="Card-168"><a href="#Card-168"><span class="linenos">168</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">SIX</span><span class="p">,</span>
+</span><span id="Card-169"><a href="#Card-169"><span class="linenos">169</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">SEVEN</span><span class="p">,</span>
+</span><span id="Card-170"><a href="#Card-170"><span class="linenos">170</span></a>        <span class="p">]</span>
+</span><span id="Card-171"><a href="#Card-171"><span class="linenos">171</span></a>
+</span><span id="Card-172"><a href="#Card-172"><span class="linenos">172</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_stolen</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="Card-173"><a href="#Card-173"><span class="linenos">173</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the card is currently stolen by the opponent.</span>
+</span><span id="Card-174"><a href="#Card-174"><span class="linenos">174</span></a>
+</span><span id="Card-175"><a href="#Card-175"><span class="linenos">175</span></a><span class="sd">        A card is considered stolen if it has an odd number of Jacks</span>
+</span><span id="Card-176"><a href="#Card-176"><span class="linenos">176</span></a><span class="sd">        attached to it, as each Jack switches control of the card.</span>
+</span><span id="Card-177"><a href="#Card-177"><span class="linenos">177</span></a>
+</span><span id="Card-178"><a href="#Card-178"><span class="linenos">178</span></a><span class="sd">        Returns:</span>
+</span><span id="Card-179"><a href="#Card-179"><span class="linenos">179</span></a><span class="sd">            bool: True if the card is stolen.</span>
+</span><span id="Card-180"><a href="#Card-180"><span class="linenos">180</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="Card-181"><a href="#Card-181"><span class="linenos">181</span></a>        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span>
+</span><span id="Card-182"><a href="#Card-182"><span class="linenos">182</span></a>
+</span><span id="Card-183"><a href="#Card-183"><span class="linenos">183</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span id="Card-184"><a href="#Card-184"><span class="linenos">184</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the Card object to a dictionary.&quot;&quot;&quot;</span>
+</span><span id="Card-185"><a href="#Card-185"><span class="linenos">185</span></a>        <span class="k">return</span> <span class="p">{</span>
+</span><span id="Card-186"><a href="#Card-186"><span class="linenos">186</span></a>            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+</span><span id="Card-187"><a href="#Card-187"><span class="linenos">187</span></a>            <span class="s2">&quot;suit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">suit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span id="Card-188"><a href="#Card-188"><span class="linenos">188</span></a>            <span class="s2">&quot;rank&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span id="Card-189"><a href="#Card-189"><span class="linenos">189</span></a>            <span class="s2">&quot;played_by&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">played_by</span><span class="p">,</span>
+</span><span id="Card-190"><a href="#Card-190"><span class="linenos">190</span></a>            <span class="s2">&quot;purpose&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="Card-191"><a href="#Card-191"><span class="linenos">191</span></a>            <span class="s2">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">att</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">],</span>
+</span><span id="Card-192"><a href="#Card-192"><span class="linenos">192</span></a>        <span class="p">}</span>
+</span><span id="Card-193"><a href="#Card-193"><span class="linenos">193</span></a>
+</span><span id="Card-194"><a href="#Card-194"><span class="linenos">194</span></a>    <span class="nd">@classmethod</span>
+</span><span id="Card-195"><a href="#Card-195"><span class="linenos">195</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Card</span><span class="p">:</span>
+</span><span id="Card-196"><a href="#Card-196"><span class="linenos">196</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Deserialize a Card object from a dictionary.&quot;&quot;&quot;</span>
+</span><span id="Card-197"><a href="#Card-197"><span class="linenos">197</span></a>        <span class="n">attachments_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attachments&quot;</span><span class="p">,</span> <span class="p">[])</span>
+</span><span id="Card-198"><a href="#Card-198"><span class="linenos">198</span></a>        <span class="n">attachments</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="Card-199"><a href="#Card-199"><span class="linenos">199</span></a>            <span class="bp">cls</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">att_data</span><span class="p">)</span> <span class="k">for</span> <span class="n">att_data</span> <span class="ow">in</span> <span class="n">attachments_data</span> <span class="k">if</span> <span class="n">att_data</span>
+</span><span id="Card-200"><a href="#Card-200"><span class="linenos">200</span></a>        <span class="p">]</span>
+</span><span id="Card-201"><a href="#Card-201"><span class="linenos">201</span></a>        <span class="n">purpose_name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;purpose&quot;</span><span class="p">)</span>
+</span><span id="Card-202"><a href="#Card-202"><span class="linenos">202</span></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+</span><span id="Card-203"><a href="#Card-203"><span class="linenos">203</span></a>            <span class="nb">id</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+</span><span id="Card-204"><a href="#Card-204"><span class="linenos">204</span></a>            <span class="n">suit</span><span class="o">=</span><span class="n">Suit</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;suit&quot;</span><span class="p">]],</span>
+</span><span id="Card-205"><a href="#Card-205"><span class="linenos">205</span></a>            <span class="n">rank</span><span class="o">=</span><span class="n">Rank</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;rank&quot;</span><span class="p">]],</span>
+</span><span id="Card-206"><a href="#Card-206"><span class="linenos">206</span></a>            <span class="n">played_by</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;played_by&quot;</span><span class="p">),</span>
+</span><span id="Card-207"><a href="#Card-207"><span class="linenos">207</span></a>            <span class="n">purpose</span><span class="o">=</span><span class="n">Purpose</span><span class="p">[</span><span class="n">purpose_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">purpose_name</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="Card-208"><a href="#Card-208"><span class="linenos">208</span></a>            <span class="n">attachments</span><span class="o">=</span><span class="n">attachments</span><span class="p">,</span>
+</span><span id="Card-209"><a href="#Card-209"><span class="linenos">209</span></a>        <span class="p">)</span>
 </span></pre></div>
 
 
@@ -1055,7 +1069,14 @@ who played it, its current purpose, and any cards attached to it (e.g., by Jacks
 </span><span id="Card.is_one_off-160"><a href="#Card.is_one_off-160"><span class="linenos">160</span></a><span class="sd">        Returns:</span>
 </span><span id="Card.is_one_off-161"><a href="#Card.is_one_off-161"><span class="linenos">161</span></a><span class="sd">            bool: True if the card can be played as a one-off.</span>
 </span><span id="Card.is_one_off-162"><a href="#Card.is_one_off-162"><span class="linenos">162</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="Card.is_one_off-163"><a href="#Card.is_one_off-163"><span class="linenos">163</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="ow">in</span> <span class="p">[</span><span class="n">Rank</span><span class="o">.</span><span class="n">ACE</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">THREE</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">FOUR</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">FIVE</span><span class="p">,</span> <span class="n">Rank</span><span class="o">.</span><span class="n">SIX</span><span class="p">]</span>
+</span><span id="Card.is_one_off-163"><a href="#Card.is_one_off-163"><span class="linenos">163</span></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="ow">in</span> <span class="p">[</span>
+</span><span id="Card.is_one_off-164"><a href="#Card.is_one_off-164"><span class="linenos">164</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">ACE</span><span class="p">,</span>
+</span><span id="Card.is_one_off-165"><a href="#Card.is_one_off-165"><span class="linenos">165</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">THREE</span><span class="p">,</span>
+</span><span id="Card.is_one_off-166"><a href="#Card.is_one_off-166"><span class="linenos">166</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">FOUR</span><span class="p">,</span>
+</span><span id="Card.is_one_off-167"><a href="#Card.is_one_off-167"><span class="linenos">167</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">FIVE</span><span class="p">,</span>
+</span><span id="Card.is_one_off-168"><a href="#Card.is_one_off-168"><span class="linenos">168</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">SIX</span><span class="p">,</span>
+</span><span id="Card.is_one_off-169"><a href="#Card.is_one_off-169"><span class="linenos">169</span></a>            <span class="n">Rank</span><span class="o">.</span><span class="n">SEVEN</span><span class="p">,</span>
+</span><span id="Card.is_one_off-170"><a href="#Card.is_one_off-170"><span class="linenos">170</span></a>        <span class="p">]</span>
 </span></pre></div>
 
 
@@ -1091,16 +1112,16 @@ who played it, its current purpose, and any cards attached to it (e.g., by Jacks
 
     </div>
     <a class="headerlink" href="#Card.is_stolen"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Card.is_stolen-165"><a href="#Card.is_stolen-165"><span class="linenos">165</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_stolen</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="Card.is_stolen-166"><a href="#Card.is_stolen-166"><span class="linenos">166</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the card is currently stolen by the opponent.</span>
-</span><span id="Card.is_stolen-167"><a href="#Card.is_stolen-167"><span class="linenos">167</span></a>
-</span><span id="Card.is_stolen-168"><a href="#Card.is_stolen-168"><span class="linenos">168</span></a><span class="sd">        A card is considered stolen if it has an odd number of Jacks</span>
-</span><span id="Card.is_stolen-169"><a href="#Card.is_stolen-169"><span class="linenos">169</span></a><span class="sd">        attached to it, as each Jack switches control of the card.</span>
-</span><span id="Card.is_stolen-170"><a href="#Card.is_stolen-170"><span class="linenos">170</span></a>
-</span><span id="Card.is_stolen-171"><a href="#Card.is_stolen-171"><span class="linenos">171</span></a><span class="sd">        Returns:</span>
-</span><span id="Card.is_stolen-172"><a href="#Card.is_stolen-172"><span class="linenos">172</span></a><span class="sd">            bool: True if the card is stolen.</span>
-</span><span id="Card.is_stolen-173"><a href="#Card.is_stolen-173"><span class="linenos">173</span></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="Card.is_stolen-174"><a href="#Card.is_stolen-174"><span class="linenos">174</span></a>        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Card.is_stolen-172"><a href="#Card.is_stolen-172"><span class="linenos">172</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">is_stolen</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="Card.is_stolen-173"><a href="#Card.is_stolen-173"><span class="linenos">173</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the card is currently stolen by the opponent.</span>
+</span><span id="Card.is_stolen-174"><a href="#Card.is_stolen-174"><span class="linenos">174</span></a>
+</span><span id="Card.is_stolen-175"><a href="#Card.is_stolen-175"><span class="linenos">175</span></a><span class="sd">        A card is considered stolen if it has an odd number of Jacks</span>
+</span><span id="Card.is_stolen-176"><a href="#Card.is_stolen-176"><span class="linenos">176</span></a><span class="sd">        attached to it, as each Jack switches control of the card.</span>
+</span><span id="Card.is_stolen-177"><a href="#Card.is_stolen-177"><span class="linenos">177</span></a>
+</span><span id="Card.is_stolen-178"><a href="#Card.is_stolen-178"><span class="linenos">178</span></a><span class="sd">        Returns:</span>
+</span><span id="Card.is_stolen-179"><a href="#Card.is_stolen-179"><span class="linenos">179</span></a><span class="sd">            bool: True if the card is stolen.</span>
+</span><span id="Card.is_stolen-180"><a href="#Card.is_stolen-180"><span class="linenos">180</span></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="Card.is_stolen-181"><a href="#Card.is_stolen-181"><span class="linenos">181</span></a>        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span>
 </span></pre></div>
 
 
@@ -1129,16 +1150,16 @@ attached to it, as each Jack switches control of the card.</p>
 
     </div>
     <a class="headerlink" href="#Card.to_dict"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Card.to_dict-176"><a href="#Card.to_dict-176"><span class="linenos">176</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-</span><span id="Card.to_dict-177"><a href="#Card.to_dict-177"><span class="linenos">177</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the Card object to a dictionary.&quot;&quot;&quot;</span>
-</span><span id="Card.to_dict-178"><a href="#Card.to_dict-178"><span class="linenos">178</span></a>        <span class="k">return</span> <span class="p">{</span>
-</span><span id="Card.to_dict-179"><a href="#Card.to_dict-179"><span class="linenos">179</span></a>            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-</span><span id="Card.to_dict-180"><a href="#Card.to_dict-180"><span class="linenos">180</span></a>            <span class="s2">&quot;suit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">suit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span id="Card.to_dict-181"><a href="#Card.to_dict-181"><span class="linenos">181</span></a>            <span class="s2">&quot;rank&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-</span><span id="Card.to_dict-182"><a href="#Card.to_dict-182"><span class="linenos">182</span></a>            <span class="s2">&quot;played_by&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">played_by</span><span class="p">,</span>
-</span><span id="Card.to_dict-183"><a href="#Card.to_dict-183"><span class="linenos">183</span></a>            <span class="s2">&quot;purpose&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="Card.to_dict-184"><a href="#Card.to_dict-184"><span class="linenos">184</span></a>            <span class="s2">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">att</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">],</span>
-</span><span id="Card.to_dict-185"><a href="#Card.to_dict-185"><span class="linenos">185</span></a>        <span class="p">}</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Card.to_dict-183"><a href="#Card.to_dict-183"><span class="linenos">183</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+</span><span id="Card.to_dict-184"><a href="#Card.to_dict-184"><span class="linenos">184</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Serialize the Card object to a dictionary.&quot;&quot;&quot;</span>
+</span><span id="Card.to_dict-185"><a href="#Card.to_dict-185"><span class="linenos">185</span></a>        <span class="k">return</span> <span class="p">{</span>
+</span><span id="Card.to_dict-186"><a href="#Card.to_dict-186"><span class="linenos">186</span></a>            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+</span><span id="Card.to_dict-187"><a href="#Card.to_dict-187"><span class="linenos">187</span></a>            <span class="s2">&quot;suit&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">suit</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span id="Card.to_dict-188"><a href="#Card.to_dict-188"><span class="linenos">188</span></a>            <span class="s2">&quot;rank&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+</span><span id="Card.to_dict-189"><a href="#Card.to_dict-189"><span class="linenos">189</span></a>            <span class="s2">&quot;played_by&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">played_by</span><span class="p">,</span>
+</span><span id="Card.to_dict-190"><a href="#Card.to_dict-190"><span class="linenos">190</span></a>            <span class="s2">&quot;purpose&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">purpose</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="Card.to_dict-191"><a href="#Card.to_dict-191"><span class="linenos">191</span></a>            <span class="s2">&quot;attachments&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">att</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">att</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attachments</span><span class="p">],</span>
+</span><span id="Card.to_dict-192"><a href="#Card.to_dict-192"><span class="linenos">192</span></a>        <span class="p">}</span>
 </span></pre></div>
 
 
@@ -1159,22 +1180,22 @@ attached to it, as each Jack switches control of the card.</p>
 
     </div>
     <a class="headerlink" href="#Card.from_dict"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Card.from_dict-187"><a href="#Card.from_dict-187"><span class="linenos">187</span></a>    <span class="nd">@classmethod</span>
-</span><span id="Card.from_dict-188"><a href="#Card.from_dict-188"><span class="linenos">188</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Card</span><span class="p">:</span>
-</span><span id="Card.from_dict-189"><a href="#Card.from_dict-189"><span class="linenos">189</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Deserialize a Card object from a dictionary.&quot;&quot;&quot;</span>
-</span><span id="Card.from_dict-190"><a href="#Card.from_dict-190"><span class="linenos">190</span></a>        <span class="n">attachments_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attachments&quot;</span><span class="p">,</span> <span class="p">[])</span>
-</span><span id="Card.from_dict-191"><a href="#Card.from_dict-191"><span class="linenos">191</span></a>        <span class="n">attachments</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="Card.from_dict-192"><a href="#Card.from_dict-192"><span class="linenos">192</span></a>            <span class="bp">cls</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">att_data</span><span class="p">)</span> <span class="k">for</span> <span class="n">att_data</span> <span class="ow">in</span> <span class="n">attachments_data</span> <span class="k">if</span> <span class="n">att_data</span>
-</span><span id="Card.from_dict-193"><a href="#Card.from_dict-193"><span class="linenos">193</span></a>        <span class="p">]</span>
-</span><span id="Card.from_dict-194"><a href="#Card.from_dict-194"><span class="linenos">194</span></a>        <span class="n">purpose_name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;purpose&quot;</span><span class="p">)</span>
-</span><span id="Card.from_dict-195"><a href="#Card.from_dict-195"><span class="linenos">195</span></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
-</span><span id="Card.from_dict-196"><a href="#Card.from_dict-196"><span class="linenos">196</span></a>            <span class="nb">id</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
-</span><span id="Card.from_dict-197"><a href="#Card.from_dict-197"><span class="linenos">197</span></a>            <span class="n">suit</span><span class="o">=</span><span class="n">Suit</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;suit&quot;</span><span class="p">]],</span>
-</span><span id="Card.from_dict-198"><a href="#Card.from_dict-198"><span class="linenos">198</span></a>            <span class="n">rank</span><span class="o">=</span><span class="n">Rank</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;rank&quot;</span><span class="p">]],</span>
-</span><span id="Card.from_dict-199"><a href="#Card.from_dict-199"><span class="linenos">199</span></a>            <span class="n">played_by</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;played_by&quot;</span><span class="p">),</span>
-</span><span id="Card.from_dict-200"><a href="#Card.from_dict-200"><span class="linenos">200</span></a>            <span class="n">purpose</span><span class="o">=</span><span class="n">Purpose</span><span class="p">[</span><span class="n">purpose_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">purpose_name</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="Card.from_dict-201"><a href="#Card.from_dict-201"><span class="linenos">201</span></a>            <span class="n">attachments</span><span class="o">=</span><span class="n">attachments</span><span class="p">,</span>
-</span><span id="Card.from_dict-202"><a href="#Card.from_dict-202"><span class="linenos">202</span></a>        <span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Card.from_dict-194"><a href="#Card.from_dict-194"><span class="linenos">194</span></a>    <span class="nd">@classmethod</span>
+</span><span id="Card.from_dict-195"><a href="#Card.from_dict-195"><span class="linenos">195</span></a>    <span class="k">def</span><span class="w"> </span><span class="nf">from_dict</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Card</span><span class="p">:</span>
+</span><span id="Card.from_dict-196"><a href="#Card.from_dict-196"><span class="linenos">196</span></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Deserialize a Card object from a dictionary.&quot;&quot;&quot;</span>
+</span><span id="Card.from_dict-197"><a href="#Card.from_dict-197"><span class="linenos">197</span></a>        <span class="n">attachments_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;attachments&quot;</span><span class="p">,</span> <span class="p">[])</span>
+</span><span id="Card.from_dict-198"><a href="#Card.from_dict-198"><span class="linenos">198</span></a>        <span class="n">attachments</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="Card.from_dict-199"><a href="#Card.from_dict-199"><span class="linenos">199</span></a>            <span class="bp">cls</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">att_data</span><span class="p">)</span> <span class="k">for</span> <span class="n">att_data</span> <span class="ow">in</span> <span class="n">attachments_data</span> <span class="k">if</span> <span class="n">att_data</span>
+</span><span id="Card.from_dict-200"><a href="#Card.from_dict-200"><span class="linenos">200</span></a>        <span class="p">]</span>
+</span><span id="Card.from_dict-201"><a href="#Card.from_dict-201"><span class="linenos">201</span></a>        <span class="n">purpose_name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;purpose&quot;</span><span class="p">)</span>
+</span><span id="Card.from_dict-202"><a href="#Card.from_dict-202"><span class="linenos">202</span></a>        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span>
+</span><span id="Card.from_dict-203"><a href="#Card.from_dict-203"><span class="linenos">203</span></a>            <span class="nb">id</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+</span><span id="Card.from_dict-204"><a href="#Card.from_dict-204"><span class="linenos">204</span></a>            <span class="n">suit</span><span class="o">=</span><span class="n">Suit</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;suit&quot;</span><span class="p">]],</span>
+</span><span id="Card.from_dict-205"><a href="#Card.from_dict-205"><span class="linenos">205</span></a>            <span class="n">rank</span><span class="o">=</span><span class="n">Rank</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;rank&quot;</span><span class="p">]],</span>
+</span><span id="Card.from_dict-206"><a href="#Card.from_dict-206"><span class="linenos">206</span></a>            <span class="n">played_by</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;played_by&quot;</span><span class="p">),</span>
+</span><span id="Card.from_dict-207"><a href="#Card.from_dict-207"><span class="linenos">207</span></a>            <span class="n">purpose</span><span class="o">=</span><span class="n">Purpose</span><span class="p">[</span><span class="n">purpose_name</span><span class="p">]</span> <span class="k">if</span> <span class="n">purpose_name</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="Card.from_dict-208"><a href="#Card.from_dict-208"><span class="linenos">208</span></a>            <span class="n">attachments</span><span class="o">=</span><span class="n">attachments</span><span class="p">,</span>
+</span><span id="Card.from_dict-209"><a href="#Card.from_dict-209"><span class="linenos">209</span></a>        <span class="p">)</span>
 </span></pre></div>
 
 
@@ -1195,21 +1216,21 @@ attached to it, as each Jack switches control of the card.</p>
 
     </div>
     <a class="headerlink" href="#Suit"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Suit-205"><a href="#Suit-205"><span class="linenos">205</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Suit</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-</span><span id="Suit-206"><a href="#Suit-206"><span class="linenos">206</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of card suits in the game.</span>
-</span><span id="Suit-207"><a href="#Suit-207"><span class="linenos">207</span></a>
-</span><span id="Suit-208"><a href="#Suit-208"><span class="linenos">208</span></a><span class="sd">    Each suit has:</span>
-</span><span id="Suit-209"><a href="#Suit-209"><span class="linenos">209</span></a><span class="sd">    - A display name (e.g., &quot;Clubs&quot;)</span>
-</span><span id="Suit-210"><a href="#Suit-210"><span class="linenos">210</span></a><span class="sd">    - A numeric value for comparison (0-3)</span>
-</span><span id="Suit-211"><a href="#Suit-211"><span class="linenos">211</span></a>
-</span><span id="Suit-212"><a href="#Suit-212"><span class="linenos">212</span></a><span class="sd">    The suit order (lowest to highest) is:</span>
-</span><span id="Suit-213"><a href="#Suit-213"><span class="linenos">213</span></a><span class="sd">    Clubs (0) &lt; Diamonds (1) &lt; Hearts (2) &lt; Spades (3)</span>
-</span><span id="Suit-214"><a href="#Suit-214"><span class="linenos">214</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="Suit-215"><a href="#Suit-215"><span class="linenos">215</span></a>
-</span><span id="Suit-216"><a href="#Suit-216"><span class="linenos">216</span></a>    <span class="n">CLUBS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Clubs&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-</span><span id="Suit-217"><a href="#Suit-217"><span class="linenos">217</span></a>    <span class="n">DIAMONDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Diamonds&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span><span id="Suit-218"><a href="#Suit-218"><span class="linenos">218</span></a>    <span class="n">HEARTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Hearts&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span><span id="Suit-219"><a href="#Suit-219"><span class="linenos">219</span></a>    <span class="n">SPADES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Spades&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Suit-212"><a href="#Suit-212"><span class="linenos">212</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Suit</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+</span><span id="Suit-213"><a href="#Suit-213"><span class="linenos">213</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of card suits in the game.</span>
+</span><span id="Suit-214"><a href="#Suit-214"><span class="linenos">214</span></a>
+</span><span id="Suit-215"><a href="#Suit-215"><span class="linenos">215</span></a><span class="sd">    Each suit has:</span>
+</span><span id="Suit-216"><a href="#Suit-216"><span class="linenos">216</span></a><span class="sd">    - A display name (e.g., &quot;Clubs&quot;)</span>
+</span><span id="Suit-217"><a href="#Suit-217"><span class="linenos">217</span></a><span class="sd">    - A numeric value for comparison (0-3)</span>
+</span><span id="Suit-218"><a href="#Suit-218"><span class="linenos">218</span></a>
+</span><span id="Suit-219"><a href="#Suit-219"><span class="linenos">219</span></a><span class="sd">    The suit order (lowest to highest) is:</span>
+</span><span id="Suit-220"><a href="#Suit-220"><span class="linenos">220</span></a><span class="sd">    Clubs (0) &lt; Diamonds (1) &lt; Hearts (2) &lt; Spades (3)</span>
+</span><span id="Suit-221"><a href="#Suit-221"><span class="linenos">221</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="Suit-222"><a href="#Suit-222"><span class="linenos">222</span></a>
+</span><span id="Suit-223"><a href="#Suit-223"><span class="linenos">223</span></a>    <span class="n">CLUBS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Clubs&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</span><span id="Suit-224"><a href="#Suit-224"><span class="linenos">224</span></a>    <span class="n">DIAMONDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Diamonds&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span id="Suit-225"><a href="#Suit-225"><span class="linenos">225</span></a>    <span class="n">HEARTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Hearts&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="Suit-226"><a href="#Suit-226"><span class="linenos">226</span></a>    <span class="n">SPADES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Spades&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -1297,41 +1318,41 @@ Clubs (0) &lt; Diamonds (1) &lt; Hearts (2) &lt; Spades (3)</p>
 
     </div>
     <a class="headerlink" href="#Rank"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Rank-222"><a href="#Rank-222"><span class="linenos">222</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Rank</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-</span><span id="Rank-223"><a href="#Rank-223"><span class="linenos">223</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of card ranks in the game.</span>
-</span><span id="Rank-224"><a href="#Rank-224"><span class="linenos">224</span></a>
-</span><span id="Rank-225"><a href="#Rank-225"><span class="linenos">225</span></a><span class="sd">    Each rank has:</span>
-</span><span id="Rank-226"><a href="#Rank-226"><span class="linenos">226</span></a><span class="sd">    - A display name (e.g., &quot;Ace&quot;)</span>
-</span><span id="Rank-227"><a href="#Rank-227"><span class="linenos">227</span></a><span class="sd">    - A numeric value (1-13)</span>
-</span><span id="Rank-228"><a href="#Rank-228"><span class="linenos">228</span></a>
-</span><span id="Rank-229"><a href="#Rank-229"><span class="linenos">229</span></a><span class="sd">    Special ranks and their effects:</span>
-</span><span id="Rank-230"><a href="#Rank-230"><span class="linenos">230</span></a><span class="sd">    - Ace (1): Return target card to owner&#39;s hand</span>
-</span><span id="Rank-231"><a href="#Rank-231"><span class="linenos">231</span></a><span class="sd">    - Two (2): Scuttle point cards of equal or lesser value</span>
-</span><span id="Rank-232"><a href="#Rank-232"><span class="linenos">232</span></a><span class="sd">    - Three (3): Draw two cards</span>
-</span><span id="Rank-233"><a href="#Rank-233"><span class="linenos">233</span></a><span class="sd">    - Four (4): Protection from targeted effects</span>
-</span><span id="Rank-234"><a href="#Rank-234"><span class="linenos">234</span></a><span class="sd">    - Five (5): Draw a card from opponent&#39;s hand</span>
-</span><span id="Rank-235"><a href="#Rank-235"><span class="linenos">235</span></a><span class="sd">    - Six (6): Opponent discards two cards</span>
-</span><span id="Rank-236"><a href="#Rank-236"><span class="linenos">236</span></a><span class="sd">    - Seven (7): Point card</span>
-</span><span id="Rank-237"><a href="#Rank-237"><span class="linenos">237</span></a><span class="sd">    - Eight (8): Counts as a face card</span>
-</span><span id="Rank-238"><a href="#Rank-238"><span class="linenos">238</span></a><span class="sd">    - Nine-Ten (9-10): Point cards</span>
-</span><span id="Rank-239"><a href="#Rank-239"><span class="linenos">239</span></a><span class="sd">    - Jack (11): Steal opponent&#39;s card</span>
-</span><span id="Rank-240"><a href="#Rank-240"><span class="linenos">240</span></a><span class="sd">    - Queen (12): Destroy target face card</span>
-</span><span id="Rank-241"><a href="#Rank-241"><span class="linenos">241</span></a><span class="sd">    - King (13): Reduce points needed to win</span>
-</span><span id="Rank-242"><a href="#Rank-242"><span class="linenos">242</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="Rank-243"><a href="#Rank-243"><span class="linenos">243</span></a>
-</span><span id="Rank-244"><a href="#Rank-244"><span class="linenos">244</span></a>    <span class="n">ACE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Ace&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-</span><span id="Rank-245"><a href="#Rank-245"><span class="linenos">245</span></a>    <span class="n">TWO</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Two&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-</span><span id="Rank-246"><a href="#Rank-246"><span class="linenos">246</span></a>    <span class="n">THREE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Three&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-</span><span id="Rank-247"><a href="#Rank-247"><span class="linenos">247</span></a>    <span class="n">FOUR</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Four&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-</span><span id="Rank-248"><a href="#Rank-248"><span class="linenos">248</span></a>    <span class="n">FIVE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Five&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
-</span><span id="Rank-249"><a href="#Rank-249"><span class="linenos">249</span></a>    <span class="n">SIX</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Six&quot;</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
-</span><span id="Rank-250"><a href="#Rank-250"><span class="linenos">250</span></a>    <span class="n">SEVEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Seven&quot;</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
-</span><span id="Rank-251"><a href="#Rank-251"><span class="linenos">251</span></a>    <span class="n">EIGHT</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Eight&quot;</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
-</span><span id="Rank-252"><a href="#Rank-252"><span class="linenos">252</span></a>    <span class="n">NINE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Nine&quot;</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
-</span><span id="Rank-253"><a href="#Rank-253"><span class="linenos">253</span></a>    <span class="n">TEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Ten&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
-</span><span id="Rank-254"><a href="#Rank-254"><span class="linenos">254</span></a>    <span class="n">JACK</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Jack&quot;</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
-</span><span id="Rank-255"><a href="#Rank-255"><span class="linenos">255</span></a>    <span class="n">QUEEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Queen&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
-</span><span id="Rank-256"><a href="#Rank-256"><span class="linenos">256</span></a>    <span class="n">KING</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;King&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">)</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Rank-229"><a href="#Rank-229"><span class="linenos">229</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Rank</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+</span><span id="Rank-230"><a href="#Rank-230"><span class="linenos">230</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of card ranks in the game.</span>
+</span><span id="Rank-231"><a href="#Rank-231"><span class="linenos">231</span></a>
+</span><span id="Rank-232"><a href="#Rank-232"><span class="linenos">232</span></a><span class="sd">    Each rank has:</span>
+</span><span id="Rank-233"><a href="#Rank-233"><span class="linenos">233</span></a><span class="sd">    - A display name (e.g., &quot;Ace&quot;)</span>
+</span><span id="Rank-234"><a href="#Rank-234"><span class="linenos">234</span></a><span class="sd">    - A numeric value (1-13)</span>
+</span><span id="Rank-235"><a href="#Rank-235"><span class="linenos">235</span></a>
+</span><span id="Rank-236"><a href="#Rank-236"><span class="linenos">236</span></a><span class="sd">    Special ranks and their effects:</span>
+</span><span id="Rank-237"><a href="#Rank-237"><span class="linenos">237</span></a><span class="sd">    - Ace (1): Return target card to owner&#39;s hand</span>
+</span><span id="Rank-238"><a href="#Rank-238"><span class="linenos">238</span></a><span class="sd">    - Two (2): Scuttle point cards of equal or lesser value</span>
+</span><span id="Rank-239"><a href="#Rank-239"><span class="linenos">239</span></a><span class="sd">    - Three (3): Draw two cards</span>
+</span><span id="Rank-240"><a href="#Rank-240"><span class="linenos">240</span></a><span class="sd">    - Four (4): Protection from targeted effects</span>
+</span><span id="Rank-241"><a href="#Rank-241"><span class="linenos">241</span></a><span class="sd">    - Five (5): Draw a card from opponent&#39;s hand</span>
+</span><span id="Rank-242"><a href="#Rank-242"><span class="linenos">242</span></a><span class="sd">    - Six (6): Opponent discards two cards</span>
+</span><span id="Rank-243"><a href="#Rank-243"><span class="linenos">243</span></a><span class="sd">    - Seven (7): Point card</span>
+</span><span id="Rank-244"><a href="#Rank-244"><span class="linenos">244</span></a><span class="sd">    - Eight (8): Counts as a face card</span>
+</span><span id="Rank-245"><a href="#Rank-245"><span class="linenos">245</span></a><span class="sd">    - Nine-Ten (9-10): Point cards</span>
+</span><span id="Rank-246"><a href="#Rank-246"><span class="linenos">246</span></a><span class="sd">    - Jack (11): Steal opponent&#39;s card</span>
+</span><span id="Rank-247"><a href="#Rank-247"><span class="linenos">247</span></a><span class="sd">    - Queen (12): Destroy target face card</span>
+</span><span id="Rank-248"><a href="#Rank-248"><span class="linenos">248</span></a><span class="sd">    - King (13): Reduce points needed to win</span>
+</span><span id="Rank-249"><a href="#Rank-249"><span class="linenos">249</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="Rank-250"><a href="#Rank-250"><span class="linenos">250</span></a>
+</span><span id="Rank-251"><a href="#Rank-251"><span class="linenos">251</span></a>    <span class="n">ACE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Ace&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</span><span id="Rank-252"><a href="#Rank-252"><span class="linenos">252</span></a>    <span class="n">TWO</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Two&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="Rank-253"><a href="#Rank-253"><span class="linenos">253</span></a>    <span class="n">THREE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Three&quot;</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</span><span id="Rank-254"><a href="#Rank-254"><span class="linenos">254</span></a>    <span class="n">FOUR</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Four&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+</span><span id="Rank-255"><a href="#Rank-255"><span class="linenos">255</span></a>    <span class="n">FIVE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Five&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+</span><span id="Rank-256"><a href="#Rank-256"><span class="linenos">256</span></a>    <span class="n">SIX</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Six&quot;</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+</span><span id="Rank-257"><a href="#Rank-257"><span class="linenos">257</span></a>    <span class="n">SEVEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Seven&quot;</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+</span><span id="Rank-258"><a href="#Rank-258"><span class="linenos">258</span></a>    <span class="n">EIGHT</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Eight&quot;</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+</span><span id="Rank-259"><a href="#Rank-259"><span class="linenos">259</span></a>    <span class="n">NINE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Nine&quot;</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+</span><span id="Rank-260"><a href="#Rank-260"><span class="linenos">260</span></a>    <span class="n">TEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Ten&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+</span><span id="Rank-261"><a href="#Rank-261"><span class="linenos">261</span></a>    <span class="n">JACK</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Jack&quot;</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+</span><span id="Rank-262"><a href="#Rank-262"><span class="linenos">262</span></a>    <span class="n">QUEEN</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Queen&quot;</span><span class="p">,</span> <span class="mi">12</span><span class="p">)</span>
+</span><span id="Rank-263"><a href="#Rank-263"><span class="linenos">263</span></a>    <span class="n">KING</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;King&quot;</span><span class="p">,</span> <span class="mi">13</span><span class="p">)</span>
 </span></pre></div>
 
 
@@ -1541,23 +1562,23 @@ Clubs (0) &lt; Diamonds (1) &lt; Hearts (2) &lt; Spades (3)</p>
 
     </div>
     <a class="headerlink" href="#Purpose"></a>
-            <div class="pdoc-code codehilite"><pre><span></span><span id="Purpose-259"><a href="#Purpose-259"><span class="linenos">259</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Purpose</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-</span><span id="Purpose-260"><a href="#Purpose-260"><span class="linenos">260</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of possible card purposes in the game.</span>
-</span><span id="Purpose-261"><a href="#Purpose-261"><span class="linenos">261</span></a>
-</span><span id="Purpose-262"><a href="#Purpose-262"><span class="linenos">262</span></a><span class="sd">    A card&#39;s purpose indicates how it&#39;s currently being used:</span>
-</span><span id="Purpose-263"><a href="#Purpose-263"><span class="linenos">263</span></a><span class="sd">    - POINTS: Card played for its point value</span>
-</span><span id="Purpose-264"><a href="#Purpose-264"><span class="linenos">264</span></a><span class="sd">    - FACE_CARD: Card played for its face card effect</span>
-</span><span id="Purpose-265"><a href="#Purpose-265"><span class="linenos">265</span></a><span class="sd">    - ONE_OFF: Card played for its one-off effect</span>
-</span><span id="Purpose-266"><a href="#Purpose-266"><span class="linenos">266</span></a><span class="sd">    - COUNTER: Card used to counter another card</span>
-</span><span id="Purpose-267"><a href="#Purpose-267"><span class="linenos">267</span></a><span class="sd">    - JACK: Card used as a Jack (stealing another card)</span>
-</span><span id="Purpose-268"><a href="#Purpose-268"><span class="linenos">268</span></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="Purpose-269"><a href="#Purpose-269"><span class="linenos">269</span></a>
-</span><span id="Purpose-270"><a href="#Purpose-270"><span class="linenos">270</span></a>    <span class="n">POINTS</span> <span class="o">=</span> <span class="s2">&quot;Points&quot;</span>
-</span><span id="Purpose-271"><a href="#Purpose-271"><span class="linenos">271</span></a>    <span class="n">FACE_CARD</span> <span class="o">=</span> <span class="s2">&quot;Face Card&quot;</span>
-</span><span id="Purpose-272"><a href="#Purpose-272"><span class="linenos">272</span></a>    <span class="n">ONE_OFF</span> <span class="o">=</span> <span class="s2">&quot;One Off&quot;</span>
-</span><span id="Purpose-273"><a href="#Purpose-273"><span class="linenos">273</span></a>    <span class="n">COUNTER</span> <span class="o">=</span> <span class="s2">&quot;Counter&quot;</span>
-</span><span id="Purpose-274"><a href="#Purpose-274"><span class="linenos">274</span></a>    <span class="n">JACK</span> <span class="o">=</span> <span class="s2">&quot;Jack&quot;</span>
-</span><span id="Purpose-275"><a href="#Purpose-275"><span class="linenos">275</span></a>    <span class="n">SCUTTLE</span> <span class="o">=</span> <span class="s2">&quot;Scuttle&quot;</span>
+            <div class="pdoc-code codehilite"><pre><span></span><span id="Purpose-266"><a href="#Purpose-266"><span class="linenos">266</span></a><span class="k">class</span><span class="w"> </span><span class="nc">Purpose</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+</span><span id="Purpose-267"><a href="#Purpose-267"><span class="linenos">267</span></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of possible card purposes in the game.</span>
+</span><span id="Purpose-268"><a href="#Purpose-268"><span class="linenos">268</span></a>
+</span><span id="Purpose-269"><a href="#Purpose-269"><span class="linenos">269</span></a><span class="sd">    A card&#39;s purpose indicates how it&#39;s currently being used:</span>
+</span><span id="Purpose-270"><a href="#Purpose-270"><span class="linenos">270</span></a><span class="sd">    - POINTS: Card played for its point value</span>
+</span><span id="Purpose-271"><a href="#Purpose-271"><span class="linenos">271</span></a><span class="sd">    - FACE_CARD: Card played for its face card effect</span>
+</span><span id="Purpose-272"><a href="#Purpose-272"><span class="linenos">272</span></a><span class="sd">    - ONE_OFF: Card played for its one-off effect</span>
+</span><span id="Purpose-273"><a href="#Purpose-273"><span class="linenos">273</span></a><span class="sd">    - COUNTER: Card used to counter another card</span>
+</span><span id="Purpose-274"><a href="#Purpose-274"><span class="linenos">274</span></a><span class="sd">    - JACK: Card used as a Jack (stealing another card)</span>
+</span><span id="Purpose-275"><a href="#Purpose-275"><span class="linenos">275</span></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="Purpose-276"><a href="#Purpose-276"><span class="linenos">276</span></a>
+</span><span id="Purpose-277"><a href="#Purpose-277"><span class="linenos">277</span></a>    <span class="n">POINTS</span> <span class="o">=</span> <span class="s2">&quot;Points&quot;</span>
+</span><span id="Purpose-278"><a href="#Purpose-278"><span class="linenos">278</span></a>    <span class="n">FACE_CARD</span> <span class="o">=</span> <span class="s2">&quot;Face Card&quot;</span>
+</span><span id="Purpose-279"><a href="#Purpose-279"><span class="linenos">279</span></a>    <span class="n">ONE_OFF</span> <span class="o">=</span> <span class="s2">&quot;One Off&quot;</span>
+</span><span id="Purpose-280"><a href="#Purpose-280"><span class="linenos">280</span></a>    <span class="n">COUNTER</span> <span class="o">=</span> <span class="s2">&quot;Counter&quot;</span>
+</span><span id="Purpose-281"><a href="#Purpose-281"><span class="linenos">281</span></a>    <span class="n">JACK</span> <span class="o">=</span> <span class="s2">&quot;Jack&quot;</span>
+</span><span id="Purpose-282"><a href="#Purpose-282"><span class="linenos">282</span></a>    <span class="n">SCUTTLE</span> <span class="o">=</span> <span class="s2">&quot;Scuttle&quot;</span>
 </span></pre></div>
 
 
