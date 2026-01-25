@@ -2,6 +2,7 @@
 
 
 # Set Up
+## Local dev (no Docker)
 ## Create a virtual environment
 
 ```bash
@@ -9,6 +10,11 @@ python3 -m venv cuttle-bot-3.12
 source ./cuttle-bot-3.12/bin/activate
 ```
 
+Or use the Makefile helper (requires `python3.12` on PATH):
+
+```bash
+make setup
+```
 
 ## Install requirements
 
@@ -16,7 +22,41 @@ source ./cuttle-bot-3.12/bin/activate
 pip install -r requirements.txt
 ```
 
+## Run the dev servers
+
+Backend API (FastAPI + reload):
+
+```bash
+uvicorn server.app:app --reload --host 0.0.0.0 --port 8000
+```
+
+Frontend (Vite):
+
+```bash
+cd web && npm run dev
+```
+
+Open http://localhost:5173
+
+## Docker dev (hot reload)
+
+```bash
+make dev
+```
+
+Open http://localhost:5173 (API at http://localhost:8000).
+
 ## Set up AI player
+
+The game currently supports two types of AI players: RL based AI, and LLM based AI.
+
+### RL based AI
+
+The repo comes with a model zip file which is loaded into the game server. 
+
+The model can be trained locally (see later sections). 
+
+### LLM Based AI
 
 The AI player uses ollama to generate actions. You'll need to install ollama and set up a model.
 
@@ -101,3 +141,4 @@ Adjust training parameters in `rl/config.py`:
 - Models saved to: `rl/models/`
 - Training logs: `rl/logs/` (view with TensorBoard)
 - Checkpoints every 10K timesteps
+- Checkpoints are gitignored, but the final model named `cuttle_rl_final.zip` is tracked with version control (git)

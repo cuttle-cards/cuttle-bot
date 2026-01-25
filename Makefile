@@ -14,6 +14,14 @@ run:
 
 run-with-rl:
 	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python main_with_rl_ai.py
+
+# Dockerized dev environment (backend + Vite)
+dev:
+	docker compose -f docker-compose.dev.yaml up --build -d
+
+dev-down:
+	docker compose -f docker-compose.dev.yaml down
+
 # Generate documentation using pdoc
 docs:
 	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python docs.py
