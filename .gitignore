@@ -186,6 +186,7 @@ eng_plans/
 
 # RL training artifacts
 rl/models/*.zip
+!rl/models/cuttle_rl_final.zip
 rl/logs/
 
 .DS_Store

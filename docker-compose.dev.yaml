@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  backend:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./server:/app/server
+      - ./game:/app/game
+      - ./rl:/app/rl
+      - ./requirements.txt:/app/requirements.txt:ro
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && uvicorn server.app:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+
+  frontend:
+    image: node:20-slim
+    working_dir: /app
+    volumes:
+      - ./web:/app
+      - web-node-modules:/app/node_modules
+    command: sh -c "if [ ! -x node_modules/.bin/vite ]; then npm ci; fi; npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_PROXY_TARGET: "http://backend:8000"
+    depends_on:
+      - backend
+
+volumes:
+  web-node-modules:
