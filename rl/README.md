@@ -61,29 +61,124 @@ make view-rl
 
 ### Files
 
-| File | Purpose |
-|------|---------|
-| `config.py` | Hyperparameters and reward settings |
-| `cuttle_env.py` | Gymnasium environment with action masking |
-| `self_play_env.py` | Self-play wrapper for training |
-| `train.py` | Main training script |
-| `evaluate.py` | Model evaluation |
-| `hyperparameter_search.py` | Automated config testing |
-| `compare_experiments.py` | Result analysis |
-| `debug_gameplay.py` | Generate debug logs |
-| `analyze_logs.py` | Pattern analysis |
-| `view_game.py` | Interactive game viewer |
-| `game_logger.py` | Logging implementation |
+| File                       | Purpose                                   |
+| -------------------------- | ----------------------------------------- |
+| `config.py`                | Hyperparameters and reward settings       |
+| `cuttle_env.py`            | Gymnasium environment with action masking |
+| `self_play_env.py`         | Self-play wrapper for training            |
+| `train.py`                 | Main training script                      |
+| `evaluate.py`              | Model evaluation                          |
+| `hyperparameter_search.py` | Automated config testing                  |
+| `compare_experiments.py`   | Result analysis                           |
+| `debug_gameplay.py`        | Generate debug logs                       |
+| `analyze_logs.py`          | Pattern analysis                          |
+| `view_game.py`             | Interactive game viewer                   |
+| `game_logger.py`           | Logging implementation                    |
 
 ### Environment
 
-- **Observation space**: 206-dimensional vector encoding game state
-- **Action space**: Discrete(50) - indices into legal actions list
+- **Observation space**: 610-dimensional vector encoding game state (hand, fields, scores, flags, discard, revealed)
+- **Action space**: Discrete(8478) with fixed card-identity mapping (not per-turn legal-action indices)
 - **Action masking**: Only legal actions are considered by the policy
 
 ---
 
-## Key Findings
+## Action Space Mapping (Fixed Indices)
+
+Action indices are stable across turns and map to a specific semantic action based on **card identity** (rank + suit), not on a per-turn legal-action list. The mapping lives in `rl/action_mapping.py`.
+
+### Card Identity Index
+
+Each card maps to `0..51` using a canonical order:
+
+```
+card_index = (rank_value - 1) * 4 + suit_value
+```
+
+- `rank_value` comes from `game/card.py` `Rank` enum (Ace=1 .. King=13).
+- `suit_value` comes from `Suit` enum (Clubs=0 .. Spades=3).
+
+### Action Groups and Offsets
+
+Action indices are grouped; each group has a fixed size and offset:
+
+1. Draw: `1`
+2. Resolve one-off: `1`
+3. Play points (card identity): `52`
+4. Play face card (card identity): `52`
+5. Play one-off (untargeted, card identity): `52`
+6. Play one-off (targeted: attacker, target): `52 * 52`
+7. Counter (two) (card identity): `52`
+8. Take from discard (card identity): `52`
+9. Discard from hand (four) (card identity): `52`
+10. Discard revealed (seven) (card identity): `52`
+11. Scuttle (attacker, target): `52 * 52`
+12. Jack (attacker, target): `52 * 52`
+
+Total size: `8478`.
+
+For paired actions (scuttle/jack/targeted one-off), the pair index is:
+
+```
+pair_index = attacker_index * 52 + target_index
+```
+
+### Mapping to Concrete Actions
+
+The environment builds a mapping each step using `game_state.get_legal_actions()`:
+
+1. `build_action_map(legal_actions)` converts each `Action` into a fixed index.
+2. `action_masks()` marks only those indices as legal.
+3. `step(action_index)` resolves the index back to the matching `Action`.
+
+### Illegal Action Handling
+
+If a predicted index does **not** map to a legal action:
+
+- The environment returns `invalid_action_penalty` and ends the episode early.
+- This should not occur when action masking is properly applied.
+
+### Index Calculation Examples
+
+Assume `Rank` and `Suit` enum values from `game/card.py` (Clubs=0, Diamonds=1, Hearts=2, Spades=3) and:
+
+```
+card_index = (rank_value - 1) * 4 + suit_value
+```
+
+Also assume the group offsets from `rl/action_mapping.py`:
+
+```
+draw=0
+resolve=1
+points=2
+face=54
+one_off=106
+one_off_target=158
+counter=2862
+take_from_discard=2914
+discard_from_hand=2966
+discard_revealed=3018
+scuttle=3070
+jack=5774
+```
+
+Examples:
+
+- **Play points**: `10 of Hearts` (rank=10, suit=Hearts=2)  
+  `card_index = (10-1)*4 + 2 = 38`  
+  `action_index = points_offset + card_index = 2 + 38 = 40`
+
+- **Seven one-off** (untargeted): `7 of Clubs` (rank=7, suit=Clubs=0)  
+  `card_index = (7-1)*4 + 0 = 24`  
+  `action_index = one_off_offset + card_index = 106 + 24 = 130`
+
+- **Seven from revealed pile** (discard revealed): `7 of Clubs`  
+  `action_index = discard_revealed_offset + card_index = 3018 + 24 = 3042`
+
+---
+
+## Key Findings (might be outdated)
 
 ### Best Configuration: Baseline (Minimal Reward Shaping)
 
@@ -105,13 +200,13 @@ REWARD_CONFIG = {
 
 ### Hyperparameter Search Results
 
-| Config | Eval Reward | Notes |
-|--------|-------------|-------|
-| **baseline** | -4.31 | ✅ Best - won games, longer episodes |
-| aggressive_scoring | -9.07 | ❌ Crashed early |
-| high_progress | -9.59 | ❌ Overfitted to progress |
-| fast_learning | -9.86 | ❌ Unstable |
-| conservative | -9.97 | ❌ Too slow |
+| Config             | Eval Reward | Notes                               |
+| ------------------ | ----------- | ----------------------------------- |
+| **baseline**       | -4.31       | ✅ Best - won games, longer episodes |
+| aggressive_scoring | -9.07       | ❌ Crashed early                     |
+| high_progress      | -9.59       | ❌ Overfitted to progress            |
+| fast_learning      | -9.86       | ❌ Unstable                          |
+| conservative       | -9.97       | ❌ Too slow                          |
 
 ---
 
@@ -189,11 +284,11 @@ REWARD_CONFIG = {
 
 ### Parameter Guidelines
 
-| Parameter | Too Low | Recommended | Too High |
-|-----------|---------|-------------|----------|
-| `learning_rate` | Slow learning | 1e-4 to 3e-4 | Unstable |
-| `progress_multiplier` | No guidance | 0.1 to 1.0 | Overfitting |
-| `turn_penalty` | Long games | -0.01 to -0.1 | Rushed play |
+| Parameter             | Too Low       | Recommended   | Too High    |
+| --------------------- | ------------- | ------------- | ----------- |
+| `learning_rate`       | Slow learning | 1e-4 to 3e-4  | Unstable    |
+| `progress_multiplier` | No guidance   | 0.1 to 1.0    | Overfitting |
+| `turn_penalty`        | Long games    | -0.01 to -0.1 | Rushed play |
 
 ---
 
@@ -266,12 +361,12 @@ make view-rl
 
 ### Output Locations
 
-| Output | Location |
-|--------|----------|
-| Trained models | `rl/models/` |
-| Training logs | `rl/logs/` |
-| Experiments | `rl/experiments/` |
-| Gameplay logs | `rl/gameplay_logs/` |
+| Output         | Location            |
+| -------------- | ------------------- |
+| Trained models | `rl/models/`        |
+| Training logs  | `rl/logs/`          |
+| Experiments    | `rl/experiments/`   |
+| Gameplay logs  | `rl/gameplay_logs/` |
 
 ---
 
