@@ -6,7 +6,9 @@ import numpy as np
 
 from game.card import Purpose
 from game.game import Game
+from rl.action_mapping import build_action_map, card_index, legal_action_mask
 from rl.config import ENV_CONFIG, REWARD_CONFIG
+from rl.game_logger import GameplayLogger
 
 
 class CuttleRLEnvironment(gym.Env):
@@ -14,7 +16,7 @@ class CuttleRLEnvironment(gym.Env):
     
     metadata = {"render_modes": ["human"]}
     
-    def __init__(self):
+    def __init__(self, enable_logging: bool = False):
         super().__init__()
         
         # Define action and observation spaces
@@ -30,7 +32,13 @@ class CuttleRLEnvironment(gym.Env):
         self.game: Optional[Game] = None
         self.current_player = 0
         self.step_count = 0
-        self.max_steps = 200  # Add timeout to prevent infinite loops
+        self.max_steps = 300  # Increased to allow games to conclude naturally
+        self.no_progress_steps = 0
+        self.no_progress_limit = 60  # End early if no scoring progress
+        
+        # Logging
+        self.logger = GameplayLogger() if enable_logging else None
+        self.enable_logging = enable_logging
 
     def reset(
         self, 
@@ -44,6 +52,16 @@ class CuttleRLEnvironment(gym.Env):
         self.game = Game(manual_selection=False, ai_player=None)
         self.current_player = 0
         self.step_count = 0
+        self.no_progress_steps = 0
+        
+        # Reset score tracking for difference-based rewards
+        self._prev_score = 0
+        self._prev_opponent_score = 0
+        self._prev_total_score = 0
+        
+        # Start logging if enabled
+        if self.logger:
+            self.logger.start_game(self.game)
         
         # Get initial observation
         observation = self._encode_state()
@@ -62,14 +80,7 @@ class CuttleRLEnvironment(gym.Env):
         """
         assert self.game is not None, "Must call reset() first"
         
-        # Get current legal actions
-        legal_actions = self.game.game_state.get_legal_actions()
-        
-        # Create mask: True for legal actions, False for illegal
-        mask = np.zeros(self.action_space.n, dtype=np.bool_)
-        mask[:len(legal_actions)] = True
-        
-        return mask
+        return legal_action_mask(self.game.game_state)
 
     def step(
         self, action: int
@@ -81,9 +92,11 @@ class CuttleRLEnvironment(gym.Env):
         self.step_count += 1
         if self.step_count > self.max_steps:
             print(f"⚠️  TIMEOUT: Game exceeded {self.max_steps} steps, forcing termination")
+            if self.logger:
+                self.logger.end_game(self.game, None, "timeout", self.step_count)
             return (
                 self._encode_state(),
-                -10.0,  # Penalty for timeout
+                -50.0,  # Strong penalty for timeout (same as stalemate)
                 True,   # done
                 True,   # truncated
                 {"error": "timeout", "steps": self.step_count}
@@ -91,11 +104,15 @@ class CuttleRLEnvironment(gym.Env):
         
         # Get current legal actions
         legal_actions = self.game.game_state.get_legal_actions()
-        
+
+        # Decode fixed action index into a concrete legal action
+        action_map = build_action_map(legal_actions)
+        chosen_action = action_map.get(action)
+
         # With action masking, invalid actions should never happen
         # but keep as safety check
-        if action >= len(legal_actions):
-            print(f"WARNING: Invalid action {action} attempted (max: {len(legal_actions)-1})")
+        if chosen_action is None:
+            print(f"WARNING: Invalid action {action} attempted (no matching legal action)")
             print("This should not happen with proper action masking!")
             return (
                 self._encode_state(),
@@ -105,13 +122,33 @@ class CuttleRLEnvironment(gym.Env):
                 {"error": "invalid_action"}
             )
         
-        # Execute the chosen action
-        chosen_action = legal_actions[action]
+        # Log the action before execution
+        if self.logger:
+            self.logger.log_step(
+                self.step_count,
+                self.current_player,
+                chosen_action,
+                self.game,
+                0.0,  # Reward will be updated after
+                len(legal_actions)
+            )
+        
         turn_finished, game_ended, winner = \
             self.game.game_state.update_state(chosen_action)
         
         # Calculate reward
         reward = self._calculate_reward(game_ended, winner)
+
+        # Track total score progress to detect stalls
+        total_score = (
+            self.game.game_state.get_player_score(0)
+            + self.game.game_state.get_player_score(1)
+        )
+        if total_score > getattr(self, "_prev_total_score", 0):
+            self.no_progress_steps = 0
+        else:
+            self.no_progress_steps += 1
+        self._prev_total_score = total_score
         
         # Update game state if turn finished
         if turn_finished:
@@ -120,6 +157,27 @@ class CuttleRLEnvironment(gym.Env):
         
         # Check if episode is done
         done = game_ended or self.game.game_state.is_stalemate()
+
+        # Early termination if the game is stuck with no progress
+        if not done and self.no_progress_steps >= self.no_progress_limit:
+            print(
+                f"⚠️  STALL: No scoring progress for "
+                f"{self.no_progress_limit} steps, ending episode"
+            )
+            if self.logger:
+                self.logger.end_game(self.game, None, "stall", self.step_count)
+            return (
+                self._encode_state(),
+                REWARD_CONFIG["stalemate"],
+                True,   # done
+                True,   # truncated
+                {"error": "stall", "steps": self.step_count}
+            )
+        
+        # Log game end if done
+        if done and self.logger:
+            reason = "win" if winner is not None else "stalemate"
+            self.logger.end_game(self.game, winner, reason, self.step_count)
         
         # Get new observation
         observation = self._encode_state()
@@ -148,25 +206,25 @@ class CuttleRLEnvironment(gym.Env):
         obs[idx] = len(self.game.game_state.hands[opponent]) / 8.0
         idx += 1
         
-        # 3. Player 0 field cards (30 dims: 10 cards × 3 dims each)
+        # 3. Player 0 field cards (180 dims: 10 cards × 18 dims each)
         for i in range(ENV_CONFIG["max_field_size"]):
             field = self.game.game_state.get_player_field(0)
             if i < len(field):
                 card = field[i]
-                obs[idx] = 1.0
-                obs[idx + 1] = card.rank.value[1] / 13.0
-                obs[idx + 2] = 1.0 if card.purpose == Purpose.POINTS else 0.0
-            idx += 3
+                obs[idx + card.suit.value[1]] = 1.0
+                obs[idx + 4 + card.rank.value[1] - 1] = 1.0
+                obs[idx + 17] = 1.0 if card.purpose == Purpose.POINTS else 0.0
+            idx += 18
         
-        # 4. Player 1 field cards (30 dims: same encoding)
+        # 4. Player 1 field cards (180 dims: same encoding)
         for i in range(ENV_CONFIG["max_field_size"]):
             field = self.game.game_state.get_player_field(1)
             if i < len(field):
                 card = field[i]
-                obs[idx] = 1.0
-                obs[idx + 1] = card.rank.value[1] / 13.0
-                obs[idx + 2] = 1.0 if card.purpose == Purpose.POINTS else 0.0
-            idx += 3
+                obs[idx + card.suit.value[1]] = 1.0
+                obs[idx + 4 + card.rank.value[1] - 1] = 1.0
+                obs[idx + 17] = 1.0 if card.purpose == Purpose.POINTS else 0.0
+            idx += 18
         
         # 5. Scores and targets (4 dims)
         obs[idx] = self.game.game_state.get_player_score(0) / 21.0
@@ -181,11 +239,25 @@ class CuttleRLEnvironment(gym.Env):
         obs[idx + 2] = 1.0 if self.game.game_state.resolving_three else 0.0
         obs[idx + 3] = len(self.game.game_state.deck) / 52.0
         obs[idx + 4] = len(self.game.game_state.discard_pile) / 52.0
+        idx += 5
+
+        # 7. Discard pile identity (52 dims)
+        for card in self.game.game_state.discard_pile:
+            obs[idx + card_index(card)] = 1.0
+        idx += 52
+
+        # 8. Revealed cards for seven (52 dims)
+        for card in self.game.game_state.pending_seven_cards:
+            obs[idx + card_index(card)] = 1.0
+        idx += 52
         
         return obs
 
     def _calculate_reward(self, game_ended: bool, winner: Optional[int]) -> float:
-        """Calculate reward for the current state."""
+        """Calculate reward for the current state.
+        
+        Simple reward structure focused on scoring points and winning.
+        """
         if game_ended:
             if winner == self.current_player:
                 return REWARD_CONFIG["win"]
@@ -194,16 +266,19 @@ class CuttleRLEnvironment(gym.Env):
             else:
                 return REWARD_CONFIG["stalemate"]
         
-        # Intermediate reward: progress toward target
+        # Only reward our own score gains (simpler, less noisy)
         current_score = self.game.game_state.get_player_score(self.current_player)
-        target = self.game.game_state.get_player_target(self.current_player)
+        prev_score = getattr(self, '_prev_score', 0)
         
-        if target > 0:
-            progress = current_score / target
-            return (progress * REWARD_CONFIG["progress_multiplier"] + 
-                    REWARD_CONFIG["turn_penalty"])
-        else:
-            return REWARD_CONFIG["turn_penalty"]
+        score_gain = current_score - prev_score
+        self._prev_score = current_score
+        
+        # Small reward for scoring points
+        if score_gain > 0:
+            return score_gain * REWARD_CONFIG["progress_multiplier"]
+        
+        # Minimal turn penalty otherwise
+        return REWARD_CONFIG["turn_penalty"]
     
     def _get_info(self) -> Dict[str, Any]:
         """Get additional information about game state."""

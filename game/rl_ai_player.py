@@ -107,17 +107,10 @@ class RLAIPlayer:
         return self.env.env.unwrapped._encode_state()
     
     def _get_action_mask(self, legal_actions: List[Action]) -> np.ndarray:
-        """Get action mask for the current legal actions.
-        
-        Args:
-            legal_actions (List[Action]): List of legal actions.
-            
-        Returns:
-            np.ndarray: Boolean mask for valid actions.
-        """
-        mask = np.zeros(50, dtype=bool)  # Max 50 actions
-        mask[:len(legal_actions)] = True
-        return mask
+        """Get action mask for the current legal actions."""
+        from rl.action_mapping import legal_action_mask_from_actions
+
+        return legal_action_mask_from_actions(legal_actions)
     
     async def get_action(
         self, 
@@ -167,12 +160,14 @@ class RLAIPlayer:
                     deterministic=True
                 )
                 
-                # Ensure action index is valid
-                if action_index >= len(legal_actions):
-                    action_index = 0  # Fallback to first legal action
-                
-                # Return the chosen action
-                return legal_actions[action_index]
+                action_index = int(action_index)
+
+                from rl.action_mapping import build_action_map
+
+                action_map = build_action_map(legal_actions)
+                if action_index not in action_map:
+                    return legal_actions[0]
+                return action_map[action_index]
                 
             except Exception as e:
                 last_error = e

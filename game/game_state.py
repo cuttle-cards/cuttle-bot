@@ -826,6 +826,10 @@ class GameState:
                 if card not in self.discard_pile:
                     self._move_card_to_discard(card)
 
+            # One-off resolution is complete (counter accepted or effect applied).
+            self.resolving_one_off = False
+            self.one_off_card_to_counter = None
+
             # Turn is finished after resolution
             return True, None
 
