@@ -184,6 +184,10 @@ test_outputs/
 
 eng_plans/
 
+# RL experiments
+rl/experiments/
+rl/gameplay_logs/
+
 # RL training artifacts
 rl/models/*.zip
 !rl/models/cuttle_rl_final.zip

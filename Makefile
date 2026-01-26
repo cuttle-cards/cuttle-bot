@@ -66,3 +66,38 @@ test-rl:
 	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python -c \
 		"from rl import config; config.TRAINING_CONFIG['total_timesteps'] = 10000; \
 		exec(open('rl/train.py').read())"
+
+debug-rl:
+	@echo "Running RL games with detailed logging..."
+	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python rl/debug_gameplay.py
+
+analyze-rl:
+	@echo "Analyzing RL gameplay logs..."
+	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python rl/analyze_logs.py
+
+view-rl:
+	@echo "Viewing RL gameplay logs..."
+	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python rl/view_game.py
+
+hypersearch-rl:
+	@echo "Running hyperparameter search (full)..."
+	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python rl/hyperparameter_search.py
+
+hypersearch-quick-rl:
+	@echo "Running quick hyperparameter search..."
+	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python rl/hyperparameter_search.py --quick
+
+compare-rl:
+	@echo "Compare experiment results..."
+	@echo "Usage: make compare-rl DIR=rl/experiments/20260125_120000"
+	@if [ -z "$(DIR)" ]; then \
+		echo "Error: DIR not specified"; \
+		exit 1; \
+	fi
+	source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python rl/compare_experiments.py $(DIR)
+
+monitor-rl:
+	@source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python rl/monitor.py
+
+watch-rl:
+	@source $(VENV_NAME)/bin/activate && PYTHONPATH=$(CURRENT_DIR) python rl/monitor.py --watch
