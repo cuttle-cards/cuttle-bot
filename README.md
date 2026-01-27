@@ -22,6 +22,9 @@ make setup
 pip install -r requirements.txt
 ```
 
+For deployment builds, the Dockerfile installs `requirements.prod.txt`, which
+includes runtime dependencies (FastAPI + RL model) but omits local dev/test tools.
+
 ## Run the dev servers
 
 Backend API (FastAPI + reload):

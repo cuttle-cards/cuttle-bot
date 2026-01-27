@@ -11,6 +11,7 @@ from uuid import uuid4
 from game.game import Game
 from game.game_state import GameState
 
+
 class AIPlayerProtocol(Protocol):
     async def get_action(self, game_state: GameState, legal_actions: list) -> object: ...
     def get_action_sync(self, game_state: GameState, legal_actions: list) -> object: ...
