@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import os
+from datetime import timedelta
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable, Dict, Optional, Protocol
@@ -29,6 +31,17 @@ try:
 except ImportError:  # pragma: no cover - defensive for limited environments
     RLPlayer = None  # type: ignore[assignment]
 
+_rl_player_singleton: Optional[AIPlayerProtocol] = None
+
+
+def _get_rl_player() -> AIPlayerProtocol:
+    global _rl_player_singleton
+    if RLPlayer is None:
+        raise ValueError("RL AI is not available")
+    if _rl_player_singleton is None:
+        _rl_player_singleton = RLPlayer()
+    return _rl_player_singleton
+
 
 @dataclass
 class GameSession:
@@ -49,6 +62,34 @@ class SessionStore:
     def __init__(self) -> None:
         self._sessions: Dict[str, GameSession] = {}
         self._lock: Optional[asyncio.Lock] = None
+        self._session_ttl = self._load_session_ttl()
+
+    def _load_session_ttl(self) -> Optional[timedelta]:
+        env = os.getenv("APP_ENV", "").lower()
+        if env not in {"production", "prod"}:
+            return None
+        ttl_value = os.getenv("SESSION_TTL_SECONDS")
+        if not ttl_value:
+            return None
+        try:
+            seconds = int(ttl_value)
+        except ValueError:
+            return None
+        if seconds <= 0:
+            return None
+        return timedelta(seconds=seconds)
+
+    async def _cleanup_expired_sessions(self) -> None:
+        if self._session_ttl is None:
+            return
+        cutoff = datetime.utcnow() - self._session_ttl
+        expired_ids = [
+            session_id
+            for session_id, session in self._sessions.items()
+            if session.updated_at < cutoff
+        ]
+        for session_id in expired_ids:
+            self._sessions.pop(session_id, None)
 
     async def _get_lock(self) -> asyncio.Lock:
         if self._lock is None:
@@ -66,6 +107,7 @@ class SessionStore:
         """Create and store a new session."""
         lock = await self._get_lock()
         async with lock:
+            await self._cleanup_expired_sessions()
             session_id = uuid4().hex
             ai_player = None
             if use_ai:
@@ -76,9 +118,7 @@ class SessionStore:
                         raise ValueError("LLM AI is not available")
                     ai_player = LLMPlayer()
                 elif ai_type == "rl":
-                    if RLPlayer is None:
-                        raise ValueError("RL AI is not available")
-                    ai_player = RLPlayer()
+                    ai_player = _get_rl_player()
                 else:
                     raise ValueError(f"Unknown ai_type: {ai_type}")
             game = Game(
@@ -103,16 +143,22 @@ class SessionStore:
         """Fetch a session by id."""
         lock = await self._get_lock()
         async with lock:
-            return self._sessions.get(session_id)
+            await self._cleanup_expired_sessions()
+            session = self._sessions.get(session_id)
+            if session is not None:
+                session.updated_at = datetime.utcnow()
+            return session
 
     async def delete_session(self, session_id: str) -> bool:
         """Delete a session by id."""
         lock = await self._get_lock()
         async with lock:
+            await self._cleanup_expired_sessions()
             return self._sessions.pop(session_id, None) is not None
 
     async def session_count(self) -> int:
         """Return number of active sessions."""
         lock = await self._get_lock()
         async with lock:
+            await self._cleanup_expired_sessions()
             return len(self._sessions)
