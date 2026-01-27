@@ -13,8 +13,9 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.prod.txt .
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.10.0
+RUN pip install --no-cache-dir -r requirements.prod.txt
 
 COPY game ./game
 COPY rl ./rl
