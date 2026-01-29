@@ -37,15 +37,16 @@ def _update_game_state(game: Game, turn_finished: bool) -> None:
 
 def _is_ai_turn(game: Game) -> bool:
     state = game.game_state
-    return (
-        state.use_ai
-        and (
-            (state.resolving_one_off and state.current_action_player == 1)
-            or (state.resolving_four and state.current_action_player == 1)
-            or (state.resolving_seven and state.current_action_player == 1)
-            or (not state.resolving_one_off and state.turn == 1)
-        )
-    )
+    if not state.use_ai:
+        return False
+    if (
+        state.resolving_one_off
+        or state.resolving_three
+        or state.resolving_four
+        or state.resolving_seven
+    ):
+        return state.current_action_player == 1
+    return state.turn == 1
 
 
 async def _apply_action(session: GameSession, action: Action) -> None:

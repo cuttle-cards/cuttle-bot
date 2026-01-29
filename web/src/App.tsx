@@ -41,6 +41,8 @@ function App() {
     () => legalActions.filter((action) => action.type === 'Discard From Hand'),
     [legalActions],
   )
+  const hasHumanActions = (actions: ActionView[]) =>
+    actions.some((action) => action.played_by === 0)
   const sevenActions = useMemo(
     () =>
       legalActions.filter((action) =>
@@ -62,11 +64,11 @@ function App() {
     !state?.resolving_four &&
     !state?.resolving_seven
   const discardModalActive =
-    Boolean(state?.resolving_three) && state?.current_action_player === 0
+    Boolean(state?.resolving_three) && hasHumanActions(discardActions)
   const fourDiscardModalActive =
-    Boolean(state?.resolving_four) && state?.current_action_player === 0
+    Boolean(state?.resolving_four) && hasHumanActions(fourDiscardActions)
   const sevenModalActive =
-    Boolean(state?.resolving_seven) && state?.current_action_player === 0
+    Boolean(state?.resolving_seven) && state?.pending_seven_player === 0
   const sevenCards = state?.pending_seven_cards ?? []
   const sevenActionsByCard = useMemo(() => {
     const grouped = new Map<string, ActionView[]>()
