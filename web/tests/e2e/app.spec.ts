@@ -335,6 +335,207 @@ test('visual snapshot', async ({ page }) => {
   })
 })
 
+test('mobile layout fits in one viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+
+  await page.route('**/api/sessions', async (route) => {
+    const payload = {
+      session_id: 'mobile-session',
+      state: {
+        hands: [
+          [
+            {
+              id: 'card-1',
+              suit: 'SPADES',
+              rank: 'ACE',
+              display: 'Ace of Spades',
+              played_by: null,
+              purpose: null,
+              point_value: 1,
+              is_stolen: false,
+              attachments: [],
+            },
+          ],
+          [],
+        ],
+        hand_counts: [1, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 19,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 0,
+        current_action_player: 0,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        overall_turn: 0,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [
+        {
+          id: 0,
+          label: 'Play Ace of Spades as points',
+          type: 'Points',
+          played_by: 0,
+          source: 'Hand',
+          requires_additional_input: false,
+          card: {
+            id: 'card-1',
+            suit: 'SPADES',
+            rank: 'ACE',
+            display: 'Ace of Spades',
+            played_by: null,
+            purpose: null,
+            point_value: 1,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+        {
+          id: 1,
+          label: 'Draw a card from deck',
+          type: 'Draw',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: null,
+          target: null,
+        },
+      ],
+      state_version: 0,
+      ai_thinking: false,
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.route('**/api/sessions/mobile-session/history', async (route) => {
+    const entries = Array.from({ length: 6 }, (_, index) => ({
+      timestamp: `2025-01-01T00:00:${index.toString().padStart(2, '0')}Z`,
+      turn_number: 1,
+      player: index % 2,
+      action_type: 'Draw',
+      description: `History entry ${index + 1}`,
+    }))
+
+    await route.fulfill({ json: { entries, turn_counter: 1 } })
+  })
+
+  await page.route('**/api/sessions/mobile-session', async (route) => {
+    const payload = {
+      session_id: 'mobile-session',
+      state: {
+        hands: [
+          [
+            {
+              id: 'card-1',
+              suit: 'SPADES',
+              rank: 'ACE',
+              display: 'Ace of Spades',
+              played_by: null,
+              purpose: null,
+              point_value: 1,
+              is_stolen: false,
+              attachments: [],
+            },
+          ],
+          [],
+        ],
+        hand_counts: [1, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 19,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 0,
+        current_action_player: 0,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        overall_turn: 0,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [
+        {
+          id: 0,
+          label: 'Play Ace of Spades as points',
+          type: 'Points',
+          played_by: 0,
+          source: 'Hand',
+          requires_additional_input: false,
+          card: {
+            id: 'card-1',
+            suit: 'SPADES',
+            rank: 'ACE',
+            display: 'Ace of Spades',
+            played_by: null,
+            purpose: null,
+            point_value: 1,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+        {
+          id: 1,
+          label: 'Draw a card from deck',
+          type: 'Draw',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: null,
+          target: null,
+        },
+      ],
+      state_version: 0,
+      ai_thinking: false,
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.goto('/')
+  await expect(page.getByText('Cuttle')).toBeVisible()
+
+  const viewportHeight = await page.evaluate(() => window.innerHeight)
+
+  const sections = [
+    page.locator('.top-bar'),
+    page.locator('.rail.left'),
+    page.locator('.table-surface'),
+    page.locator('.rail.right'),
+    page.locator('.hand-area'),
+  ]
+
+  for (const section of sections) {
+    const box = await section.boundingBox()
+    expect(box).not.toBeNull()
+    if (!box) continue
+    expect(box.y).toBeGreaterThanOrEqual(0)
+    expect(box.y + box.height).toBeLessThanOrEqual(viewportHeight + 2)
+  }
+
+  const fitsViewport = await page.evaluate(
+    () => document.documentElement.scrollHeight <= window.innerHeight + 2,
+  )
+  expect(fitsViewport).toBeTruthy()
+
+  expect(await page.screenshot()).toMatchSnapshot('table-layout-mobile.png', {
+    maxDiffPixelRatio: 0.02,
+  })
+})
+
 test('one-off modal flow', async ({ page }) => {
   await page.route('**/api/sessions', async (route) => {
     const payload = {

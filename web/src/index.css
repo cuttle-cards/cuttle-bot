@@ -15,16 +15,26 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--font-body);
   background: radial-gradient(circle at top, #2a1a0f, #130b07);
   color: var(--ink-100);
   min-height: 100vh;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
 }
 
 #root {
-  min-height: 100vh;
+  min-height: 0;
+  height: 100%;
 }
 
 a {
