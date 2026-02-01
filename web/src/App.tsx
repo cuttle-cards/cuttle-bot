@@ -1,5 +1,5 @@
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Club, Diamond, Heart, Spade } from 'lucide-react'
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { useGameSession } from './api/hooks'
 import type { ActionView, AiType, CardView } from './api/types'
@@ -633,7 +633,7 @@ const oneOffDescriptions: Record<string, string> = {
   TWO: 'Scrap a target royal or Glasses Eight.',
   THREE: 'Take one card from the scrap pile.',
   FOUR: 'Opponent discards two cards of their choice.',
-  FIVE: 'Discard one card, then draw up to three (max 8 in hand).',
+  FIVE: 'Draw up to two cards from deck (max 8 in hand).',
   SIX: 'Destroy all face cards (royals) on the field.',
   SEVEN: 'Reveal the top two cards of the deck; choose one to play.',
   NINE: "Return an opponent's field card to their hand (cannot play it next turn).",
