@@ -41,6 +41,8 @@ function App() {
     () => legalActions.filter((action) => action.type === 'Discard From Hand'),
     [legalActions],
   )
+  const hasHumanActions = (actions: ActionView[]) =>
+    actions.some((action) => action.played_by === 0)
   const sevenActions = useMemo(
     () =>
       legalActions.filter((action) =>
@@ -62,11 +64,11 @@ function App() {
     !state?.resolving_four &&
     !state?.resolving_seven
   const discardModalActive =
-    Boolean(state?.resolving_three) && state?.current_action_player === 0
+    Boolean(state?.resolving_three) && hasHumanActions(discardActions)
   const fourDiscardModalActive =
-    Boolean(state?.resolving_four) && state?.current_action_player === 0
+    Boolean(state?.resolving_four) && hasHumanActions(fourDiscardActions)
   const sevenModalActive =
-    Boolean(state?.resolving_seven) && state?.current_action_player === 0
+    Boolean(state?.resolving_seven) && state?.pending_seven_player === 0
   const sevenCards = state?.pending_seven_cards ?? []
   const sevenActionsByCard = useMemo(() => {
     const grouped = new Map<string, ActionView[]>()
@@ -334,6 +336,11 @@ function App() {
             <div className="action-title">
               {selectedAction?.label ?? 'Select an action'}
             </div>
+            {selectedAction && actionDescription(selectedAction) ? (
+              <div className="action-desc-line">
+                {actionDescription(selectedAction)}
+              </div>
+            ) : null}
             <div className="action-sub">
               {state?.resolving_one_off
                 ? 'Resolve or counter the one-off.'
@@ -364,16 +371,14 @@ function App() {
         </div>
         <div className="action-choice-row">
           {actionChoices.map((action) => (
-            <button
+            <ActionButton
               key={action.id}
-              className={`ghost ${
-                selectedActionId === action.id ? 'selected-action' : ''
-              }`}
-              onClick={() => handleActionSelect(action)}
+              action={action}
+              context="choice"
+              selected={selectedActionId === action.id}
               disabled={Boolean(isGameOver)}
-            >
-              {action.label}
-            </button>
+              onClick={() => handleActionSelect(action)}
+            />
           ))}
         </div>
         <div className="hand">
@@ -522,17 +527,13 @@ function App() {
                     <CardTile card={card} />
                     <div className="modal-actions">
                       {(sevenActionsByCard.get(card.id) ?? []).map((action) => (
-                        <button
+                        <ActionButton
                           key={action.id}
-                          className={`ghost ${
-                            selectedActionId === action.id
-                              ? 'selected-action'
-                              : ''
-                          }`}
+                          action={action}
+                          context="seven"
+                          selected={selectedActionId === action.id}
                           onClick={() => handleActionSelect(action)}
-                        >
-                          {action.label}
-                        </button>
+                        />
                       ))}
                     </div>
                   </div>
@@ -578,15 +579,13 @@ function App() {
               </div>
               <div className="modal-actions">
                 {modalActions.map((action) => (
-                  <button
+                  <ActionButton
                     key={action.id}
-                    className={`ghost ${
-                      selectedActionId === action.id ? 'selected-action' : ''
-                    }`}
+                    action={action}
+                    context="resolve"
+                    selected={selectedActionId === action.id}
                     onClick={() => handleActionSelect(action)}
-                  >
-                    {action.label}
-                  </button>
+                  />
                 ))}
               </div>
             </div>
@@ -619,8 +618,33 @@ type CardTileProps = {
   onClick?: () => void
 }
 
+type ActionButtonProps = {
+  action: ActionView
+  context: string
+  selected?: boolean
+  disabled?: boolean
+  onClick: () => void
+}
+
 const oneOffRanks = new Set(['ACE', 'THREE', 'FOUR', 'FIVE', 'SIX'])
 const faceRanks = new Set(['JACK', 'QUEEN', 'KING', 'EIGHT'])
+const oneOffDescriptions: Record<string, string> = {
+  ACE: 'Destroy all point cards on the field.',
+  TWO: 'Scrap a target royal or Glasses Eight.',
+  THREE: 'Take one card from the scrap pile.',
+  FOUR: 'Opponent discards two cards of their choice.',
+  FIVE: 'Discard one card, then draw up to three (max 8 in hand).',
+  SIX: 'Destroy all face cards (royals) on the field.',
+  SEVEN: 'Reveal the top two cards of the deck; choose one to play.',
+  NINE: "Return an opponent's field card to their hand (cannot play it next turn).",
+  TEN: 'No effect.',
+}
+const faceCardDescriptions: Record<string, string> = {
+  KING: 'Reduce points needed to win while in play.',
+  QUEEN: 'Protect your other cards from targeted effects.',
+  JACK: 'Steal a target point card while in play.',
+  EIGHT: "Reveal your opponent's hand while in play.",
+}
 
 function cardTag(card: CardView) {
   if (card.purpose === 'POINTS') return 'points'
@@ -650,6 +674,61 @@ function rankShort(rank: string) {
   return map[rank] ?? rank
 }
 
+function actionDescription(action: ActionView): string | null {
+  if (action.type === 'Draw') {
+    return 'Draw one card (max 8 in hand).'
+  }
+  if (action.type === 'Points') {
+    return 'Play for points equal to its rank.'
+  }
+  if (action.type === 'Scuttle') {
+    return 'Scrap an opponent point card with a higher card (suit breaks ties).'
+  }
+  if (action.type === 'Face Card') {
+    if (action.card?.rank && faceCardDescriptions[action.card.rank]) {
+      return faceCardDescriptions[action.card.rank]
+    }
+    return 'Play a royal for an ongoing effect.'
+  }
+  if (action.type === 'Jack') {
+    return 'Steal a target point card while in play.'
+  }
+  if (action.type === 'One-Off') {
+    if (action.card?.rank && oneOffDescriptions[action.card.rank]) {
+      return oneOffDescriptions[action.card.rank]
+    }
+    return "Trigger this card's one-off effect."
+  }
+  if (action.type === 'Counter') {
+    return 'Counter a one-off with a Two.'
+  }
+  if (action.type === 'Resolve') {
+    return 'Let the pending one-off resolve.'
+  }
+  if (action.type === 'Take From Discard') {
+    return 'Take one card from the scrap pile.'
+  }
+  if (action.type === 'Discard From Hand') {
+    return 'Discard a card from your hand.'
+  }
+  if (action.type === 'Discard Revealed') {
+    return 'Discard a revealed card.'
+  }
+  if (action.type === 'Request Stalemate') {
+    return 'Ask to end the game in a stalemate.'
+  }
+  if (action.type === 'Accept Stalemate') {
+    return 'Accept the stalemate request.'
+  }
+  if (action.type === 'Reject Stalemate') {
+    return 'Reject the stalemate request.'
+  }
+  if (action.type === 'Concede') {
+    return 'Concede the game.'
+  }
+  return null
+}
+
 function SuitIcon({ suit, size = 20 }: { suit: string; size?: number }) {
   const suitProps = { size, strokeWidth: 2.5 }
   
@@ -665,6 +744,34 @@ function SuitIcon({ suit, size = 20 }: { suit: string; size?: number }) {
     default:
       return <span>{suit}</span>
   }
+}
+
+function ActionButton({
+  action,
+  context,
+  selected,
+  disabled,
+  onClick,
+}: ActionButtonProps) {
+  const description = actionDescription(action)
+  const descId = description ? `action-desc-${context}-${action.id}` : undefined
+
+  return (
+    <button
+      className={`ghost action-button ${selected ? 'selected-action' : ''}`}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={action.label}
+      aria-describedby={descId}
+    >
+      <span className="action-label">{action.label}</span>
+      {description ? (
+        <span className="action-desc" id={descId}>
+          {description}
+        </span>
+      ) : null}
+    </button>
+  )
 }
 
 function CardTile({ card, selected, isHand, onClick }: CardTileProps) {

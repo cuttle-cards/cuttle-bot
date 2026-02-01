@@ -335,6 +335,207 @@ test('visual snapshot', async ({ page }) => {
   })
 })
 
+test('mobile layout fits in one viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+
+  await page.route('**/api/sessions', async (route) => {
+    const payload = {
+      session_id: 'mobile-session',
+      state: {
+        hands: [
+          [
+            {
+              id: 'card-1',
+              suit: 'SPADES',
+              rank: 'ACE',
+              display: 'Ace of Spades',
+              played_by: null,
+              purpose: null,
+              point_value: 1,
+              is_stolen: false,
+              attachments: [],
+            },
+          ],
+          [],
+        ],
+        hand_counts: [1, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 19,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 0,
+        current_action_player: 0,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        overall_turn: 0,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [
+        {
+          id: 0,
+          label: 'Play Ace of Spades as points',
+          type: 'Points',
+          played_by: 0,
+          source: 'Hand',
+          requires_additional_input: false,
+          card: {
+            id: 'card-1',
+            suit: 'SPADES',
+            rank: 'ACE',
+            display: 'Ace of Spades',
+            played_by: null,
+            purpose: null,
+            point_value: 1,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+        {
+          id: 1,
+          label: 'Draw a card from deck',
+          type: 'Draw',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: null,
+          target: null,
+        },
+      ],
+      state_version: 0,
+      ai_thinking: false,
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.route('**/api/sessions/mobile-session/history', async (route) => {
+    const entries = Array.from({ length: 6 }, (_, index) => ({
+      timestamp: `2025-01-01T00:00:${index.toString().padStart(2, '0')}Z`,
+      turn_number: 1,
+      player: index % 2,
+      action_type: 'Draw',
+      description: `History entry ${index + 1}`,
+    }))
+
+    await route.fulfill({ json: { entries, turn_counter: 1 } })
+  })
+
+  await page.route('**/api/sessions/mobile-session', async (route) => {
+    const payload = {
+      session_id: 'mobile-session',
+      state: {
+        hands: [
+          [
+            {
+              id: 'card-1',
+              suit: 'SPADES',
+              rank: 'ACE',
+              display: 'Ace of Spades',
+              played_by: null,
+              purpose: null,
+              point_value: 1,
+              is_stolen: false,
+              attachments: [],
+            },
+          ],
+          [],
+        ],
+        hand_counts: [1, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 19,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 0,
+        current_action_player: 0,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        overall_turn: 0,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [
+        {
+          id: 0,
+          label: 'Play Ace of Spades as points',
+          type: 'Points',
+          played_by: 0,
+          source: 'Hand',
+          requires_additional_input: false,
+          card: {
+            id: 'card-1',
+            suit: 'SPADES',
+            rank: 'ACE',
+            display: 'Ace of Spades',
+            played_by: null,
+            purpose: null,
+            point_value: 1,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+        {
+          id: 1,
+          label: 'Draw a card from deck',
+          type: 'Draw',
+          played_by: 0,
+          source: 'Deck',
+          requires_additional_input: false,
+          card: null,
+          target: null,
+        },
+      ],
+      state_version: 0,
+      ai_thinking: false,
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.goto('/')
+  await expect(page.getByText('Cuttle')).toBeVisible()
+
+  const viewportHeight = await page.evaluate(() => window.innerHeight)
+
+  const sections = [
+    page.locator('.top-bar'),
+    page.locator('.rail.left'),
+    page.locator('.table-surface'),
+    page.locator('.rail.right'),
+    page.locator('.hand-area'),
+  ]
+
+  for (const section of sections) {
+    const box = await section.boundingBox()
+    expect(box).not.toBeNull()
+    if (!box) continue
+    expect(box.y).toBeGreaterThanOrEqual(0)
+    expect(box.y + box.height).toBeLessThanOrEqual(viewportHeight + 2)
+  }
+
+  const fitsViewport = await page.evaluate(
+    () => document.documentElement.scrollHeight <= window.innerHeight + 2,
+  )
+  expect(fitsViewport).toBeTruthy()
+
+  expect(await page.screenshot()).toMatchSnapshot('table-layout-mobile.png', {
+    maxDiffPixelRatio: 0.02,
+  })
+})
+
 test('one-off modal flow', async ({ page }) => {
   await page.route('**/api/sessions', async (route) => {
     const payload = {
@@ -719,6 +920,296 @@ test('discard selection flow for three', async ({ page }) => {
     '**/api/sessions/discard-session/actions',
   )
   await page.getByRole('button', { name: 'Take card' }).click()
+  await responsePromise
+})
+
+test('discard selection flow for four', async ({ page }) => {
+  await page.route('**/api/sessions', async (route) => {
+    const payload = {
+      session_id: 'four-discard-session',
+      state: {
+        hands: [
+          [
+            {
+              id: 'hand-1',
+              suit: 'DIAMONDS',
+              rank: 'TEN',
+              display: 'Ten of Diamonds',
+              played_by: 0,
+              purpose: null,
+              point_value: 10,
+              is_stolen: false,
+              attachments: [],
+            },
+            {
+              id: 'hand-2',
+              suit: 'SPADES',
+              rank: 'NINE',
+              display: 'Nine of Spades',
+              played_by: 0,
+              purpose: null,
+              point_value: 9,
+              is_stolen: false,
+              attachments: [],
+            },
+          ],
+          [],
+        ],
+        hand_counts: [2, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 18,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 1,
+        current_action_player: 1,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        resolving_four: true,
+        pending_four_count: 2,
+        overall_turn: 3,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [
+        {
+          id: 0,
+          label: 'Discard Ten of Diamonds from hand',
+          type: 'Discard From Hand',
+          played_by: 0,
+          source: 'Hand',
+          requires_additional_input: false,
+          card: {
+            id: 'hand-1',
+            suit: 'DIAMONDS',
+            rank: 'TEN',
+            display: 'Ten of Diamonds',
+            played_by: 0,
+            purpose: null,
+            point_value: 10,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+        {
+          id: 1,
+          label: 'Discard Nine of Spades from hand',
+          type: 'Discard From Hand',
+          played_by: 0,
+          source: 'Hand',
+          requires_additional_input: false,
+          card: {
+            id: 'hand-2',
+            suit: 'SPADES',
+            rank: 'NINE',
+            display: 'Nine of Spades',
+            played_by: 0,
+            purpose: null,
+            point_value: 9,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+      ],
+      state_version: 0,
+      ai_thinking: false,
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.route('**/api/sessions/four-discard-session/history', async (route) => {
+    await route.fulfill({ json: { entries: [], turn_counter: 3 } })
+  })
+
+  await page.route('**/api/sessions/four-discard-session', async (route) => {
+    const payload = {
+      session_id: 'four-discard-session',
+      state: {
+        hands: [
+          [
+            {
+              id: 'hand-1',
+              suit: 'DIAMONDS',
+              rank: 'TEN',
+              display: 'Ten of Diamonds',
+              played_by: 0,
+              purpose: null,
+              point_value: 10,
+              is_stolen: false,
+              attachments: [],
+            },
+            {
+              id: 'hand-2',
+              suit: 'SPADES',
+              rank: 'NINE',
+              display: 'Nine of Spades',
+              played_by: 0,
+              purpose: null,
+              point_value: 9,
+              is_stolen: false,
+              attachments: [],
+            },
+          ],
+          [],
+        ],
+        hand_counts: [2, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 18,
+        discard_pile: [],
+        discard_count: 0,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 1,
+        current_action_player: 1,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        resolving_four: true,
+        pending_four_count: 2,
+        overall_turn: 3,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [
+        {
+          id: 0,
+          label: 'Discard Ten of Diamonds from hand',
+          type: 'Discard From Hand',
+          played_by: 0,
+          source: 'Hand',
+          requires_additional_input: false,
+          card: {
+            id: 'hand-1',
+            suit: 'DIAMONDS',
+            rank: 'TEN',
+            display: 'Ten of Diamonds',
+            played_by: 0,
+            purpose: null,
+            point_value: 10,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+        {
+          id: 1,
+          label: 'Discard Nine of Spades from hand',
+          type: 'Discard From Hand',
+          played_by: 0,
+          source: 'Hand',
+          requires_additional_input: false,
+          card: {
+            id: 'hand-2',
+            suit: 'SPADES',
+            rank: 'NINE',
+            display: 'Nine of Spades',
+            played_by: 0,
+            purpose: null,
+            point_value: 9,
+            is_stolen: false,
+            attachments: [],
+          },
+          target: null,
+        },
+      ],
+      state_version: 0,
+      ai_thinking: false,
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.route('**/api/sessions/four-discard-session/actions', async (route) => {
+    const payload = {
+      state: {
+        hands: [
+          [
+            {
+              id: 'hand-2',
+              suit: 'SPADES',
+              rank: 'NINE',
+              display: 'Nine of Spades',
+              played_by: 0,
+              purpose: null,
+              point_value: 9,
+              is_stolen: false,
+              attachments: [],
+            },
+          ],
+          [],
+        ],
+        hand_counts: [1, 0],
+        fields: [[], []],
+        effective_fields: [[], []],
+        deck_count: 18,
+        discard_pile: [
+          {
+            id: 'hand-1',
+            suit: 'DIAMONDS',
+            rank: 'TEN',
+            display: 'Ten of Diamonds',
+            played_by: null,
+            purpose: null,
+            point_value: 10,
+            is_stolen: false,
+            attachments: [],
+          },
+        ],
+        discard_count: 1,
+        scores: [0, 0],
+        targets: [21, 21],
+        turn: 1,
+        current_action_player: 1,
+        status: null,
+        resolving_two: false,
+        resolving_one_off: false,
+        resolving_three: false,
+        resolving_four: false,
+        pending_four_count: 0,
+        overall_turn: 3,
+        use_ai: true,
+        one_off_card_to_counter: null,
+      },
+      legal_actions: [],
+      state_version: 1,
+      last_actions: [
+        {
+          id: -1,
+          label: 'Discard Ten of Diamonds from hand',
+          type: 'Discard From Hand',
+          played_by: 0,
+          source: 'Hand',
+          requires_additional_input: false,
+          card: null,
+          target: null,
+        },
+      ],
+    }
+
+    await route.fulfill({ json: payload })
+  })
+
+  await page.goto('/')
+
+  await expect(page.getByText('Discard Cards')).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: 'Ten of Diamonds' }),
+  ).toBeVisible()
+
+  const responsePromise = page.waitForResponse(
+    '**/api/sessions/four-discard-session/actions',
+  )
+  await page.getByRole('button', { name: 'Ten of Diamonds' }).click()
+  await page.getByRole('button', { name: 'Discard' }).click()
   await responsePromise
 })
 
